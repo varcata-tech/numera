@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Landscape gives the display roughly half the height it has in portrait, because both
+  keypads are on screen at once. The portrait sizes are chosen so the number you are typing
+  is comfortable to read; carried into landscape unchanged, the formula and the result
+  together overflow the display area at a large system font scale and the top line is clipped.
+
+  These are the previous portrait values, which are known to fit.
+-->
+<resources>
+    <dimen name="calc_text_display_medium">44dp</dimen>
+    <dimen name="calc_text_display_small">32dp</dimen>
+</resources>

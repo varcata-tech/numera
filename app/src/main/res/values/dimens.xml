@@ -16,9 +16,9 @@
     <!-- The committed result. Large enough that a short answer fills the display band. -->
     <dimen name="calc_text_display_large">60dp</dimen>
     <!-- The live result preview, and the default for ScrollableValueText. -->
-    <dimen name="calc_text_display_medium">44dp</dimen>
+    <dimen name="calc_text_display_medium">56dp</dimen>
     <!-- The formula being typed, deliberately smaller than its own result. -->
-    <dimen name="calc_text_display_small">32dp</dimen>
+    <dimen name="calc_text_display_small">42dp</dimen>
     <!-- A digit or operator key label. -->
     <dimen name="calc_text_headline_large">26dp</dimen>
     <!-- A secondary or function key label. -->
