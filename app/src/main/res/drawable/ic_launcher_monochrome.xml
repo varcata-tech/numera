@@ -1,29 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The themed-icon variant (Android 13+). The system tints this single silhouette to the
-  user's wallpaper palette, so it must carry no colour of its own and no background —
-  only the shape. Shipping without it means Numera stays fully coloured on a home screen
-  where every other icon has gone monochrome, which reads as a bug rather than a choice.
+  The themed-icon variant (Android 13+). The system tints this silhouette to the user's
+  wallpaper palette, so it carries no colour of its own and no background, only the shape.
+  Shipping without it leaves Numera fully coloured on a home screen where every other icon
+  has gone monochrome, which reads as a bug rather than a choice.
+
+  Identical geometry to the foreground so the themed and unthemed icons are the same drawing.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- Calculator body. Stroked rather than filled so the blue tile shows through and the
+         icon stays line art; a solid white block would swallow the keys at launcher size.
+
+         Sized so its half-diagonal is 31dp, inside the 33dp radius a circular launcher mask
+         guarantees. An earlier draft was 62dp tall and a round mask sliced the top and bottom
+         off the calculator — worth rendering the masked shape rather than trusting the
+         72dp square, because a tall rectangle does not fit the inscribed circle. -->
     <path
-        android:pathData="M38,62 L38,28 L70,62 L70,28"
+        android:pathData="M42,31 H66 A6,6 0 0 1 72,37 V71 A6,6 0 0 1 66,77 H42 A6,6 0 0 1 36,71 V37 A6,6 0 0 1 42,31 Z"
         android:strokeColor="#FFFFFF"
-        android:strokeWidth="10"
-        android:strokeLineCap="round"
+        android:strokeWidth="3.5"
         android:strokeLineJoin="round" />
+
+    <!-- The display, filled so it still reads as a screen at 48dp. -->
     <path
-        android:pathData="M40,74 L68,74"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="6"
-        android:strokeLineCap="round" />
+        android:pathData="M42.5,37 H65.5 A1.5,1.5 0 0 1 67,38.5 V44.5 A1.5,1.5 0 0 1 65.5,46 H42.5 A1.5,1.5 0 0 1 41,44.5 V38.5 A1.5,1.5 0 0 1 42.5,37 Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Keys as discs. At launcher size a 3x3 grid of squares turns into an illegible
+         checkerboard; discs stay visually separate. -->
+    <path android:pathData="M41.0,54.8 a2.8,2.8 0 1 0 5.6,0 a2.8,2.8 0 1 0 -5.6,0 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M51.2,54.8 a2.8,2.8 0 1 0 5.6,0 a2.8,2.8 0 1 0 -5.6,0 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M61.400000000000006,54.8 a2.8,2.8 0 1 0 5.6,0 a2.8,2.8 0 1 0 -5.6,0 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M41.0,62.0 a2.8,2.8 0 1 0 5.6,0 a2.8,2.8 0 1 0 -5.6,0 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M51.2,62.0 a2.8,2.8 0 1 0 5.6,0 a2.8,2.8 0 1 0 -5.6,0 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M61.400000000000006,62.0 a2.8,2.8 0 1 0 5.6,0 a2.8,2.8 0 1 0 -5.6,0 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M41.0,69.2 a2.8,2.8 0 1 0 5.6,0 a2.8,2.8 0 1 0 -5.6,0 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M51.2,69.2 a2.8,2.8 0 1 0 5.6,0 a2.8,2.8 0 1 0 -5.6,0 Z" android:fillColor="#FFFFFF" />
+
+    <!-- The equals key, wide instead of round. It is the only key drawn differently, and it
+         is the one the app is named for: Numera's claim is that its = is exact. -->
     <path
-        android:pathData="M40,84 L68,84"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="6"
-        android:strokeLineCap="round" />
+        android:pathData="M59.5,66.4 H65.5 A1.5,1.5 0 0 1 67,67.9 V70.5 A1.5,1.5 0 0 1 65.5,72.0 H59.5 A1.5,1.5 0 0 1 58,70.5 V67.9 A1.5,1.5 0 0 1 59.5,66.4 Z"
+        android:fillColor="#FFFFFF" />
 </vector>
