@@ -55,11 +55,27 @@ enum class KeyStyle { DIGIT, OPERATOR, FUNCTION, ACCENT, DESTRUCTIVE }
  * Digits carry more weight than the operators and functions around them. They are what the
  * eye lands on while typing, and the pad reads faster when the numerals are the strongest
  * thing on it — the operators do not need to compete, because their colour already separates
- * them. Kept to SemiBold rather than Bold so the keypad stays calm at a glance.
+ * them.
  */
 private fun KeyStyle.labelWeight(): FontWeight = when (this) {
-    KeyStyle.DIGIT -> FontWeight.SemiBold
+    KeyStyle.DIGIT -> FontWeight.Bold
     else -> FontWeight.Normal
+}
+
+/**
+ * How large a key's label is drawn, relative to the shared headline size.
+ *
+ * Applied here rather than by raising `calc_text_headline_large`, because that dimension is
+ * shared with the operator and function keys and enlarging it would scale the whole pad,
+ * losing the hierarchy this exists to create.
+ *
+ * Oversizing is safe: [AutoShrinkingLabel] steps any label back down until it fits its box,
+ * so a wide glyph in a narrow key or a 2.0 font scale degrades to a smaller digit rather
+ * than a clipped one.
+ */
+private fun KeyStyle.labelScale(): Float = when (this) {
+    KeyStyle.DIGIT -> 1.25f
+    else -> 1f
 }
 
 /** The container and content colours a [KeyStyle] resolves to in the current scheme. */
@@ -167,9 +183,16 @@ fun CalcButton(
         AutoShrinkingLabel(
             text = label,
             color = keyColors.content,
-            baseStyle = MaterialTheme.typography.headlineLarge.copy(
-                fontWeight = style.labelWeight(),
-            ),
+            baseStyle = MaterialTheme.typography.headlineLarge.let { headline ->
+                headline.copy(
+                    fontWeight = style.labelWeight(),
+                    fontSize = headline.fontSize * style.labelScale(),
+                    // The line height has to grow with the text or a taller glyph is
+                    // vertically clipped inside its own line box before the shrink-to-fit
+                    // pass ever sees an overflow to react to.
+                    lineHeight = headline.lineHeight * style.labelScale(),
+                )
+            },
             modifier = Modifier.padding(horizontal = 4.dp),
         )
     }
