@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -47,6 +48,19 @@ import app.numera.calculator.R
  * @property DESTRUCTIVE clear or delete.
  */
 enum class KeyStyle { DIGIT, OPERATOR, FUNCTION, ACCENT, DESTRUCTIVE }
+
+/**
+ * How heavily a key's label is drawn.
+ *
+ * Digits carry more weight than the operators and functions around them. They are what the
+ * eye lands on while typing, and the pad reads faster when the numerals are the strongest
+ * thing on it — the operators do not need to compete, because their colour already separates
+ * them. Kept to SemiBold rather than Bold so the keypad stays calm at a glance.
+ */
+private fun KeyStyle.labelWeight(): FontWeight = when (this) {
+    KeyStyle.DIGIT -> FontWeight.SemiBold
+    else -> FontWeight.Normal
+}
 
 /** The container and content colours a [KeyStyle] resolves to in the current scheme. */
 private data class KeyColors(val container: Color, val content: Color)
@@ -153,7 +167,9 @@ fun CalcButton(
         AutoShrinkingLabel(
             text = label,
             color = keyColors.content,
-            baseStyle = MaterialTheme.typography.headlineLarge,
+            baseStyle = MaterialTheme.typography.headlineLarge.copy(
+                fontWeight = style.labelWeight(),
+            ),
             modifier = Modifier.padding(horizontal = 4.dp),
         )
     }
