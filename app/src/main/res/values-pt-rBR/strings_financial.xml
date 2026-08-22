@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fin_tab_loan">Empréstimo</string>
+    <string name="fin_tab_interest">Juros</string>
+    <string name="fin_tab_tip">Gorjeta</string>
+    <string name="fin_tab_discount">Desconto</string>
+    <string name="fin_tab_tax">Imposto</string>
+    <string name="fin_principal">Capital</string>
+    <string name="fin_rate">Taxa anual %</string>
+    <string name="fin_months">Prazo (meses)</string>
+    <string name="fin_years">Anos</string>
+    <string name="fin_instalment">Prestação mensal</string>
+    <string name="fin_total_paid">Total pago</string>
+    <string name="fin_total_interest">Juros totais</string>
+    <string name="fin_schedule">Cronograma</string>
+    <string name="fin_schedule_line">%1$d · parcela %2$s · capital %3$s · juros %4$s · saldo %5$s</string>
+    <string name="fin_compounding">Capitalização</string>
+    <string name="fin_contribution">Aporte por período</string>
+    <string name="fin_final_balance">Saldo final</string>
+    <string name="fin_bill">Conta</string>
+    <string name="fin_tip_percent">Gorjeta %</string>
+    <string name="fin_people">Pessoas</string>
+    <string name="fin_round_up">Arredondar o total para cima</string>
+    <string name="fin_tip_amount">Gorjeta</string>
+    <string name="fin_total">Total</string>
+    <string name="fin_per_person">Por pessoa</string>
+    <string name="fin_extra_cents">%1$d pagam uma unidade a mais</string>
+    <string name="fin_price">Preço</string>
+    <string name="fin_discount_1">Primeiro desconto %</string>
+    <string name="fin_discount_2">Segundo desconto %</string>
+    <string name="fin_final_price">Preço final</string>
+    <string name="fin_saved">Você economiza</string>
+    <string name="fin_effective">Desconto efetivo</string>
+    <string name="fin_successive_note" formatted="false">Descontos sucessivos se compõem: 20% e depois 10% dá 28%, não 30%.</string>
+    <string name="fin_amount">Valor</string>
+    <string name="fin_tax_rate">Alíquota %</string>
+    <string name="fin_add_tax">Adicionar imposto</string>
+    <string name="fin_remove_tax">Remover imposto</string>
+    <string name="fin_net">Líquido</string>
+    <string name="fin_tax">Imposto</string>
+    <string name="fin_gross">Bruto</string>
+    <string name="fin_compound_annual">Anual</string>
+    <string name="fin_compound_semiannual">Semestral</string>
+    <string name="fin_compound_quarterly">Trimestral</string>
+    <string name="fin_compound_monthly">Mensal</string>
+    <string name="fin_compound_daily">Diária</string>
+    <string name="fin_compound_continuous">Contínua</string>
+    <string name="fin_disclaimer">Apenas para informação. Não é aconselhamento financeiro — os valores do seu credor podem diferir.</string>
+    <string name="fin_invalid_input">Digite um número válido em cada campo.</string>
+    <string name="fin_out_of_range">Esses valores estão fora do intervalo que esta calculadora consegue calcular.</string>
+    <string name="fin_contribution_continuous">A capitalização contínua não tem período, então os aportes não são incluídos.</string>
+</resources>

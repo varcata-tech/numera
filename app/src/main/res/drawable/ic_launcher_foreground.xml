@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Numera monogram: an N above an equals sign.
+
+  Drawn as strokes on the 108dp adaptive-icon canvas, with every mark inside the inner
+  72dp square that launchers guarantee to show. The outer ring is reserved for the mask,
+  which can be a circle, a squircle or a rounded square depending on the launcher, so
+  anything placed there would be cropped on some devices and not others.
+
+  Deliberately a monogram rather than a keypad or a calculator body: Play's impersonation
+  policy is about icons that suggest a relationship to another app, and every stock
+  calculator icon is some arrangement of keys.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- N, drawn as one continuous stroke: up the left stem, down the diagonal, up the right. -->
+    <path
+        android:pathData="M38,62 L38,28 L70,62 L70,28"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="10"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- The equals: the app's whole argument is that its = is exact. -->
+    <path
+        android:pathData="M40,74 L68,74"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M40,84 L68,84"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round" />
+</vector>

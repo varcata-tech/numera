@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="prog_signed">Vorzeichenbehaftet</string>
+    <string name="prog_unsigned">Vorzeichenlos</string>
+    <string name="prog_overflow">Überlauf</string>
+    <string name="desc_bit">Bit %1$d</string>
+    <string name="desc_bit_set">gesetzt</string>
+    <string name="desc_bit_clear">nicht gesetzt</string>
+    <string name="desc_key_unavailable">in dieser Basis nicht verfügbar</string>
+</resources>

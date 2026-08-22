@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- No permissions are declared, and none are needed: the calculator computes entirely
+     on device. Adding one later should require justifying it against PRIVACY.md. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:localeConfig="@xml/locales_config"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Calculator">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="stateAlwaysHidden"
+            android:theme="@style/Theme.Calculator">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- The system calculator chooser and assistant "open the calculator" route
+                 through this, which a preloaded first-party app is expected to answer. -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.APP_CALCULATOR" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- How the launcher shortcuts in res/xml/shortcuts.xml resolve. They carry no
+                 explicit component on purpose: res/xml cannot expand the ".debug" suffix the
+                 debug build type appends to the applicationId, so a hardcoded target package
+                 named an app that is not installed and made the entire shortcut code path
+                 untestable before release. No BROWSABLE category — the launcher fires this
+                 intent directly, and there is no reason for a web page to be able to. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="numera" android:host="mode" />
+            </intent-filter>
+
+            <!-- Declared on the launcher activity, which is where the system looks for the
+                 long-press shortcut list. The three modes named there re-enter this same
+                 singleTask activity and arrive at onNewIntent, not onCreate. -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+    </application>
+</manifest>

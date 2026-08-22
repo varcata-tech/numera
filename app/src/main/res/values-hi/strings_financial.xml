@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fin_tab_loan">ऋण</string>
+    <string name="fin_tab_interest">ब्याज</string>
+    <string name="fin_tab_tip">टिप</string>
+    <string name="fin_tab_discount">छूट</string>
+    <string name="fin_tab_tax">कर</string>
+    <string name="fin_principal">मूलधन</string>
+    <string name="fin_rate">वार्षिक दर %</string>
+    <string name="fin_months">अवधि (माह)</string>
+    <string name="fin_years">वर्ष</string>
+    <string name="fin_instalment">मासिक किस्त</string>
+    <string name="fin_total_paid">कुल भुगतान</string>
+    <string name="fin_total_interest">कुल ब्याज</string>
+    <string name="fin_schedule">भुगतान अनुसूची</string>
+    <string name="fin_schedule_line">%1$d · किस्त %2$s · मूलधन %3$s · ब्याज %4$s · शेष %5$s</string>
+    <string name="fin_compounding">चक्रवृद्धि</string>
+    <string name="fin_contribution">प्रति अवधि योगदान</string>
+    <string name="fin_final_balance">अंतिम शेष</string>
+    <string name="fin_bill">बिल</string>
+    <string name="fin_tip_percent">टिप %</string>
+    <string name="fin_people">व्यक्ति</string>
+    <string name="fin_round_up">कुल को ऊपर पूर्णांकित करें</string>
+    <string name="fin_tip_amount">टिप</string>
+    <string name="fin_total">कुल</string>
+    <string name="fin_per_person">प्रति व्यक्ति</string>
+    <string name="fin_extra_cents">%1$d एक इकाई अधिक देंगे</string>
+    <string name="fin_price">मूल्य</string>
+    <string name="fin_discount_1">पहली छूट %</string>
+    <string name="fin_discount_2">दूसरी छूट %</string>
+    <string name="fin_final_price">अंतिम मूल्य</string>
+    <string name="fin_saved">आपकी बचत</string>
+    <string name="fin_effective">प्रभावी छूट</string>
+    <string name="fin_successive_note" formatted="false">क्रमिक छूटें गुणा होती हैं: 20% फिर 10% का मतलब 28% है, 30% नहीं।</string>
+    <string name="fin_amount">राशि</string>
+    <string name="fin_tax_rate">कर दर %</string>
+    <string name="fin_add_tax">कर जोड़ें</string>
+    <string name="fin_remove_tax">कर हटाएँ</string>
+    <string name="fin_net">शुद्ध</string>
+    <string name="fin_tax">कर</string>
+    <string name="fin_gross">सकल</string>
+    <string name="fin_compound_annual">वार्षिक</string>
+    <string name="fin_compound_semiannual">अर्धवार्षिक</string>
+    <string name="fin_compound_quarterly">त्रैमासिक</string>
+    <string name="fin_compound_monthly">मासिक</string>
+    <string name="fin_compound_daily">दैनिक</string>
+    <string name="fin_compound_continuous">सतत</string>
+    <string name="fin_disclaimer">केवल जानकारी के लिए। यह वित्तीय सलाह नहीं है — आपके ऋणदाता के आंकड़े भिन्न हो सकते हैं।</string>
+    <string name="fin_invalid_input">हर फ़ील्ड में एक मान्य संख्या दर्ज करें।</string>
+    <string name="fin_out_of_range">ये मान उस सीमा से बाहर हैं जिसकी गणना यह कैलकुलेटर कर सकता है।</string>
+    <string name="fin_contribution_continuous">सतत चक्रवृद्धि में कोई अवधि नहीं होती, इसलिए नियमित योगदान शामिल नहीं किए जाते।</string>
+</resources>

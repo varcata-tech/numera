@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Category names. -->
+    <string name="dim_length">Length</string>
+    <string name="dim_mass">Mass</string>
+    <string name="dim_area">Area</string>
+    <string name="dim_volume">Volume</string>
+    <string name="dim_speed">Speed</string>
+    <string name="dim_temperature">Temperature</string>
+    <string name="dim_time">Time</string>
+    <string name="dim_angle">Angle</string>
+    <string name="dim_energy">Energy</string>
+    <string name="dim_power">Power</string>
+    <string name="dim_force">Force</string>
+    <string name="dim_pressure">Pressure</string>
+    <string name="dim_frequency">Frequency</string>
+    <string name="dim_digital_storage">Digital storage</string>
+    <string name="dim_data_rate">Data transfer rate</string>
+    <string name="dim_fuel_economy">Fuel economy</string>
+
+    <!-- Unit names. Symbols are notation rather than prose and are the same in
+         every language, so they are marked untranslatable; the names are not. -->
+    <string name="unit_acre">Acre</string>
+    <string name="sym_acre" translatable="false">ac</string>
+    <string name="unit_angstrom">Ångström</string>
+    <string name="sym_angstrom" translatable="false">Å</string>
+    <string name="unit_arcminute">Arcminute</string>
+    <string name="sym_arcminute" translatable="false">′</string>
+    <string name="unit_arcsecond">Arcsecond</string>
+    <string name="sym_arcsecond" translatable="false">″</string>
+    <string name="unit_astronomical_unit">Astronomical unit</string>
+    <string name="sym_astronomical_unit" translatable="false">AU</string>
+    <string name="unit_atmosphere">Atmosphere</string>
+    <string name="sym_atmosphere" translatable="false">atm</string>
+    <string name="unit_bar">Bar</string>
+    <string name="sym_bar" translatable="false">bar</string>
+    <string name="unit_barrel_oil">Barrel (oil)</string>
+    <string name="sym_barrel_oil" translatable="false">bbl</string>
+    <string name="unit_bit">Bit</string>
+    <string name="sym_bit" translatable="false">bit</string>
+    <string name="unit_bit_per_second">Bit per second</string>
+    <string name="sym_bit_per_second" translatable="false">bit/s</string>
+    <string name="unit_btu">British thermal unit</string>
+    <string name="sym_btu" translatable="false">BTU</string>
+    <string name="unit_btu_per_hour">BTU per hour</string>
+    <string name="sym_btu_per_hour" translatable="false">BTU/h</string>
+    <string name="unit_byte">Byte</string>
+    <string name="sym_byte" translatable="false">B</string>
+    <string name="unit_byte_per_second">Byte per second</string>
+    <string name="sym_byte_per_second" translatable="false">B/s</string>
+    <string name="unit_calorie">Calorie</string>
+    <string name="sym_calorie" translatable="false">cal</string>
+    <string name="unit_calorie_per_second">Calorie per second</string>
+    <string name="sym_calorie_per_second" translatable="false">cal/s</string>
+    <string name="unit_carat">Carat</string>
+    <string name="sym_carat" translatable="false">ct</string>
+    <string name="unit_celsius">Celsius</string>
+    <string name="sym_celsius" translatable="false">°C</string>
+    <string name="unit_centimetre">Centimetre</string>
+    <string name="sym_centimetre" translatable="false">cm</string>
+    <string name="unit_century">Century</string>
+    <string name="sym_century" translatable="false">c</string>
+    <string name="unit_chain">Chain</string>
+    <string name="sym_chain" translatable="false">ch</string>
+    <string name="unit_cubic_centimetre">Cubic centimetre</string>
+    <string name="sym_cubic_centimetre" translatable="false">cm³</string>
+    <string name="unit_cubic_foot">Cubic foot</string>
+    <string name="sym_cubic_foot" translatable="false">ft³</string>
+    <string name="unit_cubic_inch">Cubic inch</string>
+    <string name="sym_cubic_inch" translatable="false">in³</string>
+    <string name="unit_cubic_metre">Cubic metre</string>
+    <string name="sym_cubic_metre" translatable="false">m³</string>
+    <string name="unit_cubic_yard">Cubic yard</string>
+    <string name="sym_cubic_yard" translatable="false">yd³</string>
+    <string name="unit_cup_us">Cup (US)</string>
+    <string name="sym_cup_us" translatable="false">cup</string>
+    <string name="unit_day">Day</string>
+    <string name="sym_day" translatable="false">d</string>
+    <string name="unit_decade">Decade</string>
+    <string name="sym_decade" translatable="false">dec</string>
+    <string name="unit_decimetre">Decimetre</string>
+    <string name="sym_decimetre" translatable="false">dm</string>
+    <string name="unit_degree">Degree</string>
+    <string name="sym_degree" translatable="false">°</string>
+    <string name="unit_dyne">Dyne</string>
+    <string name="sym_dyne" translatable="false">dyn</string>
+    <string name="unit_electronvolt">Electronvolt</string>
+    <string name="sym_electronvolt" translatable="false">eV</string>
+    <string name="unit_fahrenheit">Fahrenheit</string>
+    <string name="sym_fahrenheit" translatable="false">°F</string>
+    <string name="unit_fathom">Fathom</string>
+    <string name="sym_fathom" translatable="false">ftm</string>
+    <string name="unit_fluid_ounce_imperial">Fluid ounce (imperial)</string>
+    <string name="sym_fluid_ounce_imperial" translatable="false">fl oz</string>
+    <string name="unit_fluid_ounce_us">Fluid ounce (US)</string>
+    <string name="sym_fluid_ounce_us" translatable="false">fl oz</string>
+    <string name="unit_foot">Foot</string>
+    <string name="sym_foot" translatable="false">ft</string>
+    <string name="unit_foot_per_second">Foot per second</string>
+    <string name="sym_foot_per_second" translatable="false">ft/s</string>
+    <string name="unit_foot_pound">Foot-pound</string>
+    <string name="sym_foot_pound" translatable="false">ft·lb</string>
+    <string name="unit_fortnight">Fortnight</string>
+    <string name="sym_fortnight" translatable="false">fn</string>
+    <string name="unit_furlong">Furlong</string>
+    <string name="sym_furlong" translatable="false">fur</string>
+    <string name="unit_gallon_imperial">Gallon (imperial)</string>
+    <string name="sym_gallon_imperial" translatable="false">gal</string>
+    <string name="unit_gallon_us">Gallon (US)</string>
+    <string name="sym_gallon_us" translatable="false">gal</string>
+    <string name="unit_gibibit">Gibibit</string>
+    <string name="sym_gibibit" translatable="false">Gibit</string>
+    <string name="unit_gibibit_per_second">Gibibit per second</string>
+    <string name="sym_gibibit_per_second" translatable="false">Gibit/s</string>
+    <string name="unit_gibibyte">Gibibyte</string>
+    <string name="sym_gibibyte" translatable="false">GiB</string>
+    <string name="unit_gibibyte_per_second">Gibibyte per second</string>
+    <string name="sym_gibibyte_per_second" translatable="false">GiB/s</string>
+    <string name="unit_gigabit">Gigabit</string>
+    <string name="sym_gigabit" translatable="false">Gbit</string>
+    <string name="unit_gigabit_per_second">Gigabit per second</string>
+    <string name="sym_gigabit_per_second" translatable="false">Gbit/s</string>
+    <string name="unit_gigabyte">Gigabyte</string>
+    <string name="sym_gigabyte" translatable="false">GB</string>
+    <string name="unit_gigabyte_per_second">Gigabyte per second</string>
+    <string name="sym_gigabyte_per_second" translatable="false">GB/s</string>
+    <string name="unit_gigahertz">Gigahertz</string>
+    <string name="sym_gigahertz" translatable="false">GHz</string>
+    <string name="unit_gradian">Gradian</string>
+    <string name="sym_gradian" translatable="false">grad</string>
+    <string name="unit_grain">Grain</string>
+    <string name="sym_grain" translatable="false">gr</string>
+    <string name="unit_gram">Gram</string>
+    <string name="sym_gram" translatable="false">g</string>
+    <string name="unit_hectare">Hectare</string>
+    <string name="sym_hectare" translatable="false">ha</string>
+    <string name="unit_hectopascal">Hectopascal</string>
+    <string name="sym_hectopascal" translatable="false">hPa</string>
+    <string name="unit_hertz">Hertz</string>
+    <string name="sym_hertz" translatable="false">Hz</string>
+    <string name="unit_horsepower_mechanical">Horsepower (mechanical)</string>
+    <string name="sym_horsepower_mechanical" translatable="false">hp</string>
+    <string name="unit_horsepower_metric">Horsepower (metric)</string>
+    <string name="sym_horsepower_metric" translatable="false">PS</string>
+    <string name="unit_hour">Hour</string>
+    <string name="sym_hour" translatable="false">h</string>
+    <string name="unit_inch">Inch</string>
+    <string name="sym_inch" translatable="false">in</string>
+    <string name="unit_inhg">Inch of mercury</string>
+    <string name="sym_inhg" translatable="false">inHg</string>
+    <string name="unit_joule">Joule</string>
+    <string name="sym_joule" translatable="false">J</string>
+    <string name="unit_kelvin">Kelvin</string>
+    <string name="sym_kelvin" translatable="false">K</string>
+    <string name="unit_kibibit">Kibibit</string>
+    <string name="sym_kibibit" translatable="false">Kibit</string>
+    <string name="unit_kibibit_per_second">Kibibit per second</string>
+    <string name="sym_kibibit_per_second" translatable="false">Kibit/s</string>
+    <string name="unit_kibibyte">Kibibyte</string>
+    <string name="sym_kibibyte" translatable="false">KiB</string>
+    <string name="unit_kibibyte_per_second">Kibibyte per second</string>
+    <string name="sym_kibibyte_per_second" translatable="false">KiB/s</string>
+    <string name="unit_kilobit">Kilobit</string>
+    <string name="sym_kilobit" translatable="false">kbit</string>
+    <string name="unit_kilobit_per_second">Kilobit per second</string>
+    <string name="sym_kilobit_per_second" translatable="false">kbit/s</string>
+    <string name="unit_kilobyte">Kilobyte</string>
+    <string name="sym_kilobyte" translatable="false">kB</string>
+    <string name="unit_kilobyte_per_second">Kilobyte per second</string>
+    <string name="sym_kilobyte_per_second" translatable="false">kB/s</string>
+    <string name="unit_kilocalorie">Kilocalorie</string>
+    <string name="sym_kilocalorie" translatable="false">kcal</string>
+    <string name="unit_kilogram">Kilogram</string>
+    <string name="sym_kilogram" translatable="false">kg</string>
+    <string name="unit_kilogram_force">Kilogram-force</string>
+    <string name="sym_kilogram_force" translatable="false">kgf</string>
+    <string name="unit_kilohertz">Kilohertz</string>
+    <string name="sym_kilohertz" translatable="false">kHz</string>
+    <string name="unit_kilojoule">Kilojoule</string>
+    <string name="sym_kilojoule" translatable="false">kJ</string>
+    <string name="unit_kilometre">Kilometre</string>
+    <string name="sym_kilometre" translatable="false">km</string>
+    <string name="unit_kilometre_per_hour">Kilometre per hour</string>
+    <string name="sym_kilometre_per_hour" translatable="false">km/h</string>
+    <string name="unit_kilometre_per_litre">Kilometre per litre</string>
+    <string name="sym_kilometre_per_litre" translatable="false">km/L</string>
+    <string name="unit_kilonewton">Kilonewton</string>
+    <string name="sym_kilonewton" translatable="false">kN</string>
+    <string name="unit_kilopascal">Kilopascal</string>
+    <string name="sym_kilopascal" translatable="false">kPa</string>
+    <string name="unit_kilowatt">Kilowatt</string>
+    <string name="sym_kilowatt" translatable="false">kW</string>
+    <string name="unit_kilowatt_hour">Kilowatt-hour</string>
+    <string name="sym_kilowatt_hour" translatable="false">kWh</string>
+    <string name="unit_knot">Knot</string>
+    <string name="sym_knot" translatable="false">kn</string>
+    <string name="unit_league">League</string>
+    <string name="sym_league" translatable="false">lea</string>
+    <string name="unit_light_year">Light-year</string>
+    <string name="sym_light_year" translatable="false">ly</string>
+    <string name="unit_litre">Litre</string>
+    <string name="sym_litre" translatable="false">L</string>
+    <string name="unit_litre_per_100km">Litre per 100 km</string>
+    <string name="sym_litre_per_100km" translatable="false">L/100km</string>
+    <string name="unit_mebibit">Mebibit</string>
+    <string name="sym_mebibit" translatable="false">Mibit</string>
+    <string name="unit_mebibit_per_second">Mebibit per second</string>
+    <string name="sym_mebibit_per_second" translatable="false">Mibit/s</string>
+    <string name="unit_mebibyte">Mebibyte</string>
+    <string name="sym_mebibyte" translatable="false">MiB</string>
+    <string name="unit_mebibyte_per_second">Mebibyte per second</string>
+    <string name="sym_mebibyte_per_second" translatable="false">MiB/s</string>
+    <string name="unit_megabit">Megabit</string>
+    <string name="sym_megabit" translatable="false">Mbit</string>
+    <string name="unit_megabit_per_second">Megabit per second</string>
+    <string name="sym_megabit_per_second" translatable="false">Mbit/s</string>
+    <string name="unit_megabyte">Megabyte</string>
+    <string name="sym_megabyte" translatable="false">MB</string>
+    <string name="unit_megabyte_per_second">Megabyte per second</string>
+    <string name="sym_megabyte_per_second" translatable="false">MB/s</string>
+    <string name="unit_megahertz">Megahertz</string>
+    <string name="sym_megahertz" translatable="false">MHz</string>
+    <string name="unit_megapascal">Megapascal</string>
+    <string name="sym_megapascal" translatable="false">MPa</string>
+    <string name="unit_megawatt">Megawatt</string>
+    <string name="sym_megawatt" translatable="false">MW</string>
+    <string name="unit_metre">Metre</string>
+    <string name="sym_metre" translatable="false">m</string>
+    <string name="unit_metre_per_second">Metre per second</string>
+    <string name="sym_metre_per_second" translatable="false">m/s</string>
+    <string name="unit_microgram">Microgram</string>
+    <string name="sym_microgram" translatable="false">µg</string>
+    <string name="unit_micrometre">Micrometre</string>
+    <string name="sym_micrometre" translatable="false">µm</string>
+    <string name="unit_microsecond">Microsecond</string>
+    <string name="sym_microsecond" translatable="false">µs</string>
+    <string name="unit_mile">Mile</string>
+    <string name="sym_mile" translatable="false">mi</string>
+    <string name="unit_mile_per_hour">Mile per hour</string>
+    <string name="sym_mile_per_hour" translatable="false">mph</string>
+    <string name="unit_millibar">Millibar</string>
+    <string name="sym_millibar" translatable="false">mbar</string>
+    <string name="unit_milligram">Milligram</string>
+    <string name="sym_milligram" translatable="false">mg</string>
+    <string name="unit_millilitre">Millilitre</string>
+    <string name="sym_millilitre" translatable="false">mL</string>
+    <string name="unit_millimetre">Millimetre</string>
+    <string name="sym_millimetre" translatable="false">mm</string>
+    <string name="unit_milliradian">Milliradian</string>
+    <string name="sym_milliradian" translatable="false">mrad</string>
+    <string name="unit_millisecond">Millisecond</string>
+    <string name="sym_millisecond" translatable="false">ms</string>
+    <string name="unit_minute">Minute</string>
+    <string name="sym_minute" translatable="false">min</string>
+    <string name="unit_mmhg">Millimetre of mercury</string>
+    <string name="sym_mmhg" translatable="false">mmHg</string>
+    <string name="unit_month">Month</string>
+    <string name="sym_month" translatable="false">mo</string>
+    <string name="unit_mpg_imperial">Mile per gallon (imperial)</string>
+    <string name="sym_mpg_imperial" translatable="false">mpg</string>
+    <string name="unit_mpg_us">Mile per gallon (US)</string>
+    <string name="sym_mpg_us" translatable="false">mpg</string>
+    <string name="unit_nanometre">Nanometre</string>
+    <string name="sym_nanometre" translatable="false">nm</string>
+    <string name="unit_nanosecond">Nanosecond</string>
+    <string name="sym_nanosecond" translatable="false">ns</string>
+    <string name="unit_nautical_mile">Nautical mile</string>
+    <string name="sym_nautical_mile" translatable="false">NM</string>
+    <string name="unit_newton">Newton</string>
+    <string name="sym_newton" translatable="false">N</string>
+    <string name="unit_ounce">Ounce</string>
+    <string name="sym_ounce" translatable="false">oz</string>
+    <string name="unit_parsec">Parsec</string>
+    <string name="sym_parsec" translatable="false">pc</string>
+    <string name="unit_pascal">Pascal</string>
+    <string name="sym_pascal" translatable="false">Pa</string>
+    <string name="unit_pebibit">Pebibit</string>
+    <string name="sym_pebibit" translatable="false">Pibit</string>
+    <string name="unit_pebibit_per_second">Pebibit per second</string>
+    <string name="sym_pebibit_per_second" translatable="false">Pibit/s</string>
+    <string name="unit_pebibyte">Pebibyte</string>
+    <string name="sym_pebibyte" translatable="false">PiB</string>
+    <string name="unit_pebibyte_per_second">Pebibyte per second</string>
+    <string name="sym_pebibyte_per_second" translatable="false">PiB/s</string>
+    <string name="unit_petabit">Petabit</string>
+    <string name="sym_petabit" translatable="false">Pbit</string>
+    <string name="unit_petabit_per_second">Petabit per second</string>
+    <string name="sym_petabit_per_second" translatable="false">Pbit/s</string>
+    <string name="unit_petabyte">Petabyte</string>
+    <string name="sym_petabyte" translatable="false">PB</string>
+    <string name="unit_petabyte_per_second">Petabyte per second</string>
+    <string name="sym_petabyte_per_second" translatable="false">PB/s</string>
+    <string name="unit_pint_imperial">Pint (imperial)</string>
+    <string name="sym_pint_imperial" translatable="false">pt</string>
+    <string name="unit_pint_us">Pint (US)</string>
+    <string name="sym_pint_us" translatable="false">pt</string>
+    <string name="unit_pound">Pound</string>
+    <string name="sym_pound" translatable="false">lb</string>
+    <string name="unit_pound_force">Pound-force</string>
+    <string name="sym_pound_force" translatable="false">lbf</string>
+    <string name="unit_poundal">Poundal</string>
+    <string name="sym_poundal" translatable="false">pdl</string>
+    <string name="unit_psi">Pound per square inch</string>
+    <string name="sym_psi" translatable="false">psi</string>
+    <string name="unit_quart_imperial">Quart (imperial)</string>
+    <string name="sym_quart_imperial" translatable="false">qt</string>
+    <string name="unit_quart_us">Quart (US)</string>
+    <string name="sym_quart_us" translatable="false">qt</string>
+    <string name="unit_radian">Radian</string>
+    <string name="sym_radian" translatable="false">rad</string>
+    <string name="unit_rankine">Rankine</string>
+    <string name="sym_rankine" translatable="false">°R</string>
+    <string name="unit_reaumur">Réaumur</string>
+    <string name="sym_reaumur" translatable="false">°Ré</string>
+    <string name="unit_rpm">Revolutions per minute</string>
+    <string name="sym_rpm" translatable="false">rpm</string>
+    <string name="unit_second">Second</string>
+    <string name="sym_second" translatable="false">s</string>
+    <string name="unit_slug">Slug</string>
+    <string name="sym_slug" translatable="false">slug</string>
+    <string name="unit_square_centimetre">Square centimetre</string>
+    <string name="sym_square_centimetre" translatable="false">cm²</string>
+    <string name="unit_square_foot">Square foot</string>
+    <string name="sym_square_foot" translatable="false">ft²</string>
+    <string name="unit_square_inch">Square inch</string>
+    <string name="sym_square_inch" translatable="false">in²</string>
+    <string name="unit_square_kilometre">Square kilometre</string>
+    <string name="sym_square_kilometre" translatable="false">km²</string>
+    <string name="unit_square_metre">Square metre</string>
+    <string name="sym_square_metre" translatable="false">m²</string>
+    <string name="unit_square_mile">Square mile</string>
+    <string name="sym_square_mile" translatable="false">mi²</string>
+    <string name="unit_square_millimetre">Square millimetre</string>
+    <string name="sym_square_millimetre" translatable="false">mm²</string>
+    <string name="unit_square_yard">Square yard</string>
+    <string name="sym_square_yard" translatable="false">yd²</string>
+    <string name="unit_stone">Stone</string>
+    <string name="sym_stone" translatable="false">st</string>
+    <string name="unit_tablespoon_us">Tablespoon (US)</string>
+    <string name="sym_tablespoon_us" translatable="false">tbsp</string>
+    <string name="unit_teaspoon_us">Teaspoon (US)</string>
+    <string name="sym_teaspoon_us" translatable="false">tsp</string>
+    <string name="unit_tebibit">Tebibit</string>
+    <string name="sym_tebibit" translatable="false">Tibit</string>
+    <string name="unit_tebibit_per_second">Tebibit per second</string>
+    <string name="sym_tebibit_per_second" translatable="false">Tibit/s</string>
+    <string name="unit_tebibyte">Tebibyte</string>
+    <string name="sym_tebibyte" translatable="false">TiB</string>
+    <string name="unit_tebibyte_per_second">Tebibyte per second</string>
+    <string name="sym_tebibyte_per_second" translatable="false">TiB/s</string>
+    <string name="unit_terabit">Terabit</string>
+    <string name="sym_terabit" translatable="false">Tbit</string>
+    <string name="unit_terabit_per_second">Terabit per second</string>
+    <string name="sym_terabit_per_second" translatable="false">Tbit/s</string>
+    <string name="unit_terabyte">Terabyte</string>
+    <string name="sym_terabyte" translatable="false">TB</string>
+    <string name="unit_terabyte_per_second">Terabyte per second</string>
+    <string name="sym_terabyte_per_second" translatable="false">TB/s</string>
+    <string name="unit_terahertz">Terahertz</string>
+    <string name="sym_terahertz" translatable="false">THz</string>
+    <string name="unit_therm">Therm</string>
+    <string name="sym_therm" translatable="false">thm</string>
+    <string name="unit_thou">Thou</string>
+    <string name="sym_thou" translatable="false">thou</string>
+    <string name="unit_ton_force">Ton-force</string>
+    <string name="sym_ton_force" translatable="false">tnf</string>
+    <string name="unit_ton_imperial">Imperial ton</string>
+    <string name="sym_ton_imperial" translatable="false">long ton</string>
+    <string name="unit_ton_us">US ton</string>
+    <string name="sym_ton_us" translatable="false">ton</string>
+    <string name="unit_tonne">Tonne</string>
+    <string name="sym_tonne" translatable="false">t</string>
+    <string name="unit_torr">Torr</string>
+    <string name="sym_torr" translatable="false">Torr</string>
+    <string name="unit_turn">Turn</string>
+    <string name="sym_turn" translatable="false">turn</string>
+    <string name="unit_watt">Watt</string>
+    <string name="sym_watt" translatable="false">W</string>
+    <string name="unit_watt_hour">Watt-hour</string>
+    <string name="sym_watt_hour" translatable="false">Wh</string>
+    <string name="unit_week">Week</string>
+    <string name="sym_week" translatable="false">wk</string>
+    <string name="unit_yard">Yard</string>
+    <string name="sym_yard" translatable="false">yd</string>
+    <string name="unit_year">Year</string>
+    <string name="sym_year" translatable="false">yr</string>
+
+    <!-- Shown only when a unit reaches the screen with no entry in UnitNames, which is a
+         build mistake rather than anything a user can produce. It has to read as missing:
+         the fallback used to be the app's own name, which looked like a real label. -->
+    <string name="unit_unknown">Unknown unit</string>
+    <string name="sym_unknown" translatable="false">?</string>
+
+    <string name="converter_from">From</string>
+    <string name="converter_to">To</string>
+    <string name="converter_swap">Swap units</string>
+    <string name="converter_search">Search units</string>
+    <string name="converter_common">Common conversions</string>
+</resources>

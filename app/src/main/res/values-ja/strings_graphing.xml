@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="graph_add_function">関数を追加</string>
+    <string name="graph_expression">x の式</string>
+    <string name="graph_reset_view">表示をリセット</string>
+    <string name="graph_square_axes">軸の縮尺を揃える</string>
+    <string name="graph_no_roots">表示範囲に解はありません</string>
+    <string name="graph_invalid">この式は描画できません</string>
+    <string name="graph_summary">x は %1$s〜%2$s、y は %3$s〜%4$s を表示中</string>
+    <string name="graph_trace_value">x = %1$s、y = %2$s</string>
+    <string name="graph_delete">削除</string>
+    <string name="desc_graph_canvas">グラフ</string>
+    <string name="graph_list_separator">", "</string>
+    <string name="graph_roots_of">%1$s の零点: %2$s</string>
+    <string name="graph_roots_of_truncated">%2$s の零点のうち最初の %1$d 個: %3$s</string>
+    <string name="graph_trace_offscreen">x = %1$s, y = %2$s（画面外）</string>
+    <string name="graph_clear_trace">トレースを消去</string>
+</resources>

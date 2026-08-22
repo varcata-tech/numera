@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="graph_add_function">फलन जोड़ें</string>
+    <string name="graph_expression">x में व्यंजक</string>
+    <string name="graph_reset_view">व्यू रीसेट करें</string>
+    <string name="graph_square_axes">अक्षों का पैमाना बराबर करें</string>
+    <string name="graph_no_roots">दृश्य में कोई मूल नहीं</string>
+    <string name="graph_invalid">यह व्यंजक प्लॉट नहीं हो सकता</string>
+    <string name="graph_summary">x %1$s से %2$s और y %3$s से %4$s तक दिख रहा है</string>
+    <string name="graph_trace_value">x = %1$s, y = %2$s</string>
+    <string name="graph_delete">हटाएँ</string>
+    <string name="desc_graph_canvas">ग्राफ़</string>
+    <string name="graph_list_separator">", "</string>
+    <string name="graph_roots_of">%1$s के मूल: %2$s</string>
+    <string name="graph_roots_of_truncated">%2$s के पहले %1$d मूल: %3$s</string>
+    <string name="graph_trace_offscreen">x = %1$s, y = %2$s (स्क्रीन से बाहर)</string>
+    <string name="graph_clear_trace">ट्रेस हटाएँ</string>
+</resources>

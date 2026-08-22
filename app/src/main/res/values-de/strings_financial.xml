@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fin_tab_loan">Kredit</string>
+    <string name="fin_tab_interest">Zinsen</string>
+    <string name="fin_tab_tip">Trinkgeld</string>
+    <string name="fin_tab_discount">Rabatt</string>
+    <string name="fin_tab_tax">Steuer</string>
+    <string name="fin_principal">Kreditbetrag</string>
+    <string name="fin_rate">Jahreszins %</string>
+    <string name="fin_months">Laufzeit (Monate)</string>
+    <string name="fin_years">Jahre</string>
+    <string name="fin_instalment">Monatliche Rate</string>
+    <string name="fin_total_paid">Gesamtzahlung</string>
+    <string name="fin_total_interest">Gesamtzinsen</string>
+    <string name="fin_schedule">Tilgungsplan</string>
+    <string name="fin_schedule_line">%1$d · Rate %2$s · Tilgung %3$s · Zinsen %4$s · Rest %5$s</string>
+    <string name="fin_compounding">Zinseszins-Intervall</string>
+    <string name="fin_contribution">Einzahlung pro Periode</string>
+    <string name="fin_final_balance">Endguthaben</string>
+    <string name="fin_bill">Rechnung</string>
+    <string name="fin_tip_percent">Trinkgeld %</string>
+    <string name="fin_people">Personen</string>
+    <string name="fin_round_up">Gesamtbetrag aufrunden</string>
+    <string name="fin_tip_amount">Trinkgeld</string>
+    <string name="fin_total">Gesamt</string>
+    <string name="fin_per_person">Pro Person</string>
+    <string name="fin_extra_cents">%1$d zahlen eine Einheit mehr</string>
+    <string name="fin_price">Preis</string>
+    <string name="fin_discount_1">Erster Rabatt %</string>
+    <string name="fin_discount_2">Zweiter Rabatt %</string>
+    <string name="fin_final_price">Endpreis</string>
+    <string name="fin_saved">Sie sparen</string>
+    <string name="fin_effective">Effektiver Rabatt</string>
+    <string name="fin_successive_note" formatted="false">Aufeinanderfolgende Rabatte multiplizieren sich: 20% und dann 10% ergeben 28%, nicht 30%.</string>
+    <string name="fin_amount">Betrag</string>
+    <string name="fin_tax_rate">Steuersatz %</string>
+    <string name="fin_add_tax">Steuer hinzufügen</string>
+    <string name="fin_remove_tax">Steuer herausrechnen</string>
+    <string name="fin_net">Netto</string>
+    <string name="fin_tax">Steuer</string>
+    <string name="fin_gross">Brutto</string>
+    <string name="fin_compound_annual">Jährlich</string>
+    <string name="fin_compound_semiannual">Halbjährlich</string>
+    <string name="fin_compound_quarterly">Vierteljährlich</string>
+    <string name="fin_compound_monthly">Monatlich</string>
+    <string name="fin_compound_daily">Täglich</string>
+    <string name="fin_compound_continuous">Stetig</string>
+    <string name="fin_disclaimer">Nur zur Information. Keine Finanzberatung — die Zahlen Ihres Kreditgebers können abweichen.</string>
+    <string name="fin_invalid_input">Geben Sie in jedes Feld eine gültige Zahl ein.</string>
+    <string name="fin_out_of_range">Diese Werte liegen außerhalb des Bereichs, den dieser Rechner berechnen kann.</string>
+    <string name="fin_contribution_continuous">Stetige Verzinsung hat keine Periode, daher werden Einzahlungen nicht berücksichtigt.</string>
+</resources>

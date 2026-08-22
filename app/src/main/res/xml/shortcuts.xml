@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Long-press shortcuts on the launcher icon.
+
+  Only the three modes a user goes to *directly* are here. The calculator itself is the
+  icon, and Settings and the date and financial modes are destinations you reach after
+  you have already opened the app, so putting them here would only push the useful three
+  past the three-or-four slots most launchers show.
+
+  Each intent names its destination twice: an extra, which MainActivity prefers, and the
+  same id as the last path segment of the data URI, which survives launchers that drop the
+  extras bundle when they restore a pinned shortcut. The extra name is duplicated from
+  MainActivity.EXTRA_ROUTE — XML cannot reference a Kotlin constant, so the two move
+  together or the shortcut silently opens the plain calculator.
+
+  The intents are deliberately implicit. Naming an explicit target component here would
+  hard code the release applicationId, which res/xml cannot expand into the ".debug" suffix
+  the debug build type appends — so the shortcuts named a package that is not installed in
+  a debug build and could not be exercised at all before shipping, on the one code path
+  that carries the shortcut routing. MainActivity declares a matching intent-filter for the
+  numera scheme instead, so the same three shortcuts work in both variants.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut
+        android:enabled="true"
+        android:shortcutId="converter"
+        android:shortcutLongLabel="@string/shortcut_converter_long"
+        android:shortcutShortLabel="@string/shortcut_converter_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="numera://mode/converter">
+            <extra
+                android:name="app.numera.calculator.extra.ROUTE"
+                android:value="converter" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:enabled="true"
+        android:shortcutId="programmer"
+        android:shortcutLongLabel="@string/shortcut_programmer_long"
+        android:shortcutShortLabel="@string/shortcut_programmer_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="numera://mode/programmer">
+            <extra
+                android:name="app.numera.calculator.extra.ROUTE"
+                android:value="programmer" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:enabled="true"
+        android:shortcutId="graphing"
+        android:shortcutLongLabel="@string/shortcut_graphing_long"
+        android:shortcutShortLabel="@string/shortcut_graphing_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="numera://mode/graphing">
+            <extra
+                android:name="app.numera.calculator.extra.ROUTE"
+                android:value="graphing" />
+        </intent>
+    </shortcut>
+
+</shortcuts>

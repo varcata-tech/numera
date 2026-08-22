@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_converter">单位换算</string>
+    <string name="title_programmer">程序员</string>
+    <string name="title_graphing">图表</string>
+    <string name="title_datetime">日期计算器</string>
+    <string name="title_financial">金融</string>
+    <string name="title_settings">设置</string>
+    <string name="cd_back">返回</string>
+    <string name="settings_appearance">外观</string>
+    <string name="settings_feedback">反馈</string>
+    <string name="settings_calculation">计算</string>
+    <string name="settings_about">关于</string>
+    <string name="theme_system">跟随系统</string>
+    <string name="theme_light">浅色</string>
+    <string name="theme_dark">深色</string>
+    <string name="theme_black">纯黑 (OLED)</string>
+    <string name="settings_dynamic_color">壁纸取色</string>
+    <string name="settings_dynamic_color_summary">使用从壁纸中提取的颜色，而不是计算器配色</string>
+    <string name="settings_haptics">按键振动</string>
+    <string name="settings_haptics_summary">每次按键时短暂振动。系统触感反馈关闭时将被忽略。</string>
+    <string name="angle_degrees">角度</string>
+    <string name="angle_radians">弧度</string>
+    <string name="about_version">版本 %1$s</string>
+    <string name="about_attribution">精确算术衍生自 Android 开源项目的 ExactCalculator（采用 Apache 2.0 许可证），以及 Hans-J. Boehm 的构造性实数库中公开发表的算法。应用不含任何第三方代码，也没有任何数据离开设备。</string>
+    <string name="about_license_show">显示 Apache 2.0 许可证</string>
+    <string name="about_license_hide">隐藏 Apache 2.0 许可证</string>
+    <string name="about_license_loading">正在加载许可证…</string>
+    <string name="shortcut_converter_short">换算</string>
+    <string name="shortcut_converter_long">打开单位换算</string>
+    <string name="shortcut_programmer_short">程序员</string>
+    <string name="shortcut_programmer_long">打开程序员模式</string>
+    <string name="shortcut_graphing_short">图表</string>
+    <string name="shortcut_graphing_long">打开图形计算器</string>
+    <string name="about_privacy_show">隐私政策</string>
+    <string name="about_privacy_hide">隐藏隐私政策</string>
+</resources>

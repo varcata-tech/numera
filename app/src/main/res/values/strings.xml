@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The product name. Not translated: it is a brand, not a word, and translating it
+         would give the same app a different identity in each locale's launcher. -->
+    <string name="app_name" translatable="false">Numera</string>
+</resources>

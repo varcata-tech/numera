@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The dark half of the launch-flash shim. Only the window background differs from
+     values/themes.xml; everything else the user sees is drawn by Compose.
+
+     The OLED (true black) theme still steps from #111416 to #000000 on launch, because the
+     starting window is chosen by the system's night setting and cannot read the app's own
+     ThemeMode preference, which lives in SharedPreferences and is not loaded yet. -->
+<resources>
+    <style name="Theme.Calculator" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- Must equal CalculatorDarkColors.surface. -->
+        <item name="android:windowBackground">@color/calc_window_background_dark</item>
+        <!-- The dark counterpart of the light bucket's pair: dark background, light icons.
+             Set explicitly rather than inherited, because the parent style is the Light one
+             and would otherwise ask for dark icons over this background. -->
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

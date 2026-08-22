@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Key glyphs. Mathematical notation is the same in every language, so these are
+         deliberately not translated; only the spoken descriptions below are. Digits are
+         absent on purpose: they come from DecimalFormatSymbols at runtime so that an
+         Arabic locale gets ٧ rather than 7. -->
+    <string name="op_add" translatable="false">+</string>
+    <string name="op_sub" translatable="false">−</string>
+    <string name="op_mul" translatable="false">×</string>
+    <string name="op_div" translatable="false">÷</string>
+    <string name="op_pct" translatable="false">%</string>
+    <string name="op_pow" translatable="false">^</string>
+    <string name="op_fact" translatable="false">!</string>
+    <string name="op_sqrt" translatable="false">√</string>
+    <string name="op_sqr" translatable="false">x²</string>
+    <string name="const_pi" translatable="false">π</string>
+    <string name="const_e" translatable="false">e</string>
+    <string name="fun_sin" translatable="false">sin</string>
+    <string name="fun_cos" translatable="false">cos</string>
+    <string name="fun_tan" translatable="false">tan</string>
+    <string name="fun_arcsin" translatable="false">sin⁻¹</string>
+    <string name="fun_arccos" translatable="false">cos⁻¹</string>
+    <string name="fun_arctan" translatable="false">tan⁻¹</string>
+    <string name="fun_ln" translatable="false">ln</string>
+    <string name="fun_log" translatable="false">log</string>
+    <string name="fun_exp" translatable="false">eˣ</string>
+    <string name="fun_10pow" translatable="false">10ˣ</string>
+    <string name="key_paren" translatable="false">( )</string>
+    <string name="key_lparen" translatable="false">(</string>
+    <string name="key_rparen" translatable="false">)</string>
+    <string name="key_eq" translatable="false">=</string>
+    <string name="key_del" translatable="false">⌫</string>
+    <string name="key_inv" translatable="false">INV</string>
+
+    <!-- These two are labels rather than symbols, and some languages do abbreviate them
+         differently, so they are translatable. -->
+    <string name="mode_deg">DEG</string>
+    <string name="mode_rad">RAD</string>
+    <string name="key_clear">AC</string>
+
+    <!-- Spoken descriptions. TalkBack must say "divided by", never "÷". -->
+    <string name="desc_op_add">plus</string>
+    <string name="desc_op_sub">minus</string>
+    <string name="desc_op_mul">multiply</string>
+    <string name="desc_op_div">divide</string>
+    <string name="desc_op_pct">percent</string>
+    <string name="desc_op_pow">power</string>
+    <string name="desc_op_fact">factorial</string>
+    <string name="desc_op_sqrt">square root</string>
+    <string name="desc_op_sqr">squared</string>
+    <string name="desc_const_pi">pi</string>
+    <string name="desc_const_e">Euler\'s number</string>
+    <string name="desc_fun_sin">sine</string>
+    <string name="desc_fun_cos">cosine</string>
+    <string name="desc_fun_tan">tangent</string>
+    <string name="desc_fun_arcsin">inverse sine</string>
+    <string name="desc_fun_arccos">inverse cosine</string>
+    <string name="desc_fun_arctan">inverse tangent</string>
+    <string name="desc_fun_ln">natural logarithm</string>
+    <string name="desc_fun_log">logarithm</string>
+    <string name="desc_fun_exp">exponential function</string>
+    <string name="desc_fun_10pow">ten to the power of</string>
+    <string name="desc_paren">parenthesis</string>
+    <string name="desc_dec_point">point</string>
+    <string name="desc_eq">equals</string>
+    <string name="desc_del">delete</string>
+    <string name="desc_clear">clear</string>
+    <string name="desc_inv_off">show inverse functions</string>
+    <string name="desc_inv_on">hide inverse functions</string>
+    <string name="desc_switch_deg">switch to degrees</string>
+    <string name="desc_switch_rad">switch to radians</string>
+    <string name="desc_more_options">more options</string>
+    <string name="desc_more_digits">read more digits</string>
+    <string name="desc_computing">calculating</string>
+    <string name="desc_formula">formula</string>
+    <string name="desc_digit">digit %1$s</string>
+
+    <!-- Errors. Wording follows AOSP's calculator so the app reads as a first-party one. -->
+    <string name="error_syntax">Bad expression</string>
+    <string name="error_divide_by_zero">Can\'t divide by 0</string>
+    <string name="error_not_a_number">Not a number</string>
+    <string name="error_too_much_memory">Requires too much memory</string>
+    <string name="error_aborted">Cancelled</string>
+    <string name="error_timeout">Calculation takes too long</string>
+
+    <string name="action_copy">Copy</string>
+</resources>

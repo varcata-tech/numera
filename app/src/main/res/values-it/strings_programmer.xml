@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="prog_signed">Con segno</string>
+    <string name="prog_unsigned">Senza segno</string>
+    <string name="prog_overflow">Overflow</string>
+    <string name="desc_bit">bit %1$d</string>
+    <string name="desc_bit_set">impostato</string>
+    <string name="desc_bit_clear">non impostato</string>
+    <string name="desc_key_unavailable">non disponibile in questa base</string>
+</resources>

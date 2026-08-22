@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="prog_signed">符号付き</string>
+    <string name="prog_unsigned">符号なし</string>
+    <string name="prog_overflow">オーバーフロー</string>
+    <string name="desc_bit">ビット %1$d</string>
+    <string name="desc_bit_set">オン</string>
+    <string name="desc_bit_clear">オフ</string>
+    <string name="desc_key_unavailable">この基数では使用できません</string>
+</resources>

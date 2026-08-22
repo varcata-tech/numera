@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="graph_add_function">함수 추가</string>
+    <string name="graph_expression">x에 대한 식</string>
+    <string name="graph_reset_view">보기 초기화</string>
+    <string name="graph_square_axes">축 비율 맞추기</string>
+    <string name="graph_no_roots">보이는 범위에 근이 없음</string>
+    <string name="graph_invalid">이 수식은 그릴 수 없습니다</string>
+    <string name="graph_summary">x %1$s~%2$s, y %3$s~%4$s 표시 중</string>
+    <string name="graph_trace_value">x = %1$s, y = %2$s</string>
+    <string name="graph_delete">삭제</string>
+    <string name="desc_graph_canvas">그래프</string>
+    <string name="graph_list_separator">", "</string>
+    <string name="graph_roots_of">%1$s의 근: %2$s</string>
+    <string name="graph_roots_of_truncated">%2$s의 근 중 처음 %1$d개: %3$s</string>
+    <string name="graph_trace_offscreen">x = %1$s, y = %2$s(화면 밖)</string>
+    <string name="graph_clear_trace">추적점 지우기</string>
+</resources>

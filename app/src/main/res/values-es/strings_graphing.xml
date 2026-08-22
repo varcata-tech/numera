@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="graph_add_function">Añadir función</string>
+    <string name="graph_expression">Expresión en x</string>
+    <string name="graph_reset_view">Restablecer la vista</string>
+    <string name="graph_square_axes">Igualar la escala de los ejes</string>
+    <string name="graph_no_roots">No hay raíces a la vista</string>
+    <string name="graph_invalid">No se puede representar esa expresión</string>
+    <string name="graph_summary">Mostrando x de %1$s a %2$s e y de %3$s a %4$s</string>
+    <string name="graph_trace_value">x = %1$s, y = %2$s</string>
+    <string name="graph_delete">Eliminar</string>
+    <string name="desc_graph_canvas">Gráfica</string>
+    <string name="graph_list_separator">"; "</string>
+    <string name="graph_roots_of">Raíces de %1$s: %2$s</string>
+    <string name="graph_roots_of_truncated">Primeras %1$d raíces de %2$s: %3$s</string>
+    <string name="graph_trace_offscreen">x = %1$s, y = %2$s (fuera de la vista)</string>
+    <string name="graph_clear_trace">Quitar el cursor</string>
+</resources>

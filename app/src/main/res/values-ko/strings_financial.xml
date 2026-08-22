@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fin_tab_loan">대출</string>
+    <string name="fin_tab_interest">이자</string>
+    <string name="fin_tab_tip">팁</string>
+    <string name="fin_tab_discount">할인</string>
+    <string name="fin_tab_tax">세금</string>
+    <string name="fin_principal">원금</string>
+    <string name="fin_rate">연이율 %</string>
+    <string name="fin_months">기간(개월)</string>
+    <string name="fin_years">년</string>
+    <string name="fin_instalment">월 상환액</string>
+    <string name="fin_total_paid">총 상환액</string>
+    <string name="fin_total_interest">총 이자</string>
+    <string name="fin_schedule">상환 일정</string>
+    <string name="fin_schedule_line">%1$d · 상환 %2$s · 원금 %3$s · 이자 %4$s · 잔액 %5$s</string>
+    <string name="fin_compounding">복리 주기</string>
+    <string name="fin_contribution">기간별 납입액</string>
+    <string name="fin_final_balance">최종 잔액</string>
+    <string name="fin_bill">계산서</string>
+    <string name="fin_tip_percent">팁 %</string>
+    <string name="fin_people">인원</string>
+    <string name="fin_round_up">합계를 올림</string>
+    <string name="fin_tip_amount">팁</string>
+    <string name="fin_total">합계</string>
+    <string name="fin_per_person">1인당</string>
+    <string name="fin_extra_cents">%1$d명이 1단위 더 냅니다</string>
+    <string name="fin_price">가격</string>
+    <string name="fin_discount_1">첫 번째 할인 %</string>
+    <string name="fin_discount_2">두 번째 할인 %</string>
+    <string name="fin_final_price">최종 가격</string>
+    <string name="fin_saved">절약 금액</string>
+    <string name="fin_effective">실질 할인율</string>
+    <string name="fin_successive_note" formatted="false">연속 할인은 곱해집니다. 20% 후 10%는 30%가 아니라 28% 할인입니다.</string>
+    <string name="fin_amount">금액</string>
+    <string name="fin_tax_rate">세율 %</string>
+    <string name="fin_add_tax">세금 추가</string>
+    <string name="fin_remove_tax">세금 제외</string>
+    <string name="fin_net">세전</string>
+    <string name="fin_tax">세액</string>
+    <string name="fin_gross">세후</string>
+    <string name="fin_compound_annual">연 1회</string>
+    <string name="fin_compound_semiannual">반기</string>
+    <string name="fin_compound_quarterly">분기</string>
+    <string name="fin_compound_monthly">매월</string>
+    <string name="fin_compound_daily">매일</string>
+    <string name="fin_compound_continuous">연속 복리</string>
+    <string name="fin_disclaimer">정보 제공용입니다. 금융 자문이 아니며 — 대출 기관의 수치와 다를 수 있습니다.</string>
+    <string name="fin_invalid_input">모든 항목에 유효한 숫자를 입력하세요.</string>
+    <string name="fin_out_of_range">이 값은 이 계산기가 계산할 수 있는 범위를 벗어납니다.</string>
+    <string name="fin_contribution_continuous">연속 복리에는 기간이 없으므로 정기 납입금은 포함되지 않습니다.</string>
+</resources>

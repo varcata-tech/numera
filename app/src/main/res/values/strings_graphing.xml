@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="graph_add_function">Add function</string>
+    <string name="graph_expression">Expression in x</string>
+    <string name="graph_reset_view">Reset view</string>
+    <string name="graph_square_axes">Square the axes</string>
+    <string name="graph_no_roots">No roots in view</string>
+    <string name="graph_invalid">Cannot plot that expression</string>
+    <string name="graph_summary">Showing x from %1$s to %2$s and y from %3$s to %4$s</string>
+    <string name="graph_trace_value">x = %1$s, y = %2$s</string>
+    <string name="graph_delete">Delete</string>
+    <string name="desc_graph_canvas">Graph</string>
+    <string name="graph_list_separator">", "</string>
+    <string name="graph_roots_of">Roots of %1$s: %2$s</string>
+    <string name="graph_roots_of_truncated">First %1$d roots of %2$s: %3$s</string>
+    <string name="graph_trace_offscreen">x = %1$s, y = %2$s (off screen)</string>
+    <string name="graph_clear_trace">Clear trace</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="history_title">इतिहास</string>
+    <string name="history_empty">आपकी गणनाएँ यहाँ दिखाई देंगी</string>
+    <string name="history_clear">इतिहास साफ़ करें</string>
+    <string name="history_clear_title">इतिहास साफ़ करें?</string>
+    <string name="history_clear_message">इससे इस डिवाइस से हर सहेजी गई गणना हट जाएगी। इसे पहले जैसा नहीं किया जा सकता।</string>
+    <string name="history_clear_confirm">साफ़ करें</string>
+    <string name="history_cancel">रद्द करें</string>
+    <string name="desc_history_open">इतिहास खोलें</string>
+    <string name="desc_history_close">इतिहास बंद करें</string>
+    <string name="desc_history_entry">%1$s बराबर %2$s, डालने के लिए टैप करें</string>
+</resources>

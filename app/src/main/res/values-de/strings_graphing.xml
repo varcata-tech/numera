@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="graph_add_function">Funktion hinzufügen</string>
+    <string name="graph_expression">Ausdruck in x</string>
+    <string name="graph_reset_view">Ansicht zurücksetzen</string>
+    <string name="graph_square_axes">Achsen gleich skalieren</string>
+    <string name="graph_no_roots">Keine Nullstellen im Ausschnitt</string>
+    <string name="graph_invalid">Dieser Ausdruck lässt sich nicht zeichnen</string>
+    <string name="graph_summary">Zeigt x von %1$s bis %2$s und y von %3$s bis %4$s</string>
+    <string name="graph_trace_value">x = %1$s, y = %2$s</string>
+    <string name="graph_delete">Löschen</string>
+    <string name="desc_graph_canvas">Diagramm</string>
+    <string name="graph_list_separator">"; "</string>
+    <string name="graph_roots_of">Nullstellen von %1$s: %2$s</string>
+    <string name="graph_roots_of_truncated">Erste %1$d Nullstellen von %2$s: %3$s</string>
+    <string name="graph_trace_offscreen">x = %1$s, y = %2$s (außerhalb des Ausschnitts)</string>
+    <string name="graph_clear_trace">Fadenkreuz entfernen</string>
+</resources>

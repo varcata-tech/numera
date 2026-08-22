@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fin_tab_loan">Prêt</string>
+    <string name="fin_tab_interest">Intérêts</string>
+    <string name="fin_tab_tip">Pourboire</string>
+    <string name="fin_tab_discount">Remise</string>
+    <string name="fin_tab_tax">Taxe</string>
+    <string name="fin_principal">Capital</string>
+    <string name="fin_rate">Taux annuel %</string>
+    <string name="fin_months">Durée (mois)</string>
+    <string name="fin_years">Années</string>
+    <string name="fin_instalment">Mensualité</string>
+    <string name="fin_total_paid">Total payé</string>
+    <string name="fin_total_interest">Intérêts totaux</string>
+    <string name="fin_schedule">Échéancier</string>
+    <string name="fin_schedule_line">%1$d · échéance %2$s · capital %3$s · intérêts %4$s · solde %5$s</string>
+    <string name="fin_compounding">Capitalisation</string>
+    <string name="fin_contribution">Versement par période</string>
+    <string name="fin_final_balance">Solde final</string>
+    <string name="fin_bill">Addition</string>
+    <string name="fin_tip_percent">Pourboire %</string>
+    <string name="fin_people">Personnes</string>
+    <string name="fin_round_up">Arrondir le total au supérieur</string>
+    <string name="fin_tip_amount">Pourboire</string>
+    <string name="fin_total">Total</string>
+    <string name="fin_per_person">Par personne</string>
+    <string name="fin_extra_cents">%1$d paient une unité de plus</string>
+    <string name="fin_price">Prix</string>
+    <string name="fin_discount_1">Première remise %</string>
+    <string name="fin_discount_2">Deuxième remise %</string>
+    <string name="fin_final_price">Prix final</string>
+    <string name="fin_saved">Vous économisez</string>
+    <string name="fin_effective">Remise effective</string>
+    <string name="fin_successive_note" formatted="false">Les remises successives se composent : 20% puis 10% font 28%, pas 30%.</string>
+    <string name="fin_amount">Montant</string>
+    <string name="fin_tax_rate">Taux de taxe %</string>
+    <string name="fin_add_tax">Ajouter la taxe</string>
+    <string name="fin_remove_tax">Retirer la taxe</string>
+    <string name="fin_net">Hors taxe</string>
+    <string name="fin_tax">Taxe</string>
+    <string name="fin_gross">Toutes taxes comprises</string>
+    <string name="fin_compound_annual">Annuelle</string>
+    <string name="fin_compound_semiannual">Semestrielle</string>
+    <string name="fin_compound_quarterly">Trimestrielle</string>
+    <string name="fin_compound_monthly">Mensuelle</string>
+    <string name="fin_compound_daily">Quotidienne</string>
+    <string name="fin_compound_continuous">Continue</string>
+    <string name="fin_disclaimer">À titre informatif uniquement. Ceci n\'est pas un conseil financier — les chiffres de votre prêteur peuvent différer.</string>
+    <string name="fin_invalid_input">Saisissez un nombre valide dans chaque champ.</string>
+    <string name="fin_out_of_range">Ces valeurs dépassent la plage que cette calculatrice peut traiter.</string>
+    <string name="fin_contribution_continuous">La capitalisation continue n\'a pas de période : les versements ne sont pas pris en compte.</string>
+</resources>

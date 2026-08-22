@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fin_tab_loan">قرض</string>
+    <string name="fin_tab_interest">فائدة</string>
+    <string name="fin_tab_tip">إكرامية</string>
+    <string name="fin_tab_discount">خصم</string>
+    <string name="fin_tab_tax">ضريبة</string>
+    <string name="fin_principal">أصل المبلغ</string>
+    <string name="fin_rate">النسبة السنوية %</string>
+    <string name="fin_months">المدة (بالأشهر)</string>
+    <string name="fin_years">سنوات</string>
+    <string name="fin_instalment">القسط الشهري</string>
+    <string name="fin_total_paid">إجمالي المدفوع</string>
+    <string name="fin_total_interest">إجمالي الفائدة</string>
+    <string name="fin_schedule">جدول السداد</string>
+    <string name="fin_schedule_line">%1$d · القسط %2$s · الأصل %3$s · الفائدة %4$s · الرصيد %5$s</string>
+    <string name="fin_compounding">تكرار التركيب</string>
+    <string name="fin_contribution">المساهمة لكل فترة</string>
+    <string name="fin_final_balance">الرصيد النهائي</string>
+    <string name="fin_bill">الفاتورة</string>
+    <string name="fin_tip_percent">الإكرامية %</string>
+    <string name="fin_people">عدد الأشخاص</string>
+    <string name="fin_round_up">تقريب الإجمالي للأعلى</string>
+    <string name="fin_tip_amount">الإكرامية</string>
+    <string name="fin_total">الإجمالي</string>
+    <string name="fin_per_person">لكل شخص</string>
+    <string name="fin_extra_cents">%1$d يدفعون وحدة إضافية</string>
+    <string name="fin_price">السعر</string>
+    <string name="fin_discount_1">الخصم الأول %</string>
+    <string name="fin_discount_2">الخصم الثاني %</string>
+    <string name="fin_final_price">السعر النهائي</string>
+    <string name="fin_saved">وفّرت</string>
+    <string name="fin_effective">الخصم الفعلي</string>
+    <string name="fin_successive_note" formatted="false">الخصومات المتتالية تتراكب: 20% ثم 10% تعني خصمًا قدره 28%، لا 30%.</string>
+    <string name="fin_amount">المبلغ</string>
+    <string name="fin_tax_rate">نسبة الضريبة %</string>
+    <string name="fin_add_tax">إضافة الضريبة</string>
+    <string name="fin_remove_tax">استخراج الضريبة</string>
+    <string name="fin_net">الصافي</string>
+    <string name="fin_tax">الضريبة</string>
+    <string name="fin_gross">الإجمالي</string>
+    <string name="fin_compound_annual">سنوي</string>
+    <string name="fin_compound_semiannual">نصف سنوي</string>
+    <string name="fin_compound_quarterly">ربع سنوي</string>
+    <string name="fin_compound_monthly">شهري</string>
+    <string name="fin_compound_daily">يومي</string>
+    <string name="fin_compound_continuous">مستمر</string>
+    <string name="fin_disclaimer">لأغراض المعلومات فقط. ليست استشارة مالية — قد تختلف أرقام المُقرض لديك.</string>
+    <string name="fin_invalid_input">أدخل رقمًا صالحًا في كل حقل.</string>
+    <string name="fin_out_of_range">هذه القيم خارج النطاق الذي يمكن لهذه الآلة الحاسبة حسابه.</string>
+    <string name="fin_contribution_continuous">التركيب المستمر ليس له فترة، لذا لا تُدرج الإيداعات الدورية.</string>
+</resources>

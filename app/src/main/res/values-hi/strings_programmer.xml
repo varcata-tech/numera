@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="prog_signed">साइन्ड</string>
+    <string name="prog_unsigned">अनसाइन्ड</string>
+    <string name="prog_overflow">ओवरफ़्लो</string>
+    <string name="desc_bit">बिट %1$d</string>
+    <string name="desc_bit_set">सेट</string>
+    <string name="desc_bit_clear">अनसेट</string>
+    <string name="desc_key_unavailable">इस आधार में उपलब्ध नहीं</string>
+</resources>

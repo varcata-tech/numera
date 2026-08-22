@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dates_tab_difference">Diferencia</string>
+    <string name="dates_tab_add">Sumar / restar</string>
+    <string name="dates_tab_business">Días laborables</string>
+    <string name="dates_tab_age">Edad</string>
+    <string name="dates_start">Fecha de inicio</string>
+    <string name="dates_end">Fecha de fin</string>
+    <string name="dates_birth">Fecha de nacimiento</string>
+    <string name="dates_total_days">%1$d días</string>
+    <string name="dates_breakdown">%1$d años, %2$d meses, %3$d días</string>
+    <string name="dates_weeks">%1$d semanas y %2$d días</string>
+    <string name="dates_years">Años</string>
+    <string name="dates_months">Meses</string>
+    <string name="dates_weeks_field">Semanas</string>
+    <string name="dates_days">Días</string>
+    <string name="dates_add">Sumar</string>
+    <string name="dates_subtract">Restar</string>
+    <string name="dates_clamp_note">Los saltos de mes y año se ajustan al final de un mes más corto.</string>
+    <string name="dates_business_result">%1$d días laborables</string>
+    <string name="dates_exclude_weekend">Excluye sábado y domingo</string>
+    <string name="dates_age_result">%1$d años, %2$d meses, %3$d días</string>
+    <string name="dates_age_total">%1$d días vividos</string>
+    <string name="dates_next_birthday">Próximo cumpleaños el %1$s (%2$d días)</string>
+    <string name="dates_out_of_range">Esos valores están fuera del rango que esta calculadora puede usar.</string>
+</resources>

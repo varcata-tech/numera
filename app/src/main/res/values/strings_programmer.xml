@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base names are notation and are written the same everywhere. -->
+    <string name="base_hex" translatable="false">HEX</string>
+    <string name="base_dec" translatable="false">DEC</string>
+    <string name="base_oct" translatable="false">OCT</string>
+    <string name="base_bin" translatable="false">BIN</string>
+    <string name="op_and" translatable="false">AND</string>
+    <string name="op_or" translatable="false">OR</string>
+    <string name="op_xor" translatable="false">XOR</string>
+    <string name="op_not" translatable="false">NOT</string>
+    <string name="op_shl" translatable="false">&lt;&lt;</string>
+    <string name="op_shr" translatable="false">&gt;&gt;</string>
+    <string name="op_rol" translatable="false">RoL</string>
+    <string name="op_ror" translatable="false">RoR</string>
+
+    <string name="prog_signed">Signed</string>
+    <string name="prog_unsigned">Unsigned</string>
+    <string name="prog_overflow">Overflow</string>
+    <string name="desc_bit">bit %1$d</string>
+    <string name="desc_bit_set">set</string>
+    <string name="desc_bit_clear">clear</string>
+    <string name="desc_key_unavailable">not available in this base</string>
+</resources>

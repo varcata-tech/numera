@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="history_title">Histórico</string>
+    <string name="history_empty">Os cálculos que você fizer aparecerão aqui</string>
+    <string name="history_clear">Limpar o histórico</string>
+    <string name="history_clear_title">Limpar o histórico?</string>
+    <string name="history_clear_message">Isso remove todos os cálculos salvos neste dispositivo. Não é possível desfazer.</string>
+    <string name="history_clear_confirm">Limpar</string>
+    <string name="history_cancel">Cancelar</string>
+    <string name="desc_history_open">Abrir o histórico</string>
+    <string name="desc_history_close">Fechar o histórico</string>
+    <string name="desc_history_entry">%1$s é igual a %2$s, toque para inserir</string>
+</resources>

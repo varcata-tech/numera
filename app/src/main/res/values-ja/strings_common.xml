@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_converter">単位換算</string>
+    <string name="title_programmer">プログラマー</string>
+    <string name="title_graphing">グラフ</string>
+    <string name="title_datetime">日付計算</string>
+    <string name="title_financial">金融</string>
+    <string name="title_settings">設定</string>
+    <string name="cd_back">戻る</string>
+    <string name="settings_appearance">外観</string>
+    <string name="settings_feedback">フィードバック</string>
+    <string name="settings_calculation">計算</string>
+    <string name="settings_about">このアプリについて</string>
+    <string name="theme_system">システムに合わせる</string>
+    <string name="theme_light">ライト</string>
+    <string name="theme_dark">ダーク</string>
+    <string name="theme_black">ブラック（OLED）</string>
+    <string name="settings_dynamic_color">壁紙の色</string>
+    <string name="settings_dynamic_color_summary">電卓のパレットではなく壁紙から取得した色を使用します</string>
+    <string name="settings_haptics">キーの振動</string>
+    <string name="settings_haptics_summary">キーを押すたびに短く振動します。システムの触覚フィードバックが無効な場合は無視されます。</string>
+    <string name="angle_degrees">度</string>
+    <string name="angle_radians">ラジアン</string>
+    <string name="about_version">バージョン %1$s</string>
+    <string name="about_attribution">厳密計算は Android オープンソース プロジェクトの ExactCalculator（Apache License 2.0）と、Hans-J. Boehm 氏の構成的実数ライブラリで公開されているアルゴリズムに由来します。サードパーティのコードは含まれず、データが端末外に出ることはありません。</string>
+    <string name="about_license_show">Apache License 2.0 を表示</string>
+    <string name="about_license_hide">Apache License 2.0 を隠す</string>
+    <string name="about_license_loading">ライセンスを読み込み中…</string>
+    <string name="shortcut_converter_short">換算</string>
+    <string name="shortcut_converter_long">単位換算を開く</string>
+    <string name="shortcut_programmer_short">プログラマー</string>
+    <string name="shortcut_programmer_long">プログラマー モードを開く</string>
+    <string name="shortcut_graphing_short">グラフ</string>
+    <string name="shortcut_graphing_long">グラフ電卓を開く</string>
+    <string name="about_privacy_show">プライバシー ポリシー</string>
+    <string name="about_privacy_hide">プライバシー ポリシーを隠す</string>
+</resources>

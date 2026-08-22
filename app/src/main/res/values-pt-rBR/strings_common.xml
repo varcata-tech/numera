@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_converter">Conversor de unidades</string>
+    <string name="title_programmer">Programador</string>
+    <string name="title_graphing">Gráfico</string>
+    <string name="title_datetime">Calculadora de datas</string>
+    <string name="title_financial">Financeiro</string>
+    <string name="title_settings">Configurações</string>
+    <string name="cd_back">Voltar</string>
+    <string name="settings_appearance">Aparência</string>
+    <string name="settings_feedback">Resposta</string>
+    <string name="settings_calculation">Cálculo</string>
+    <string name="settings_about">Sobre</string>
+    <string name="theme_system">Seguir o sistema</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Escuro</string>
+    <string name="theme_black">Preto (OLED)</string>
+    <string name="settings_dynamic_color">Cores do papel de parede</string>
+    <string name="settings_dynamic_color_summary">Usar cores extraídas do papel de parede em vez da paleta da calculadora</string>
+    <string name="settings_haptics">Vibração das teclas</string>
+    <string name="settings_haptics_summary">Vibra brevemente a cada toque. Ignorado quando a resposta tátil do sistema está desativada.</string>
+    <string name="angle_degrees">Graus</string>
+    <string name="angle_radians">Radianos</string>
+    <string name="about_version">Versão %1$s</string>
+    <string name="about_attribution">A aritmética exata deriva do ExactCalculator do Android Open Source Project, sob a Licença Apache 2.0, e dos algoritmos publicados da biblioteca de reais construtivos de Hans-J. Boehm. Nenhum código de terceiros está incluído e nada sai do dispositivo.</string>
+    <string name="about_license_show">Mostrar a Licença Apache 2.0</string>
+    <string name="about_license_hide">Ocultar a Licença Apache 2.0</string>
+    <string name="about_license_loading">Carregando a licença…</string>
+    <string name="shortcut_converter_short">Converter</string>
+    <string name="shortcut_converter_long">Abrir o conversor de unidades</string>
+    <string name="shortcut_programmer_short">Programador</string>
+    <string name="shortcut_programmer_long">Abrir o modo programador</string>
+    <string name="shortcut_graphing_short">Gráfico</string>
+    <string name="shortcut_graphing_long">Abrir a calculadora gráfica</string>
+    <string name="about_privacy_show">Política de privacidade</string>
+    <string name="about_privacy_hide">Ocultar a política de privacidade</string>
+</resources>

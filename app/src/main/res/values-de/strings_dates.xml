@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dates_tab_difference">Differenz</string>
+    <string name="dates_tab_add">Addieren / Subtrahieren</string>
+    <string name="dates_tab_business">Werktage</string>
+    <string name="dates_tab_age">Alter</string>
+    <string name="dates_start">Startdatum</string>
+    <string name="dates_end">Enddatum</string>
+    <string name="dates_birth">Geburtsdatum</string>
+    <string name="dates_total_days">%1$d Tage</string>
+    <string name="dates_breakdown">%1$d Jahre, %2$d Monate, %3$d Tage</string>
+    <string name="dates_weeks">%1$d Wochen und %2$d Tage</string>
+    <string name="dates_years">Jahre</string>
+    <string name="dates_months">Monate</string>
+    <string name="dates_weeks_field">Wochen</string>
+    <string name="dates_days">Tage</string>
+    <string name="dates_add">Addieren</string>
+    <string name="dates_subtract">Subtrahieren</string>
+    <string name="dates_clamp_note">Monats- und Jahresschritte werden auf das Ende eines kürzeren Monats begrenzt.</string>
+    <string name="dates_business_result">%1$d Arbeitstage</string>
+    <string name="dates_exclude_weekend">Ohne Samstag und Sonntag</string>
+    <string name="dates_age_result">%1$d Jahre, %2$d Monate, %3$d Tage</string>
+    <string name="dates_age_total">%1$d Tage gelebt</string>
+    <string name="dates_next_birthday">Nächster Geburtstag am %1$s (in %2$d Tagen)</string>
+    <string name="dates_out_of_range">Diese Werte liegen außerhalb des nutzbaren Bereichs.</string>
+</resources>

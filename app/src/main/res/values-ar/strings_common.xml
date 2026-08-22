@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_converter">محوّل الوحدات</string>
+    <string name="title_programmer">المبرمج</string>
+    <string name="title_graphing">الرسم البياني</string>
+    <string name="title_datetime">حاسبة التواريخ</string>
+    <string name="title_financial">مالي</string>
+    <string name="title_settings">الإعدادات</string>
+    <string name="cd_back">رجوع</string>
+    <string name="settings_appearance">المظهر</string>
+    <string name="settings_feedback">الاستجابة</string>
+    <string name="settings_calculation">الحساب</string>
+    <string name="settings_about">حول</string>
+    <string name="theme_system">حسب النظام</string>
+    <string name="theme_light">فاتح</string>
+    <string name="theme_dark">داكن</string>
+    <string name="theme_black">أسود (OLED)</string>
+    <string name="settings_dynamic_color">ألوان الخلفية</string>
+    <string name="settings_dynamic_color_summary">استخدام ألوان مأخوذة من خلفية الشاشة بدلاً من ألوان الحاسبة</string>
+    <string name="settings_haptics">اهتزاز المفاتيح</string>
+    <string name="settings_haptics_summary">اهتزاز قصير عند كل ضغطة مفتاح. يُتجاهل عند إيقاف استجابة اللمس في النظام.</string>
+    <string name="angle_degrees">درجات</string>
+    <string name="angle_radians">راديان</string>
+    <string name="about_version">الإصدار %1$s</string>
+    <string name="about_attribution">الحساب الدقيق مشتق من تطبيق ExactCalculator في مشروع أندرويد مفتوح المصدر، المرخّص بموجب رخصة أباتشي 2.0، ومن الخوارزميات المنشورة لمكتبة الأعداد الحقيقية البنائية لهانز-ي. بوم. لا يتضمن التطبيق أي شيفرة من طرف ثالث، ولا تغادر أي بيانات جهازك.</string>
+    <string name="about_license_show">عرض رخصة أباتشي 2.0</string>
+    <string name="about_license_hide">إخفاء رخصة أباتشي 2.0</string>
+    <string name="about_license_loading">جارٍ تحميل الرخصة…</string>
+    <string name="shortcut_converter_short">تحويل</string>
+    <string name="shortcut_converter_long">فتح محوّل الوحدات</string>
+    <string name="shortcut_programmer_short">المبرمج</string>
+    <string name="shortcut_programmer_long">فتح وضع المبرمج</string>
+    <string name="shortcut_graphing_short">رسم بياني</string>
+    <string name="shortcut_graphing_long">فتح الآلة الحاسبة البيانية</string>
+    <string name="about_privacy_show">سياسة الخصوصية</string>
+    <string name="about_privacy_hide">إخفاء سياسة الخصوصية</string>
+</resources>

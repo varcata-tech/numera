@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_converter">Конвертер величин</string>
+    <string name="title_programmer">Программист</string>
+    <string name="title_graphing">График</string>
+    <string name="title_datetime">Калькулятор дат</string>
+    <string name="title_financial">Финансы</string>
+    <string name="title_settings">Настройки</string>
+    <string name="cd_back">Назад</string>
+    <string name="settings_appearance">Оформление</string>
+    <string name="settings_feedback">Отклик</string>
+    <string name="settings_calculation">Вычисления</string>
+    <string name="settings_about">О программе</string>
+    <string name="theme_system">Как в системе</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="theme_black">Чёрная (OLED)</string>
+    <string name="settings_dynamic_color">Цвета обоев</string>
+    <string name="settings_dynamic_color_summary">Использовать цвета обоев вместо палитры калькулятора</string>
+    <string name="settings_haptics">Вибрация клавиш</string>
+    <string name="settings_haptics_summary">Короткая вибрация при нажатии клавиши. Игнорируется, если системный отклик отключён.</string>
+    <string name="angle_degrees">Градусы</string>
+    <string name="angle_radians">Радианы</string>
+    <string name="about_version">Версия %1$s</string>
+    <string name="about_attribution">Точная арифметика основана на ExactCalculator из Android Open Source Project, распространяемом по лицензии Apache 2.0, и на опубликованных алгоритмах библиотеки конструктивных вещественных чисел Ханса-Й. Бёма. Сторонний код не включён, и никакие данные не покидают устройство.</string>
+    <string name="about_license_show">Показать лицензию Apache 2.0</string>
+    <string name="about_license_hide">Скрыть лицензию Apache 2.0</string>
+    <string name="about_license_loading">Загрузка лицензии…</string>
+    <string name="shortcut_converter_short">Конвертер</string>
+    <string name="shortcut_converter_long">Открыть конвертер величин</string>
+    <string name="shortcut_programmer_short">Программист</string>
+    <string name="shortcut_programmer_long">Открыть режим программиста</string>
+    <string name="shortcut_graphing_short">График</string>
+    <string name="shortcut_graphing_long">Открыть графический калькулятор</string>
+    <string name="about_privacy_show">Политика конфиденциальности</string>
+    <string name="about_privacy_hide">Скрыть политику конфиденциальности</string>
+</resources>

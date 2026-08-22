@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fin_tab_loan">Кредит</string>
+    <string name="fin_tab_interest">Проценты</string>
+    <string name="fin_tab_tip">Чаевые</string>
+    <string name="fin_tab_discount">Скидка</string>
+    <string name="fin_tab_tax">Налог</string>
+    <string name="fin_principal">Сумма кредита</string>
+    <string name="fin_rate">Годовая ставка %</string>
+    <string name="fin_months">Срок (месяцев)</string>
+    <string name="fin_years">Годы</string>
+    <string name="fin_instalment">Ежемесячный платёж</string>
+    <string name="fin_total_paid">Всего выплачено</string>
+    <string name="fin_total_interest">Всего процентов</string>
+    <string name="fin_schedule">График платежей</string>
+    <string name="fin_schedule_line">%1$d · платёж %2$s · основной долг %3$s · проценты %4$s · остаток %5$s</string>
+    <string name="fin_compounding">Начисление процентов</string>
+    <string name="fin_contribution">Взнос за период</string>
+    <string name="fin_final_balance">Итоговая сумма</string>
+    <string name="fin_bill">Счёт</string>
+    <string name="fin_tip_percent">Чаевые %</string>
+    <string name="fin_people">Человек</string>
+    <string name="fin_round_up">Округлить итог вверх</string>
+    <string name="fin_tip_amount">Чаевые</string>
+    <string name="fin_total">Итого</string>
+    <string name="fin_per_person">На человека</string>
+    <string name="fin_extra_cents">%1$d платят на одну единицу больше</string>
+    <string name="fin_price">Цена</string>
+    <string name="fin_discount_1">Первая скидка %</string>
+    <string name="fin_discount_2">Вторая скидка %</string>
+    <string name="fin_final_price">Итоговая цена</string>
+    <string name="fin_saved">Экономия</string>
+    <string name="fin_effective">Фактическая скидка</string>
+    <string name="fin_successive_note" formatted="false">Последовательные скидки перемножаются: 20%, затем 10% — это 28%, а не 30%.</string>
+    <string name="fin_amount">Сумма</string>
+    <string name="fin_tax_rate">Ставка налога %</string>
+    <string name="fin_add_tax">Добавить налог</string>
+    <string name="fin_remove_tax">Выделить налог</string>
+    <string name="fin_net">Без налога</string>
+    <string name="fin_tax">Налог</string>
+    <string name="fin_gross">С налогом</string>
+    <string name="fin_compound_annual">Ежегодно</string>
+    <string name="fin_compound_semiannual">Раз в полгода</string>
+    <string name="fin_compound_quarterly">Ежеквартально</string>
+    <string name="fin_compound_monthly">Ежемесячно</string>
+    <string name="fin_compound_daily">Ежедневно</string>
+    <string name="fin_compound_continuous">Непрерывно</string>
+    <string name="fin_disclaimer">Только для справки. Это не финансовая консультация — расчёты вашего кредитора могут отличаться.</string>
+    <string name="fin_invalid_input">Введите допустимое число в каждое поле.</string>
+    <string name="fin_out_of_range">Эти значения выходят за пределы диапазона, доступного этому калькулятору.</string>
+    <string name="fin_contribution_continuous">При непрерывном начислении нет периода, поэтому взносы не учитываются.</string>
+</resources>

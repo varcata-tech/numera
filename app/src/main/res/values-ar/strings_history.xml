@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="history_title">السجل</string>
+    <string name="history_empty">ستظهر هنا العمليات التي تجريها</string>
+    <string name="history_clear">مسح السجل</string>
+    <string name="history_clear_title">مسح السجل؟</string>
+    <string name="history_clear_message">سيؤدي هذا إلى إزالة كل عملية محفوظة من هذا الجهاز. لا يمكن التراجع عن ذلك.</string>
+    <string name="history_clear_confirm">مسح</string>
+    <string name="history_cancel">إلغاء</string>
+    <string name="desc_history_open">فتح السجل</string>
+    <string name="desc_history_close">إغلاق السجل</string>
+    <string name="desc_history_entry">%1$s يساوي %2$s، انقر للإدراج</string>
+</resources>

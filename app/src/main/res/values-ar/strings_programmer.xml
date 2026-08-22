@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="prog_signed">بإشارة</string>
+    <string name="prog_unsigned">بدون إشارة</string>
+    <string name="prog_overflow">تجاوز</string>
+    <string name="desc_bit">البت %1$d</string>
+    <string name="desc_bit_set">مضبوط</string>
+    <string name="desc_bit_clear">غير مضبوط</string>
+    <string name="desc_key_unavailable">غير متاح في هذا النظام</string>
+</resources>

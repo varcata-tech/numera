@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Strings shared by the navigation shell, the settings screen and the launcher shortcuts.
+  English only; the localisation pass adds the other eleven locales.
+
+  Owned by the ui-kit agent. Feature screens declare their own strings_<feature>.xml —
+  Android merges every file in values/, and two agents editing one file collide.
+-->
+<resources>
+
+    <!-- Mode names. Used as app-bar titles, as launcher shortcut labels, and by the
+         mode switcher, so they must read as nouns rather than as instructions. -->
+    <string name="title_converter">Unit converter</string>
+    <string name="title_programmer">Programmer</string>
+    <string name="title_graphing">Graph</string>
+    <string name="title_datetime">Date calculator</string>
+    <string name="title_financial">Financial</string>
+    <string name="title_settings">Settings</string>
+
+    <!-- Accessibility -->
+    <string name="cd_back">Back</string>
+
+    <!-- Settings: sections -->
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_feedback">Feedback</string>
+    <string name="settings_calculation">Calculation</string>
+    <string name="settings_about">About</string>
+
+    <!-- Settings: theme -->
+    <string name="theme_system">Follow system</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_black">Black (OLED)</string>
+
+    <string name="settings_dynamic_color">Wallpaper colours</string>
+    <string name="settings_dynamic_color_summary">Use colours taken from your wallpaper instead of the calculator palette</string>
+
+    <!-- Settings: haptics -->
+    <string name="settings_haptics">Key vibration</string>
+    <string name="settings_haptics_summary">Vibrate briefly on each key press. Ignored while system touch feedback is off.</string>
+
+    <!-- Settings: angle unit -->
+    <string name="angle_degrees">Degrees</string>
+    <string name="angle_radians">Radians</string>
+
+    <!-- Settings: about -->
+    <string name="about_version">Version %1$s</string>
+    <string name="about_attribution">Exact arithmetic derived from the Android Open Source Project\'s ExactCalculator, under the Apache License 2.0, and from the published algorithms of Hans-J. Boehm\'s constructive reals library. Behaviour is modelled on Google Calculator; no Google code, resources or branding are used. No third-party code is bundled and nothing leaves the device.</string>
+    <string name="about_license_show">Show Apache License 2.0</string>
+    <string name="about_license_hide">Hide Apache License 2.0</string>
+    <string name="about_license_loading">Loading licence…</string>
+
+    <!-- Launcher shortcuts. The short label appears under the icon and is clipped hard by
+         every launcher, so it must survive at roughly ten characters. -->
+    <string name="shortcut_converter_short">Convert</string>
+    <string name="shortcut_converter_long">Open the unit converter</string>
+    <string name="shortcut_programmer_short">Programmer</string>
+    <string name="shortcut_programmer_long">Open programmer mode</string>
+    <string name="shortcut_graphing_short">Graph</string>
+    <string name="shortcut_graphing_long">Open the graphing calculator</string>
+
+    <string name="about_privacy_show">Privacy policy</string>
+    <string name="about_privacy_hide">Hide privacy policy</string>
+</resources>

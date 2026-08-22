@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A shim only. Every pixel the user sees is drawn by Compose; this exists so the
+     window has a background and transparent system bars before the first frame,
+     which is what stops the launch flash. -->
+<resources>
+    <style name="Theme.Calculator" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- Must equal CalculatorLightColors.surface. A literal colour here is what produced
+             the full-screen black-to-white step on every cold launch in the light theme: the
+             starting window is painted from this attribute long before enableEdgeToEdge() or
+             the first Compose frame can repaint it. values-night/ overrides it for dark. -->
+        <item name="android:windowBackground">@color/calc_window_background_light</item>
+        <!-- Paired with the background above, never left to the parent. The starting window
+             is drawn before Compose can set the bar appearance, so a light background with
+             the default (light-on-dark) icons leaves the clock and battery invisible for the
+             first frames of every cold launch. -->
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

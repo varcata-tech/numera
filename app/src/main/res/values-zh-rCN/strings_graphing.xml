@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="graph_add_function">添加函数</string>
+    <string name="graph_expression">关于 x 的表达式</string>
+    <string name="graph_reset_view">重置视图</string>
+    <string name="graph_square_axes">等比坐标轴</string>
+    <string name="graph_no_roots">视图内没有根</string>
+    <string name="graph_invalid">无法绘制该表达式</string>
+    <string name="graph_summary">显示 x 从 %1$s 到 %2$s，y 从 %3$s 到 %4$s</string>
+    <string name="graph_trace_value">x = %1$s，y = %2$s</string>
+    <string name="graph_delete">删除</string>
+    <string name="desc_graph_canvas">图表</string>
+    <string name="graph_list_separator">", "</string>
+    <string name="graph_roots_of">%1$s 的零点：%2$s</string>
+    <string name="graph_roots_of_truncated">%2$s 的前 %1$d 个零点：%3$s</string>
+    <string name="graph_trace_offscreen">x = %1$s，y = %2$s（屏幕外）</string>
+    <string name="graph_clear_trace">清除追踪点</string>
+</resources>

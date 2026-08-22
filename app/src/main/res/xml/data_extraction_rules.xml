@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ replacement for android:fullBackupContent. Cloud backup and device-to-device
+  transfer are configured separately, and both are restricted to the same thing: the
+  preference file. Anything not listed under a section is excluded from it.
+
+  Cloud backup additionally sets disableIfNoEncryptionCapabilities: if the device cannot
+  produce a client-side-encrypted backup, nothing is uploaded at all. The alternative is a
+  preference blob sitting server-side in the clear, which is not a trade worth making for
+  restoring a theme choice.
+
+  Calculation history appears in neither section. Device transfer would be a defensible
+  place for it, but PRIVACY.md states plainly that history never leaves the device, and a
+  rules file is the wrong place to quietly qualify a promise made in a privacy document.
+-->
+<data-extraction-rules>
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
+        <include
+            domain="sharedpref"
+            path="calculator_settings.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <include
+            domain="sharedpref"
+            path="calculator_settings.xml" />
+    </device-transfer>
+</data-extraction-rules>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="prog_signed">부호 있음</string>
+    <string name="prog_unsigned">부호 없음</string>
+    <string name="prog_overflow">오버플로</string>
+    <string name="desc_bit">비트 %1$d</string>
+    <string name="desc_bit_set">설정됨</string>
+    <string name="desc_bit_clear">해제됨</string>
+    <string name="desc_key_unavailable">이 진법에서는 사용할 수 없음</string>
+</resources>

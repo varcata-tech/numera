@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="prog_signed">Со знаком</string>
+    <string name="prog_unsigned">Без знака</string>
+    <string name="prog_overflow">Переполнение</string>
+    <string name="desc_bit">бит %1$d</string>
+    <string name="desc_bit_set">установлен</string>
+    <string name="desc_bit_clear">сброшен</string>
+    <string name="desc_key_unavailable">недоступно в этой системе счисления</string>
+</resources>

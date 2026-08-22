@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dates_tab_difference">Difference</string>
+    <string name="dates_tab_add">Add / subtract</string>
+    <string name="dates_tab_business">Business days</string>
+    <string name="dates_tab_age">Age</string>
+    <string name="dates_start">Start date</string>
+    <string name="dates_end">End date</string>
+    <string name="dates_birth">Date of birth</string>
+    <string name="dates_total_days">%1$d days</string>
+    <string name="dates_breakdown">%1$d years, %2$d months, %3$d days</string>
+    <string name="dates_weeks">%1$d weeks and %2$d days</string>
+    <string name="dates_years">Years</string>
+    <string name="dates_months">Months</string>
+    <string name="dates_weeks_field">Weeks</string>
+    <string name="dates_days">Days</string>
+    <string name="dates_add">Add</string>
+    <string name="dates_subtract">Subtract</string>
+    <string name="dates_clamp_note">Month and year steps clamp to the end of a shorter month.</string>
+    <string name="dates_business_result">%1$d working days</string>
+    <string name="dates_exclude_weekend">Excludes Saturday and Sunday</string>
+    <string name="dates_age_result">%1$d years, %2$d months, %3$d days</string>
+    <string name="dates_age_total">%1$d days lived</string>
+    <string name="dates_next_birthday">Next birthday %1$s (%2$d days)</string>
+    <string name="dates_out_of_range">Those values are outside the range this calculator can use.</string>
+</resources>

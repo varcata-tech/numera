@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="history_title">기록</string>
+    <string name="history_empty">계산한 내용이 여기에 표시됩니다</string>
+    <string name="history_clear">기록 지우기</string>
+    <string name="history_clear_title">기록을 지울까요?</string>
+    <string name="history_clear_message">이 기기에 저장된 모든 계산이 삭제됩니다. 되돌릴 수 없습니다.</string>
+    <string name="history_clear_confirm">지우기</string>
+    <string name="history_cancel">취소</string>
+    <string name="desc_history_open">기록 열기</string>
+    <string name="desc_history_close">기록 닫기</string>
+    <string name="desc_history_entry">%1$s 은 %2$s, 탭하여 삽입</string>
+</resources>

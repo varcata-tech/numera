@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="history_title">Historique</string>
+    <string name="history_empty">Vos calculs apparaîtront ici</string>
+    <string name="history_clear">Effacer l\'historique</string>
+    <string name="history_clear_title">Effacer l\'historique ?</string>
+    <string name="history_clear_message">Cela supprime tous les calculs enregistrés sur cet appareil. L\'action est irréversible.</string>
+    <string name="history_clear_confirm">Effacer</string>
+    <string name="history_cancel">Annuler</string>
+    <string name="desc_history_open">Ouvrir l\'historique</string>
+    <string name="desc_history_close">Fermer l\'historique</string>
+    <string name="desc_history_entry">%1$s égale %2$s, appuyez pour insérer</string>
+</resources>

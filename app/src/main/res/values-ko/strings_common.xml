@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_converter">단위 변환</string>
+    <string name="title_programmer">프로그래머</string>
+    <string name="title_graphing">그래프</string>
+    <string name="title_datetime">날짜 계산기</string>
+    <string name="title_financial">금융</string>
+    <string name="title_settings">설정</string>
+    <string name="cd_back">뒤로</string>
+    <string name="settings_appearance">화면</string>
+    <string name="settings_feedback">피드백</string>
+    <string name="settings_calculation">계산</string>
+    <string name="settings_about">정보</string>
+    <string name="theme_system">시스템 설정 따르기</string>
+    <string name="theme_light">라이트</string>
+    <string name="theme_dark">다크</string>
+    <string name="theme_black">검정 (OLED)</string>
+    <string name="settings_dynamic_color">배경화면 색상</string>
+    <string name="settings_dynamic_color_summary">계산기 색상 대신 배경화면에서 추출한 색상을 사용합니다</string>
+    <string name="settings_haptics">키 진동</string>
+    <string name="settings_haptics_summary">키를 누를 때마다 짧게 진동합니다. 시스템 터치 피드백이 꺼져 있으면 무시됩니다.</string>
+    <string name="angle_degrees">도</string>
+    <string name="angle_radians">라디안</string>
+    <string name="about_version">버전 %1$s</string>
+    <string name="about_attribution">정확한 연산은 Apache License 2.0으로 배포되는 Android 오픈소스 프로젝트의 ExactCalculator와 Hans-J. Boehm의 구성적 실수 라이브러리에 공개된 알고리즘에서 파생되었습니다. 제3자 코드는 포함되지 않으며 어떤 데이터도 기기를 벗어나지 않습니다.</string>
+    <string name="about_license_show">Apache License 2.0 보기</string>
+    <string name="about_license_hide">Apache License 2.0 숨기기</string>
+    <string name="about_license_loading">라이선스 불러오는 중…</string>
+    <string name="shortcut_converter_short">변환</string>
+    <string name="shortcut_converter_long">단위 변환 열기</string>
+    <string name="shortcut_programmer_short">프로그래머</string>
+    <string name="shortcut_programmer_long">프로그래머 모드 열기</string>
+    <string name="shortcut_graphing_short">그래프</string>
+    <string name="shortcut_graphing_long">그래프 계산기 열기</string>
+    <string name="about_privacy_show">개인정보처리방침</string>
+    <string name="about_privacy_hide">개인정보처리방침 숨기기</string>
+</resources>

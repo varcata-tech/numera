@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Auto Backup on Android 11 and below (and the legacy path on newer releases).
+
+  A single <include> flips the whole policy from "back up everything" to "back up only
+  what is listed", which is the point: the only thing that leaves the device is the
+  four-value preference file — theme, wallpaper colours, haptics, angle unit. None of it
+  describes the user.
+
+  Calculation history is therefore already excluded by omission, and that is deliberate.
+  It is the one thing this app stores that can be personal — an account number typed into
+  a percentage, a salary, a dosage — and PRIVACY.md promises it never leaves the device.
+  Anything added to this file in future has to clear that promise first.
+-->
+<full-backup-content>
+    <include
+        domain="sharedpref"
+        path="calculator_settings.xml" />
+</full-backup-content>

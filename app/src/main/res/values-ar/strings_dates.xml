@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dates_tab_difference">الفرق</string>
+    <string name="dates_tab_add">إضافة / طرح</string>
+    <string name="dates_tab_business">أيام العمل</string>
+    <string name="dates_tab_age">العمر</string>
+    <string name="dates_start">تاريخ البدء</string>
+    <string name="dates_end">تاريخ الانتهاء</string>
+    <string name="dates_birth">تاريخ الميلاد</string>
+    <string name="dates_total_days">%1$d يوم</string>
+    <string name="dates_breakdown">%1$d سنة و%2$d شهر و%3$d يوم</string>
+    <string name="dates_weeks">%1$d أسبوع و%2$d يوم</string>
+    <string name="dates_years">سنوات</string>
+    <string name="dates_months">أشهر</string>
+    <string name="dates_weeks_field">أسابيع</string>
+    <string name="dates_days">أيام</string>
+    <string name="dates_add">إضافة</string>
+    <string name="dates_subtract">طرح</string>
+    <string name="dates_clamp_note">خطوات الأشهر والسنوات تُقصر إلى آخر يوم في الشهر الأقصر.</string>
+    <string name="dates_business_result">%1$d يوم عمل</string>
+    <string name="dates_exclude_weekend">لا يشمل السبت والأحد</string>
+    <string name="dates_age_result">%1$d سنة و%2$d شهر و%3$d يوم</string>
+    <string name="dates_age_total">%1$d يوم عشتها</string>
+    <string name="dates_next_birthday">عيد الميلاد القادم %1$s (بعد %2$d يوم)</string>
+    <string name="dates_out_of_range">هذه القيم خارج النطاق الذي يمكن لهذه الآلة الحاسبة استخدامه.</string>
+</resources>

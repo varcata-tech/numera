@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fin_tab_loan">ローン</string>
+    <string name="fin_tab_interest">利息</string>
+    <string name="fin_tab_tip">チップ</string>
+    <string name="fin_tab_discount">割引</string>
+    <string name="fin_tab_tax">税</string>
+    <string name="fin_principal">元本</string>
+    <string name="fin_rate">年利 %</string>
+    <string name="fin_months">期間（月）</string>
+    <string name="fin_years">年数</string>
+    <string name="fin_instalment">毎月の返済額</string>
+    <string name="fin_total_paid">支払総額</string>
+    <string name="fin_total_interest">利息合計</string>
+    <string name="fin_schedule">返済予定表</string>
+    <string name="fin_schedule_line">%1$d · 返済 %2$s · 元本 %3$s · 利息 %4$s · 残高 %5$s</string>
+    <string name="fin_compounding">複利計算</string>
+    <string name="fin_contribution">期間ごとの積立額</string>
+    <string name="fin_final_balance">最終残高</string>
+    <string name="fin_bill">会計金額</string>
+    <string name="fin_tip_percent">チップ %</string>
+    <string name="fin_people">人数</string>
+    <string name="fin_round_up">合計を切り上げる</string>
+    <string name="fin_tip_amount">チップ</string>
+    <string name="fin_total">合計</string>
+    <string name="fin_per_person">1 人あたり</string>
+    <string name="fin_extra_cents">%1$d 人が 1 単位多く支払います</string>
+    <string name="fin_price">価格</string>
+    <string name="fin_discount_1">1 回目の割引 %</string>
+    <string name="fin_discount_2">2 回目の割引 %</string>
+    <string name="fin_final_price">最終価格</string>
+    <string name="fin_saved">お得額</string>
+    <string name="fin_effective">実質割引率</string>
+    <string name="fin_successive_note" formatted="false">連続した割引は掛け算になります。20% の次に 10% なら 30% ではなく 28% 引きです。</string>
+    <string name="fin_amount">金額</string>
+    <string name="fin_tax_rate">税率 %</string>
+    <string name="fin_add_tax">税を加える</string>
+    <string name="fin_remove_tax">税を差し引く</string>
+    <string name="fin_net">税抜</string>
+    <string name="fin_tax">税額</string>
+    <string name="fin_gross">税込</string>
+    <string name="fin_compound_annual">年 1 回</string>
+    <string name="fin_compound_semiannual">年 2 回</string>
+    <string name="fin_compound_quarterly">四半期ごと</string>
+    <string name="fin_compound_monthly">毎月</string>
+    <string name="fin_compound_daily">毎日</string>
+    <string name="fin_compound_continuous">連続複利</string>
+    <string name="fin_disclaimer">情報提供のみを目的としています。金融アドバイスではありません — 貸し手の提示額とは異なる場合があります。</string>
+    <string name="fin_invalid_input">すべての項目に有効な数値を入力してください。</string>
+    <string name="fin_out_of_range">これらの値はこの計算機が計算できる範囲を超えています。</string>
+    <string name="fin_contribution_continuous">連続複利には期間がないため、積立額は計算に含まれません。</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="history_title">Cronologia</string>
+    <string name="history_empty">I calcoli che esegui appariranno qui</string>
+    <string name="history_clear">Cancella la cronologia</string>
+    <string name="history_clear_title">Cancellare la cronologia?</string>
+    <string name="history_clear_message">Rimuove ogni calcolo salvato da questo dispositivo. L\'operazione non può essere annullata.</string>
+    <string name="history_clear_confirm">Cancella</string>
+    <string name="history_cancel">Annulla</string>
+    <string name="desc_history_open">Apri la cronologia</string>
+    <string name="desc_history_close">Chiudi la cronologia</string>
+    <string name="desc_history_entry">%1$s uguale a %2$s, tocca per inserire</string>
+</resources>

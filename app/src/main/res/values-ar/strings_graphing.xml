@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="graph_add_function">إضافة دالة</string>
+    <string name="graph_expression">تعبير بدلالة x</string>
+    <string name="graph_reset_view">إعادة ضبط العرض</string>
+    <string name="graph_square_axes">توحيد مقياس المحاور</string>
+    <string name="graph_no_roots">لا توجد جذور في المنظور</string>
+    <string name="graph_invalid">تعذّر رسم هذا التعبير</string>
+    <string name="graph_summary">عرض x من %1$s إلى %2$s وy من %3$s إلى %4$s</string>
+    <string name="graph_trace_value">x = %1$s، y = %2$s</string>
+    <string name="graph_delete">حذف</string>
+    <string name="desc_graph_canvas">رسم بياني</string>
+    <string name="graph_list_separator">"، "</string>
+    <string name="graph_roots_of">جذور %1$s: %2$s</string>
+    <string name="graph_roots_of_truncated">أول %1$d جذور للدالة %2$s: %3$s</string>
+    <string name="graph_trace_offscreen">x = %1$s، y = %2$s (خارج الشاشة)</string>
+    <string name="graph_clear_trace">مسح المؤشر</string>
+</resources>

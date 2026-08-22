@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="prog_signed">有符号</string>
+    <string name="prog_unsigned">无符号</string>
+    <string name="prog_overflow">溢出</string>
+    <string name="desc_bit">第 %1$d 位</string>
+    <string name="desc_bit_set">已置位</string>
+    <string name="desc_bit_clear">未置位</string>
+    <string name="desc_key_unavailable">此进制下不可用</string>
+</resources>
