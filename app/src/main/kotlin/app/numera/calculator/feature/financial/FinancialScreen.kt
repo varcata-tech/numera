@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.numera.calculator.R
@@ -223,11 +225,25 @@ private fun TipTab() {
     MoneyField(stringResource(R.string.fin_bill), bill) { bill = it }
     MoneyField(stringResource(R.string.fin_tip_percent), percent) { percent = it }
     MoneyField(stringResource(R.string.fin_people), people, decimal = false) { people = it }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Switch(checked = roundUp, onCheckedChange = { roundUp = it })
+    // toggleable on the row, not onCheckedChange on the Switch: the switch alone is a 36dp
+    // target with a 364px label beside it that did nothing at all when tapped, and TalkBack
+    // read an unlabelled switch followed by an unrelated line of text. This is the same
+    // shape SettingsScreen uses for its own switches.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = roundUp,
+                role = Role.Switch,
+                onValueChange = { roundUp = it },
+            )
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Switch(checked = roundUp, onCheckedChange = null)
         Text(
             text = stringResource(R.string.fin_round_up),
-            modifier = Modifier.padding(start = 8.dp),
+            modifier = Modifier.padding(start = 12.dp),
         )
     }
 
