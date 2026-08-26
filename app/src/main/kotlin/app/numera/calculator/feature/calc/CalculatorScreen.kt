@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -41,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -50,10 +52,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.dimensionResource
@@ -154,110 +158,141 @@ fun CalculatorScreen(onOpenMode: (Route) -> Unit) {
 
     Surface(modifier = Modifier.fillMaxSize()) {
         BoxWithWideBreakpoint { wide ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .safeDrawingPadding()
-                    .padding(dimensionResource(R.dimen.calc_screen_padding)),
-            ) {
-                Display(
-                    state = state,
+            // The overflow floats above the layout rather than taking a row in it. As a
+            // row it cost the display band 48dp of height, and in landscape — where both
+            // pads are already on screen — that is height the display does not have to give.
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        // Vertical only. The formula and result inside are horizontally
-                        // scrollable, and because each gesture waits for slop on its own
-                        // axis, the framework arbitrates between them: a sideways drag
-                        // scrolls the formula and never opens the drawer, and vice versa.
-                        .draggable(
-                            orientation = Orientation.Vertical,
-                            state = rememberDraggableState { delta ->
-                                scope.launch {
-                                    offset.snapTo((offset.value + delta).coerceIn(0f, drawerHeight))
-                                }
-                            },
-                            onDragStopped = { velocity -> settle(velocity) },
-                        ),
-                    onRequestMoreDigits = viewModel::onRequestMoreDigits,
-                    onCopy = onCopy,
-                    onPaste = onPaste,
-                    onToggleAngleMode = viewModel::onToggleAngleMode,
-                    onOpenMode = onOpenMode,
-                    drawerOpen = drawerOpen,
-                    onToggleDrawer = {
-                        settle(velocity = if (drawerOpen) -Float.MAX_VALUE else Float.MAX_VALUE)
-                    },
-                )
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1.4f)
-                        .onSizeChanged { size ->
-                            val height = size.height.toFloat()
-                            if (height == drawerHeight) return@onSizeChanged
-                            // The offset belongs to the old height. resized() re-derives it
-                            // from open-or-closed, which is both what a rotation carries
-                            // across and what stops the first drag after a window resize
-                            // from jumping by the difference between the two heights.
-                            val resized = DrawerState(offset = offset.value, maxOffset = drawerHeight)
-                                .resized(height, open = drawerOpen)
-                            drawerHeight = resized.maxOffset
-                            scope.launch { offset.snapTo(resized.offset) }
-                        },
+                        .fillMaxSize()
+                        .safeDrawingPadding()
+                        .padding(dimensionResource(R.dimen.calc_screen_padding)),
                 ) {
-                    if (wide) {
-                        // A wide window shows both pads at once, with no reveal affordance.
-                        // Driven off the measured width rather than Configuration.orientation,
-                        // because at targetSdk 36 the system ignores orientation locks on
-                        // large windows and the app can be handed any size at all.
-                        Row(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalArrangement = Arrangement.spacedBy(
-                                dimensionResource(R.dimen.calc_key_spacing),
+                    Display(
+                        state = state,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            // Vertical only. The formula and result inside are horizontally
+                            // scrollable, and because each gesture waits for slop on its own
+                            // axis, the framework arbitrates between them: a sideways drag
+                            // scrolls the formula and never opens the drawer, and vice versa.
+                            .draggable(
+                                orientation = Orientation.Vertical,
+                                state = rememberDraggableState { delta ->
+                                    scope.launch {
+                                        offset.snapTo((offset.value + delta).coerceIn(0f, drawerHeight))
+                                    }
+                                },
+                                onDragStopped = { velocity -> settle(velocity) },
                             ),
-                        ) {
-                            AdvancedPad(state, viewModel, Modifier.weight(1f).fillMaxHeight())
-                            NumericPad(state, viewModel, Modifier.weight(1f).fillMaxHeight())
-                        }
-                    } else {
-                        val pagerState = rememberPagerState(pageCount = { 2 })
-                        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
-                            if (page == 0) {
-                                NumericPad(state, viewModel, Modifier.fillMaxSize())
-                            } else {
-                                AdvancedPad(state, viewModel, Modifier.fillMaxSize())
+                        onRequestMoreDigits = viewModel::onRequestMoreDigits,
+                        onCopy = onCopy,
+                        onPaste = onPaste,
+                        drawerOpen = drawerOpen,
+                        onToggleDrawer = {
+                            settle(velocity = if (drawerOpen) -Float.MAX_VALUE else Float.MAX_VALUE)
+                        },
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1.4f)
+                            .onSizeChanged { size ->
+                                val height = size.height.toFloat()
+                                if (height == drawerHeight) return@onSizeChanged
+                                // The offset belongs to the old height. resized() re-derives it
+                                // from open-or-closed, which is both what a rotation carries
+                                // across and what stops the first drag after a window resize
+                                // from jumping by the difference between the two heights.
+                                val resized = DrawerState(offset = offset.value, maxOffset = drawerHeight)
+                                    .resized(height, open = drawerOpen)
+                                drawerHeight = resized.maxOffset
+                                scope.launch { offset.snapTo(resized.offset) }
+                            },
+                    ) {
+                        if (wide) {
+                            // A wide window shows both pads at once, with no reveal affordance.
+                            // Driven off the measured width rather than Configuration.orientation,
+                            // because at targetSdk 36 the system ignores orientation locks on
+                            // large windows and the app can be handed any size at all.
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalArrangement = Arrangement.spacedBy(
+                                    dimensionResource(R.dimen.calc_key_spacing),
+                                ),
+                            ) {
+                                AdvancedPad(state, viewModel, Modifier.weight(1f).fillMaxHeight())
+                                NumericPad(state, viewModel, Modifier.weight(1f).fillMaxHeight())
+                            }
+                        } else {
+                            val pagerState = rememberPagerState(pageCount = { 2 })
+                            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+                                if (page == 0) {
+                                    NumericPad(state, viewModel, Modifier.fillMaxSize())
+                                } else {
+                                    AdvancedPad(state, viewModel, Modifier.fillMaxSize())
+                                }
                             }
                         }
-                    }
 
-                    if (drawerVisible) {
-                        HistoryDrawer(
-                            entries = entries,
-                            onSelect = { entry ->
-                                viewModel.onInsertHistory(entry.expression)
-                                settle(velocity = -Float.MAX_VALUE)
-                            },
-                            onCopy = { entry -> copyHistoryEntry(context, entry) },
-                            onClear = {
-                                scope.launch { history.clear() }
-                                settle(velocity = -Float.MAX_VALUE)
-                            },
-                            modifier = Modifier
-                                .fillMaxSize()
-                                // Slides down into the pad area rather than over the display,
-                                // so the formula stays readable while choosing an entry.
-                                // The offset is read here rather than in the screen body so
-                                // that a drag invalidates this one layer instead of
-                                // recomposing the calculator once per frame.
-                                .graphicsLayer {
-                                    val progress = DrawerState(
-                                        offset = offset.value,
-                                        maxOffset = drawerHeight,
-                                    ).progress
-                                    translationY = -size.height * (1f - progress)
+                        if (drawerVisible) {
+                            HistoryDrawer(
+                                entries = entries,
+                                onSelect = { entry ->
+                                    viewModel.onInsertHistory(entry.expression)
+                                    settle(velocity = -Float.MAX_VALUE)
                                 },
-                        )
+                                onCopy = { entry -> copyHistoryEntry(context, entry) },
+                                onClear = {
+                                    scope.launch { history.clear() }
+                                    settle(velocity = -Float.MAX_VALUE)
+                                },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    // Slides down into the pad area rather than over the display,
+                                    // so the formula stays readable while choosing an entry.
+                                    // The offset is read here rather than in the screen body so
+                                    // that a drag invalidates this one layer instead of
+                                    // recomposing the calculator once per frame.
+                                    .graphicsLayer {
+                                        val progress = DrawerState(
+                                            offset = offset.value,
+                                            maxOffset = drawerHeight,
+                                        ).progress
+                                        translationY = -size.height * (1f - progress)
+                                    },
+                            )
+                        }
+                    }
+                }
+
+                // Both bits of chrome live here rather than in the display band, and both
+                // are aligned to a *logical* edge so the whole top row mirrors in an RTL
+                // locale: the angle chip follows the reading direction and the overflow sits
+                // opposite it, instead of being stranded on the right where it reads as part
+                // of the expression.
+                //
+                // The chip used to sit inside the band. Two things were wrong with that. It
+                // cost the band a row of height, which is the height landscape does not have
+                // to give — and because the band is bottom-aligned, the chip was the topmost
+                // item of a column that grows upward, so it drifted vertically as the
+                // expression got longer. Anchored here it is still, and the band is nothing
+                // but the number.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .safeDrawingPadding()
+                        .padding(dimensionResource(R.dimen.calc_screen_padding)),
+                ) {
+                    AngleModeChip(
+                        angleMode = state.angleMode,
+                        onToggle = viewModel::onToggleAngleMode,
+                        modifier = Modifier.align(Alignment.TopStart),
+                    )
+                    Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                        OverflowMenu(onOpenMode)
                     }
                 }
             }
@@ -274,8 +309,6 @@ private fun Display(
     onRequestMoreDigits: () -> Unit,
     onCopy: () -> Unit,
     onPaste: () -> Unit,
-    onToggleAngleMode: () -> Unit,
-    onOpenMode: (Route) -> Unit,
     drawerOpen: Boolean,
     onToggleDrawer: () -> Unit,
 ) {
@@ -296,58 +329,78 @@ private fun Display(
         label = "resultScale",
     )
 
-    Column(
-        modifier = modifier
-            // The drawer opens by dragging, which a switch- or screen-reader user cannot
-            // perform. The same action has to be reachable without the gesture.
-            .semantics {
-                customActions = listOf(
-                    CustomAccessibilityAction(drawerLabel) {
-                        onToggleDrawer()
-                        true
-                    },
-                )
-            },
-        verticalArrangement = Arrangement.Bottom,
-        horizontalAlignment = Alignment.End,
+    // Both lines are sized in sp, so a 2.0 system font scale doubles them while the band
+    // holding them does not grow at all. In landscape, where both pads are already on screen
+    // and the band is half its portrait height, the pair then overflows — and since the pads
+    // are the later sibling, their keys paint straight over the bottom of the answer. Shrink
+    // the two lines together by whatever it takes to fit instead of letting them be covered.
+    BoxWithConstraints(
+        // The backstop for a band too short even at MinimumDisplayFit. Cut off at the band
+        // edge is survivable; drawn across the keypad is not.
+        modifier = modifier.clipToBounds(),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AngleModeChip(state.angleMode, onToggleAngleMode)
-            Box(modifier = Modifier.weight(1f))
-            OverflowMenu(onOpenMode)
+        val typography = MaterialTheme.typography
+        val fit: Float = with(LocalDensity.current) {
+            val wanted =
+                (typography.displaySmall.fontSize * formulaScale * 1.15f).toPx() +
+                    (typography.displayMedium.fontSize * resultScale * 1.12f).toPx()
+            // The chip is measured rather than estimated: it is a TextButton, so its height
+            // is its own padding plus a label that grows with the font scale too.
+            // No chrome to subtract any more: the angle chip moved out to the top overlay,
+            // so the band is the two text lines and the computing indicator, nothing else.
+            val available = constraints.maxHeight - ComputingIndicatorHeight.toPx()
+            if (wanted > 0f && available > 0f) {
+                (available / wanted).coerceIn(MinimumDisplayFit, 1f)
+            } else {
+                1f
+            }
         }
 
-        // Both the formula and the result are pinned to LTR. No physical keypad mirrors
-        // its digits in an RTL locale, and neither does Google Calculator; letting bidi
-        // reorder a mixed expression would move the operators out from between operands.
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            HorizontallyScrollingText(
-                text = state.formula,
-                scale = formulaScale,
-                contentDescription = stringResource(R.string.desc_formula),
-                onLongPress = onPaste,
-                modifier = Modifier.fillMaxWidth(),
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                // The drawer opens by dragging, which a switch- or screen-reader user cannot
+                // perform. The same action has to be reachable without the gesture.
+                .semantics {
+                    customActions = listOf(
+                        CustomAccessibilityAction(drawerLabel) {
+                            onToggleDrawer()
+                            true
+                        },
+                    )
+                },
+            verticalArrangement = Arrangement.Bottom,
+            horizontalAlignment = Alignment.End,
+        ) {
+            // Both the formula and the result are pinned to LTR. No physical keypad mirrors
+            // its digits in an RTL locale, and neither does Google Calculator; letting bidi
+            // reorder a mixed expression would move the operators out from between operands.
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                HorizontallyScrollingText(
+                    text = state.formula,
+                    scale = formulaScale * fit,
+                    contentDescription = stringResource(R.string.desc_formula),
+                    onLongPress = onPaste,
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-            ComputingIndicator(visible = state.computing)
+                ComputingIndicator(visible = state.computing)
 
-            val resultText = when (state.mode) {
-                DisplayMode.ERROR -> state.errorRes?.let { stringResource(it) }.orEmpty()
-                DisplayMode.RESULT -> state.result
-                DisplayMode.INPUT -> state.preview
+                val resultText = when (state.mode) {
+                    DisplayMode.ERROR -> state.errorRes?.let { stringResource(it) }.orEmpty()
+                    DisplayMode.RESULT -> state.result
+                    DisplayMode.INPUT -> state.preview
+                }
+                ResultLine(
+                    text = resultText,
+                    scale = resultScale * fit,
+                    isError = state.mode == DisplayMode.ERROR,
+                    announce = showingResult,
+                    hasMoreDigits = state.hasMoreDigits,
+                    onRequestMoreDigits = onRequestMoreDigits,
+                    onCopy = onCopy,
+                )
             }
-            ResultLine(
-                text = resultText,
-                scale = resultScale,
-                isError = state.mode == DisplayMode.ERROR,
-                announce = showingResult,
-                hasMoreDigits = state.hasMoreDigits,
-                onRequestMoreDigits = onRequestMoreDigits,
-                onCopy = onCopy,
-            )
         }
     }
 }
@@ -487,7 +540,7 @@ private fun ComputingIndicator(visible: Boolean) {
     val label = stringResource(R.string.desc_computing)
     // The space is held whether or not the bar is showing, so the result line does not jump
     // by its height at the moment the answer arrives.
-    Box(modifier = Modifier.fillMaxWidth().height(4.dp)) {
+    Box(modifier = Modifier.fillMaxWidth().height(ComputingIndicatorHeight)) {
         if (visible) {
             LinearProgressIndicator(
                 modifier = Modifier
@@ -502,7 +555,11 @@ private fun ComputingIndicator(visible: Boolean) {
 }
 
 @Composable
-private fun AngleModeChip(angleMode: AngleMode, onToggle: () -> Unit) {
+private fun AngleModeChip(
+    angleMode: AngleMode,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val isDegrees = angleMode == AngleMode.DEGREES
     // Hoisted: stringResource cannot be called inside the semantics lambda, which is why
     // this was two English string constants that no locale ever translated — invisible to
@@ -512,7 +569,7 @@ private fun AngleModeChip(angleMode: AngleMode, onToggle: () -> Unit) {
     )
     TextButton(
         onClick = onToggle,
-        modifier = Modifier.semantics { contentDescription = label },
+        modifier = modifier.semantics { contentDescription = label },
     ) {
         Text(
             text = stringResource(if (isDegrees) R.string.mode_deg else R.string.mode_rad),
@@ -836,6 +893,17 @@ private suspend fun pasteFromClipboard(
     if (text.isNullOrEmpty()) return@withContext null
     parsePastedText(text, symbols)
 }
+
+/**
+ * How far the display may shrink to fit its band before it stops trying.
+ *
+ * Below this the answer is smaller than the key labels under it, at which point clipping a
+ * line the user can still scroll is the better failure.
+ */
+private const val MinimumDisplayFit = 0.45f
+
+/** Height the computing bar occupies whether or not it is showing. */
+private val ComputingIndicatorHeight = 4.dp
 
 /** Distinctive enough that another app's clipboard entry cannot be mistaken for ours. */
 private const val CLIP_LABEL = "app.numera.calculator/expression"
