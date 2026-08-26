@@ -346,9 +346,54 @@ abstract class ConstructiveReal {
         return if (scaledInt.signum() < 0) "-$result" else result
     }
 
+    /**
+     * Base-ten digits with the last one correctly rounded, rather than however the
+     * approximation happened to land.
+     *
+     * [toStringTruncated] asks [getAppr] for a value good to within one unit in the last
+     * place and then *truncates* it, so the final digit falls either side by luck. Measured
+     * against published expansions at eighteen significant digits, π, √2, ln 2, 1/7 and 2/3
+     * all came out correctly rounded and `e` came out one low — the same code, a different
+     * accident. A calculator that advertises exact arithmetic cannot have its last digit
+     * decided that way.
+     *
+     * Guard digits are what make it deterministic: compute [GUARD_DIGITS] further than asked,
+     * then round half away from zero and drop them. That is not a proof — no finite
+     * approximation can correctly round a value sitting exactly on a rounding boundary, which
+     * is the table-maker's dilemma — but it moves the failure from "roughly one digit in two"
+     * to "the true value agrees with a boundary for four consecutive digits".
+     */
+    fun toStringRounded(digits: Int): String {
+        require(digits >= 0) { "digits must not be negative" }
+        val scale = BigInteger.TEN.pow(digits + GUARD_DIGITS)
+        val scaledInt = (this * IntCR(scale)).getAppr(0)
+        val negative = scaledInt.signum() < 0
+
+        val guard = BigInteger.TEN.pow(GUARD_DIGITS)
+        val (whole, remainder) = scaledInt.abs().divideAndRemainder(guard)
+        // Half away from zero, matching the rounding a reader expects of a decimal display.
+        val rounded =
+            if (remainder * BIG2 >= guard) whole + BIG1 else whole
+
+        var text = rounded.toString()
+        val result: String
+        if (digits == 0) {
+            result = text
+        } else {
+            // The carry out of rounding can lengthen the string — 9.99 to four places is
+            // 10.00 — so the split has to happen after rounding, never before.
+            if (text.length <= digits) text = text.padStart(digits + 1, '0')
+            result = text.substring(0, text.length - digits) + "." + text.substring(text.length - digits)
+        }
+        return if (negative && rounded.signum() != 0) "-$result" else result
+    }
+
     override fun toString(): String = toStringTruncated(10)
 
     companion object {
+        /** Extra digits computed and then rounded away; see [toStringRounded]. */
+        private const val GUARD_DIGITS = 4
+
         internal val BIG1: BigInteger = BigInteger.ONE
         internal val BIG_MINUS1: BigInteger = BigInteger.ONE.negate()
         internal val BIG2: BigInteger = BigInteger.TWO

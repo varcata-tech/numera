@@ -136,16 +136,20 @@ object ResultFormatter {
      * This is what result scrolling calls with an ever larger [digits]; it is cheap to call
      * repeatedly because the underlying approximation is refined rather than recomputed.
      *
-     * The count is clamped to what the value actually has. `toStringTruncated` pads to the
-     * width it is asked for, so scrolling an exact integer such as `2^100` would otherwise
+     * The count is clamped to what the value actually has. The underlying conversion pads to
+     * the width it is asked for, so scrolling an exact integer such as `2^100` would otherwise
      * append fifty zeros that are not digits of anything — and then a hundred, and then two
      * hundred, as the scroll doubles its request.
+     *
+     * Rounded rather than truncated: see [ConstructiveReal.toStringRounded]. A truncating
+     * conversion left the final digit to whichever side the approximation happened to fall on,
+     * which is how `e` came to print one low while π, √2 and ln 2 printed correctly.
      */
     fun formatWithDigits(value: UnifiedReal, digits: Int, locale: Locale = Locale.getDefault()): String {
         val requested = maxOf(digits, 0)
         val required = value.digitsRequired()
         val places = if (required == null) requested else minOf(requested, required)
-        return localize(realOf(value).toStringTruncated(places), locale, grouping = true)
+        return localize(realOf(value).toStringRounded(places), locale, grouping = true)
     }
 
     /** [formatWithDigits] as a total function; see [formatShortOrNull] for what `null` means. */
@@ -281,7 +285,7 @@ object ResultFormatter {
     ): String {
         var places = budget - maxOf(exponent + 1, 1) - 2
         while (places > 0) {
-            val text = localize(real.toStringTruncated(places), locale, grouping = true) + ELLIPSIS
+            val text = localize(real.toStringRounded(places), locale, grouping = true) + ELLIPSIS
             if (text.length <= budget) return text
             places -= maxOf(text.length - budget, 1)
         }
@@ -342,7 +346,7 @@ object ResultFormatter {
         if (abs(exponent) > MAX_SCIENTIFIC_EXPONENT) throw TooMuchMemoryException()
         val scale = ConstructiveReal.valueOf(BigInteger.TEN.pow(abs(exponent)))
         val mantissa = if (exponent >= 0) real / scale else real * scale
-        return mantissa.toStringTruncated(places)
+        return mantissa.toStringRounded(places)
     }
 
     /** −1 when the mantissa slipped below 1, +1 when it reached 10, 0 when it is in range. */
