@@ -33,9 +33,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -113,9 +115,8 @@ fun ConverterScreen(onBack: () -> Unit) {
                 onPickUnit = { picking = false },
             )
 
-            if (state.common.isNotEmpty()) {
-                CommonConversions(state.common)
-            }
+            // Composed even when empty; see CommonConversions.
+            CommonConversions(state.common)
 
             Box(modifier = Modifier.weight(1f)) {
                 ConverterPad(
@@ -230,7 +231,24 @@ private fun ValueRow(
 @Composable
 private fun CommonConversions(entries: List<Pair<UnitDef, String>>) {
     val scrollState = rememberScrollState()
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+    // Laid out even with nothing to show, and hidden rather than omitted.
+    //
+    // The strip appears the moment there is a value to convert — which is the *first*
+    // keystroke. Letting it appear from nothing pushed the whole keypad down with it: the
+    // 7/8/9 row moved 74dp, a full row's height, between the first key and the second, so a
+    // quick second tap landed on the row above the one the user was aiming at. Reserving the
+    // space costs an empty band on a screen the user has not typed into yet, which is the
+    // cheaper of the two.
+    //
+    // The placeholder mirrors a real column rather than setting a dp height, so the space
+    // reserved still matches at a 2.0 font scale, where a fixed height would not.
+    val empty = entries.isEmpty()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .then(if (empty) Modifier.alpha(0f).clearAndSetSemantics { } else Modifier),
+    ) {
         Text(
             text = stringResource(R.string.converter_common),
             style = MaterialTheme.typography.labelMedium,
@@ -240,6 +258,13 @@ private fun CommonConversions(entries: List<Pair<UnitDef, String>>) {
             modifier = Modifier.fillMaxWidth().horizontalScroll(scrollState),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            if (empty) {
+                Column {
+                    Text(text = " ", style = MaterialTheme.typography.bodyMedium)
+                    Text(text = " ", style = MaterialTheme.typography.labelSmall)
+                    Text(text = " ", style = MaterialTheme.typography.labelSmall)
+                }
+            }
             for ((unit, text) in entries) {
                 Column {
                     Text(text = text, style = MaterialTheme.typography.bodyMedium)
