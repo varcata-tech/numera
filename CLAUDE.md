@@ -31,6 +31,38 @@ cause. It lives in `~/dev/numera` for that reason.
 
 **Always `./gradlew`, never the system `gradle`** — the latter launches on a JDK that AGP rejects.
 
+## Emulator
+
+There is no `androidTest` source set: the emulator is for the things a JVM test cannot see —
+RTL mirroring, locale digits, drawer gestures, and whether the licence screen survived R8 in a
+*release* build. `scripts/emu.sh` wraps it.
+
+```sh
+./scripts/emu.sh start        # boot numera-api36 (Pixel 8, API 36, arm64, google_apis)
+./scripts/emu.sh run          # boot if needed, :app:installDebug, launch
+./scripts/emu.sh shot out.png # screencap
+./scripts/emu.sh lang ar-EG   # per-app locale; no argument resets to the system language
+./scripts/emu.sh fresh        # pm clear, to test genuine first-run state
+./scripts/emu.sh log          # crashes and app lines out of logcat
+```
+
+**The installed package is `app.numera.calculator.debug`, not `app.numera.calculator`.** The
+debug build sets `applicationIdSuffix`, so launching the unsuffixed id fails with the
+misleading "No activities found to run, monkey aborted" — which reads like a broken manifest
+rather than a wrong package name.
+
+**Every adb call must be pinned to our serial.** Other projects on this machine run their own
+AVDs, and an unpinned `adb`/`installDebug` either refuses with "more than one device/emulator"
+or installs onto whichever device answers first. `emu.sh` resolves the serial by matching
+`adb -s <serial> emu avd name` against the AVD name; do not "simplify" that to bare `adb`.
+
+**`avdmanager create avd` writes placeholders that must be corrected.** It leaves
+`avd.id`/`avd.name` as the literal `<build>` and, worse, `disk.dataPartition.path=<temp>` —
+which throws away `shared_prefs` and the history database on every boot, quietly making
+persistence untestable. It also defaults to `hw.gpu.enabled=no`. The checked-in AVD already
+has these fixed; recreate it and you must fix them again. The `Could not load devices from
+.../devices.xml` error it prints is harmless — the `-d` hardware profile is still applied.
+
 ## Traps
 
 These are the things that have actually cost time here. Read them before editing.
