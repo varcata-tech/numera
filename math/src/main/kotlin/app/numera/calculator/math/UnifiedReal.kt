@@ -216,6 +216,19 @@ class UnifiedReal private constructor(
             return sqrt() * pow(of(BoundedRational.of(wholeHalves)))
         }
 
+        // Any other rational exponent, on a positive rational base: exact exactly when the
+        // base is a perfect den-th power. Only den == 2 was handled above, so 8^(1/3) — a
+        // whole 2 — fell through to powViaExpLn and became a Factor.Opaque, which can never
+        // report that it terminates. The result printed as 2.00000000000000000…, a whole
+        // number wearing an ellipsis, and the same went for every cube, fourth and sixth
+        // root. Negative bases are deliberately left out: (-8)^(1/3) has no principal real
+        // root the rest of this class agrees on, and it already reports "not a number".
+        if (isRational && signum() > 0 && e.den != BigInteger.ONE) {
+            exactRootOfRational(ratFactor, e.den)?.let { root ->
+                root.pow(e.num)?.let { return make(it, Factor.One) }
+            }
+        }
+
         val whole = e.asBigInteger()
         if (whole != null) {
             if (isRational) {
@@ -321,8 +334,32 @@ class UnifiedReal private constructor(
         inverseFromTable(mode, 0..180) { sinOfExactDegrees(it + 90) }
             ?: opaque(fromRadians(toConstructiveReal().acos(), mode))
 
+    /**
+     * Arctangent.
+     *
+     * The table lookup is what keeps `atan(1)` at exactly `45` rather than
+     * `45.0000000000000000…`. [asin] and [acos] have always had one; this did not, so of the
+     * three inverse functions only this one handed back an opaque constructive real for an
+     * answer that is a whole number of degrees — and that inexact form is what went on to be
+     * written into history.
+     */
     fun atan(mode: AngleMode): UnifiedReal =
-        opaque(fromRadians(toConstructiveReal().atan(), mode))
+        inverseFromTable(mode, -90..90) { tanOfExactDegrees(it) }
+            ?: opaque(fromRadians(toConstructiveReal().atan(), mode))
+
+    /**
+     * `tan` of a whole number of degrees, or null where there is no exact value.
+     *
+     * Null at ±90 rather than throwing: to [inverseFromTable] "no value at this angle" and
+     * "a value that does not match" are the same answer, and a pole is simply not a table
+     * entry that any arctangent can return.
+     */
+    private fun tanOfExactDegrees(degrees: Int): UnifiedReal? {
+        val sin = sinOfExactDegrees(degrees) ?: return null
+        val cos = sinOfExactDegrees(degrees + 90) ?: return null
+        if (cos.definitelyZero()) return null
+        return sin / cos
+    }
 
     /**
      * Searches the exact table for an angle in [principal] whose [value] matches this one.
@@ -601,6 +638,50 @@ class UnifiedReal private constructor(
          * `√(p²q)` for six-digit primes, and an unbounded factorisation would be a much
          * better way to hang the calculator than any arithmetic in it.
          */
+        /**
+         * The exact `index`-th root of a positive rational, or null when there is not one.
+         *
+         * Both halves of the fraction have to come out whole: 8/27 has an exact cube root
+         * because 8 and 27 both do, while 8/26 does not. The rational is already in lowest
+         * terms, so a common factor cannot rescue a root that the parts do not have.
+         */
+        private fun exactRootOfRational(value: BoundedRational, index: BigInteger): BoundedRational? {
+            if (index.signum() <= 0 || index.bitLength() > 31) return null
+            val n = index.toInt()
+            if (n == 1) return value
+            val num = exactIntegerRoot(value.num, n) ?: return null
+            val den = exactIntegerRoot(value.den, n) ?: return null
+            return BoundedRational.of(num, den)
+        }
+
+        /**
+         * The exact `n`-th root of a non-negative integer, or null when it is not one.
+         *
+         * Newton's method converging downward from an upper bound, then verified by raising
+         * the answer back: the verification is what makes "exact" mean exact rather than
+         * "the nearest integer to the root". Anything with an index past the value's bit
+         * length is refused first — a root of two or more would need the value to be at
+         * least 2^n — which also keeps `x.pow(n - 1)` inside the loop from being asked for
+         * an absurd power when the user types an exponent like 1/1000000.
+         */
+        private fun exactIntegerRoot(value: BigInteger, n: Int): BigInteger? {
+            if (value.signum() < 0) return null
+            if (value.signum() == 0) return BigInteger.ZERO
+            if (value == BigInteger.ONE) return BigInteger.ONE
+            if (n > value.bitLength()) return null
+
+            val nBig = BigInteger.valueOf(n.toLong())
+            val nMinusOne = BigInteger.valueOf((n - 1).toLong())
+            var x = BigInteger.ONE.shiftLeft(value.bitLength() / n + 1)
+            while (true) {
+                CalculationLimits.checkNotAborted()
+                val next = (nMinusOne * x + value / x.pow(n - 1)) / nBig
+                if (next >= x) break
+                x = next
+            }
+            return if (x.pow(n) == value) x else null
+        }
+
         private fun sqrtOfInteger(n: BigInteger): Pair<BoundedRational, Factor> {
             require(n.signum() > 0)
             var remaining = n
