@@ -7,4 +7,6 @@
     <string name="desc_bit_set">activé</string>
     <string name="desc_bit_clear">désactivé</string>
     <string name="desc_key_unavailable">indisponible dans cette base</string>
+    <string name="desc_op_shl">décalage à gauche</string>
+    <string name="desc_op_shr">décalage à droite</string>
 </resources>

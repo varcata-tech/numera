@@ -363,10 +363,12 @@ private fun ConverterPad(
             listOf(4, 5, 6),
             listOf(1, 2, 3),
         )
+        // Label and spoken form are separate resources on purpose: the label is the glyph,
+        // and a content description of "÷" is read out as the letter it happens to resemble.
         val trailing = listOf(
-            KeyId.DIVIDE to R.string.op_div,
-            KeyId.MULTIPLY to R.string.op_mul,
-            KeyId.SUBTRACT to R.string.op_sub,
+            Triple(KeyId.DIVIDE, R.string.op_div, R.string.desc_op_div),
+            Triple(KeyId.MULTIPLY, R.string.op_mul, R.string.desc_op_mul),
+            Triple(KeyId.SUBTRACT, R.string.op_sub, R.string.desc_op_sub),
         )
         rows.forEachIndexed { index, digits ->
             Row(
@@ -384,10 +386,10 @@ private fun ConverterPad(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
-                val (key, labelRes) = trailing[index]
+                val (key, labelRes, descRes) = trailing[index]
                 CalcButton(
                     label = stringResource(labelRes),
-                    contentDescription = stringResource(labelRes),
+                    contentDescription = stringResource(descRes),
                     onClick = { onKey(key) },
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     style = KeyStyle.OPERATOR,
@@ -422,7 +424,7 @@ private fun ConverterPad(
             )
             CalcButton(
                 label = stringResource(R.string.op_add),
-                contentDescription = stringResource(R.string.op_add),
+                contentDescription = stringResource(R.string.desc_op_add),
                 onClick = { onKey(KeyId.ADD) },
                 modifier = Modifier.weight(1f).fillMaxHeight(),
                 style = KeyStyle.OPERATOR,

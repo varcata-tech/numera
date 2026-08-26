@@ -7,4 +7,6 @@
     <string name="desc_bit_set">impostato</string>
     <string name="desc_bit_clear">non impostato</string>
     <string name="desc_key_unavailable">non disponibile in questa base</string>
+    <string name="desc_op_shl">sposta a sinistra</string>
+    <string name="desc_op_shr">sposta a destra</string>
 </resources>
