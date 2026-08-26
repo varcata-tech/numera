@@ -19,8 +19,11 @@
     <dimen name="calc_text_display_medium">56dp</dimen>
     <!-- The formula being typed, deliberately smaller than its own result. -->
     <dimen name="calc_text_display_small">42dp</dimen>
-    <!-- A digit or operator key label. -->
+    <!-- An operator or function key label. -->
     <dimen name="calc_text_headline_large">26dp</dimen>
+    <!-- A dialpad numeral. Larger than the operators beside it: size is what makes the
+         digits the thing the eye lands on, now that they are no longer drawn heavier. -->
+    <dimen name="calc_text_key_digit">34dp</dimen>
     <!-- A secondary or function key label. -->
     <dimen name="calc_text_headline_medium">18dp</dimen>
 

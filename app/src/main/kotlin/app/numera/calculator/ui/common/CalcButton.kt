@@ -31,7 +31,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -50,16 +49,17 @@ import app.numera.calculator.R
 enum class KeyStyle { DIGIT, OPERATOR, FUNCTION, ACCENT, DESTRUCTIVE }
 
 /**
- * How heavily a key's label is drawn.
+ * The size a key's label is drawn at.
  *
- * Digits carry more weight than the operators and functions around them. They are what the
- * eye lands on while typing, and the pad reads faster when the numerals are the strongest
- * thing on it — the operators do not need to compete, because their colour already separates
- * them. Kept to SemiBold rather than Bold so the keypad stays calm at a glance.
+ * Digits stand out by being *bigger* than the operators and functions around them, not by
+ * being heavier. They are what the eye lands on while typing, but a bolder numeral makes the
+ * pad look shouty at a glance, and the operators do not need to compete because their colour
+ * already separates them. Every label therefore stays at Normal weight.
  */
-private fun KeyStyle.labelWeight(): FontWeight = when (this) {
-    KeyStyle.DIGIT -> FontWeight.SemiBold
-    else -> FontWeight.Normal
+@Composable
+private fun KeyStyle.labelSize(): TextUnit = when (this) {
+    KeyStyle.DIGIT -> dimensionResource(R.dimen.calc_text_key_digit).value.sp
+    else -> MaterialTheme.typography.headlineLarge.fontSize
 }
 
 /** The container and content colours a [KeyStyle] resolves to in the current scheme. */
@@ -167,9 +167,15 @@ fun CalcButton(
         AutoShrinkingLabel(
             text = label,
             color = keyColors.content,
-            baseStyle = MaterialTheme.typography.headlineLarge.copy(
-                fontWeight = style.labelWeight(),
-            ),
+            // lineHeight has to travel with fontSize. headlineLarge carries a fixed one sized
+            // for its own 26sp, and a 34sp digit left on it reports a height overflow forever,
+            // so AutoShrinkingLabel would shrink every numeral straight back down again.
+            baseStyle = style.labelSize().let { size ->
+                MaterialTheme.typography.headlineLarge.copy(
+                    fontSize = size,
+                    lineHeight = size * 1.15f,
+                )
+            },
             modifier = Modifier.padding(horizontal = 4.dp),
         )
     }
