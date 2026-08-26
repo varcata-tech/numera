@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
@@ -29,20 +30,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardOptions
 import app.numera.calculator.R
 import app.numera.calculator.ui.common.ModeScaffold
-import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.DecimalStyle
 import java.time.format.FormatStyle
+import kotlinx.coroutines.delay
 
 /**
  * Date arithmetic: differences, offsets, working days and age.
@@ -357,7 +359,26 @@ private fun ResultCard(content: @Composable () -> Unit) {
     }
 }
 
-/** Formats using the device locale's medium date style rather than a hardcoded pattern. */
+/**
+ * Formats using the app locale's medium date style rather than a hardcoded pattern.
+ *
+ * The locale has to be passed in. `ofLocalizedDate` alone reads `Locale.getDefault()`, which
+ * under a per-app language is not the locale the rest of the screen is using — so the fields
+ * printed "25/08/2026" in Latin digits directly above a result reading "٣٠ يوم" in
+ * Arabic-Indic, two numbering systems in one card. It is the same trap the `NonObservableLocale`
+ * lint check exists for, reached without ever naming `Locale.getDefault()`.
+ */
 @Composable
-private fun LocalDate.formatted(): String =
-    format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+private fun LocalDate.formatted(): String {
+    val locale = LocalConfiguration.current.locales[0]
+    return format(
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+            .withLocale(locale)
+            // withLocale alone is not enough, and the gap is easy to miss: it settles the
+            // month names and the field order but not the digits, which come from
+            // DecimalStyle and default to ASCII whatever the locale. Without this the Dates
+            // screen printed "٣٠ يوم" one line under "26/08/2026" — two numbering systems in
+            // one card, in the one place the app shows both.
+            .withDecimalStyle(DecimalStyle.of(locale)),
+    )
+}
