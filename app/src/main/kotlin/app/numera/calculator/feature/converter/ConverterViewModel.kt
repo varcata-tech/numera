@@ -287,7 +287,11 @@ class ConverterViewModel(
     }
 
     fun onKey(key: KeyId) {
-        input = input.append(key)
+        val next = input.append(key)
+        // A key the input refuses is not an edit. `×` on a carried value asks to use it and
+        // is answered by keeping it, so there is nothing to recompute and nothing to persist.
+        if (next == input) return
+        input = next
         onInputChanged()
     }
 
@@ -302,10 +306,15 @@ class ConverterViewModel(
     }
 
     private fun onInputChanged() {
-        // Every edit leaves a typed expression behind, so the active field always has text.
-        val typed: String = input.displayOrNull().orEmpty()
-        _state.update {
-            if (it.editingFrom) it.copy(fromText = typed) else it.copy(toText = typed)
+        // Null means "keep the text the field already shows", which is [ConverterInput]'s
+        // own contract and not an empty field: a carried value exists on screen only as its
+        // rendered string, and there is nothing here to re-render it from. Reading that null
+        // as empty text blanked a converted value the moment any key left it in place.
+        val typed: String? = input.displayOrNull()
+        if (typed != null) {
+            _state.update {
+                if (it.editingFrom) it.copy(fromText = typed) else it.copy(toText = typed)
+            }
         }
         recompute()
         persist()

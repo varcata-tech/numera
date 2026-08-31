@@ -377,7 +377,7 @@ private fun Display(
             // reorder a mixed expression would move the operators out from between operands.
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 HorizontallyScrollingText(
-                    text = state.formula,
+                    text = state.formula.ifEmpty { EmptyFormula },
                     scale = formulaScale * fit,
                     contentDescription = stringResource(R.string.desc_formula),
                     onLongPress = onPaste,
@@ -893,6 +893,21 @@ private suspend fun pasteFromClipboard(
     if (text.isNullOrEmpty()) return@withContext null
     parsePastedText(text, symbols)
 }
+
+/**
+ * What the formula line reads before anything is typed.
+ *
+ * A desk calculator holding nothing shows a zero, not a blank slot, and that zero is what
+ * makes the refusal of a leading operator legible: press `×` on a fresh line and the value
+ * on screen — zero — visibly has no operator hanging off it, rather than the display simply
+ * failing to react to a key.
+ *
+ * ASCII, unlike the keypad's own labels, because it stands in for the formula line's text
+ * and that line writes its digits in ASCII in every locale — see `CalculatorExpr.display`.
+ * Localising only the placeholder would make the digit change shape in Arabic at the moment
+ * the user replaced it with the same digit off the pad.
+ */
+private const val EmptyFormula: String = "0"
 
 /**
  * How far the display may shrink to fit its band before it stops trying.

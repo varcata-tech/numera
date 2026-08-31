@@ -3,6 +3,7 @@ package app.numera.calculator.feature.converter
 import app.numera.calculator.math.UnifiedReal
 import app.numera.calculator.math.expr.CalculatorExpr
 import app.numera.calculator.math.expr.KeyId
+import app.numera.calculator.math.expr.needsLeftOperand
 
 /**
  * What the converter's active field holds: a typed expression, or an adopted exact value.
@@ -38,13 +39,24 @@ data class ConverterInput(
     fun displayOrNull(): String? = if (exact != null) null else expr.display()
 
     /**
-     * Appends one key.
+     * Appends one key, or stays as it is when the expression refuses that key.
      *
      * An adopted value is dropped first. It is a number, not a token sequence, so appending
      * a digit to it would extend a *rendered* approximation as though the user had typed
      * those digits — silently promoting a truncated display to exact input.
+     *
+     * Which is why an operator does not drop it at all. `×`, `−` and `%` ask to *use* the
+     * value in the field; there are no tokens for them to join to, so the old code answered
+     * a request to multiply the converted value by throwing it away and leaving a bare `×`
+     * — or, once a leading `−` began writing its own zero, by replacing 2.54 cm with `0−`.
+     * A key that starts a fresh value still replaces the adopted one, exactly as before.
      */
-    fun append(key: KeyId): ConverterInput = ConverterInput(typedSoFar().append(key))
+    fun append(key: KeyId): ConverterInput {
+        if (exact != null && key.needsLeftOperand) return this
+        val typed = typedSoFar()
+        if (!typed.accepts(key)) return this
+        return ConverterInput(typed.append(key))
+    }
 
     /** Removes one token, or the whole adopted value. */
     fun delete(): ConverterInput = ConverterInput(typedSoFar().deleteLastToken())

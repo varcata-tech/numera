@@ -86,6 +86,114 @@ class CalculatorExprTest {
         assertNull(CalculatorExpr.fromText("1" + "+1".repeat(10_000)))
     }
 
+    // ------------------------------------------------------------ operator placement
+
+    private fun built(vararg keys: KeyId): CalculatorExpr =
+        keys.fold(CalculatorExpr()) { acc, key -> acc.append(key) }
+
+    private fun typed(vararg keys: KeyId): String = built(*keys).display()
+
+    @Test
+    fun `an operator with nothing on its left is not input at all`() {
+        // Every one of these used to be stored. The expression then had no reading at all,
+        // so the preview under the formula answered "bad expression" to every keystroke
+        // that followed, and nothing on screen said which early press had caused it.
+        assertEquals("", typed(KeyId.MULTIPLY))
+        assertEquals("", typed(KeyId.DIVIDE))
+        assertEquals("", typed(KeyId.ADD))
+        assertEquals("", typed(KeyId.POWER))
+        assertEquals("", typed(KeyId.FACTORIAL))
+        assertEquals("", typed(KeyId.PERCENT))
+        assertEquals("", typed(KeyId.SQUARE))
+
+        // An opening paren and a function open a value rather than ending one, so the keys
+        // that need a left operand have no more to work with there than on an empty line.
+        assertEquals("(", typed(KeyId.LEFT_PAREN, KeyId.MULTIPLY))
+        assertEquals("sin(", typed(KeyId.SIN, KeyId.DIVIDE))
+        assertEquals("√", typed(KeyId.SQRT, KeyId.SQUARE))
+
+        // The `−` is not stored on its own either. It is the sign of a value not yet typed,
+        // so the 0 the display is already showing is written down and the sign attaches to
+        // it — the line never holds a sign with nothing under it, and the number is still
+        // two keystrokes.
+        assertEquals("0−5", typed(KeyId.SUBTRACT, KeyId.D5))
+        assertEquals("(0−5", typed(KeyId.LEFT_PAREN, KeyId.SUBTRACT, KeyId.D5))
+        assertEquals("sin(0−30", typed(KeyId.SIN, KeyId.SUBTRACT, KeyId.D3, KeyId.D0))
+        assertEquals(BoundedRational.of(-5L), rationalOf(built(KeyId.SUBTRACT, KeyId.D5)))
+
+        // Not after `√`, which takes a factor rather than an expression: `√0−5` is (√0)−5,
+        // so an inserted zero would answer a different question than the one asked. A
+        // negative radicand is written √(0−5).
+        assertEquals("√5", typed(KeyId.SQRT, KeyId.SUBTRACT, KeyId.D5))
+    }
+
+    @Test
+    fun `a second operator replaces the first rather than standing beside it`() {
+        // A slip on ÷ on the way to × is one keystroke to correct on a desk calculator and
+        // used to be two here — and until the second one landed, `5÷×3` had no reading.
+        assertEquals("5×", typed(KeyId.D5, KeyId.DIVIDE, KeyId.MULTIPLY))
+        assertEquals("5−", typed(KeyId.D5, KeyId.ADD, KeyId.SUBTRACT))
+        assertEquals("5+", typed(KeyId.D5, KeyId.SUBTRACT, KeyId.ADD))
+        assertEquals("5^", typed(KeyId.D5, KeyId.MULTIPLY, KeyId.POWER))
+
+        // Held down, or pressed six times: still one operator between the two numbers.
+        assertEquals(
+            "5÷2",
+            typed(KeyId.D5, KeyId.ADD, KeyId.ADD, KeyId.MULTIPLY, KeyId.DIVIDE, KeyId.D2),
+        )
+
+        // The run is replaced whole, so a negation left over from an earlier operator does
+        // not survive the operator it belonged to.
+        assertEquals("5+", typed(KeyId.D5, KeyId.MULTIPLY, KeyId.SUBTRACT, KeyId.ADD))
+    }
+
+    @Test
+    fun `a minus after a multiplying operator is a sign, not a second operator`() {
+        // The one case where two operator glyphs in a row are what the user meant. Replacing
+        // here instead would leave no way at all to type a negative right-hand operand.
+        assertEquals("5×−3", typed(KeyId.D5, KeyId.MULTIPLY, KeyId.SUBTRACT, KeyId.D3))
+        assertEquals("2^−1", typed(KeyId.D2, KeyId.POWER, KeyId.SUBTRACT, KeyId.D1))
+        assertEquals(
+            BoundedRational.of(-15L),
+            rationalOf(built(KeyId.D5, KeyId.MULTIPLY, KeyId.SUBTRACT, KeyId.D3)),
+        )
+
+        // It is a sign, and a value has one: pressing it again changes nothing, and neither
+        // does a repeated `−` anywhere else.
+        assertEquals("5×−", typed(KeyId.D5, KeyId.MULTIPLY, KeyId.SUBTRACT, KeyId.SUBTRACT))
+        assertEquals("5−", typed(KeyId.D5, KeyId.SUBTRACT, KeyId.SUBTRACT))
+        assertEquals("(0−", typed(KeyId.LEFT_PAREN, KeyId.SUBTRACT, KeyId.SUBTRACT))
+    }
+
+    @Test
+    fun `a keystroke that only rewrites the operator run reports itself as no edit`() {
+        // `accepts` is what lets the view model treat a refused key as a no-op instead of
+        // committing the reset it does around the call. A rewrite that lands on the run it
+        // already had has to read as "nothing happened" too, or pressing `−` twice with a
+        // result on screen would clear the answer on the second press.
+        val empty = CalculatorExpr()
+        assertFalse(empty.accepts(KeyId.MULTIPLY))
+        assertFalse(empty.accepts(KeyId.PERCENT))
+        // The one operator an empty line does take, because it brings the display's 0 with it.
+        assertTrue(empty.accepts(KeyId.SUBTRACT))
+
+        val minus = empty.append(KeyId.D5).append(KeyId.SUBTRACT)
+        assertFalse(minus.accepts(KeyId.SUBTRACT))
+        assertTrue(minus.accepts(KeyId.MULTIPLY))
+
+        val signed = empty.append(KeyId.D5).append(KeyId.MULTIPLY).append(KeyId.SUBTRACT)
+        assertFalse(signed.accepts(KeyId.SUBTRACT))
+        assertTrue(signed.accepts(KeyId.ADD))
+    }
+
+    @Test
+    fun `a closing paren needs a value to close over and not merely a group to close`() {
+        // `(1+` and then `)` stored `(1+)`, which is a syntax error however the rest of the
+        // expression continues; the group the user was opening is what they get instead.
+        assertEquals("(1+", typed(KeyId.LEFT_PAREN, KeyId.D1, KeyId.ADD, KeyId.RIGHT_PAREN))
+        assertEquals("(1)", typed(KeyId.LEFT_PAREN, KeyId.D1, KeyId.RIGHT_PAREN))
+    }
+
     // ------------------------------------------------------------ dropped keystrokes
 
     @Test

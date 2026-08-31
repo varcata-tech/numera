@@ -45,6 +45,22 @@ private val VALUE_ENDING_KEYS: Set<KeyId> = setOf(
     KeyId.PI, KeyId.E, KeyId.VARIABLE_X,
 )
 
+/**
+ * The keys that join two values, each of which needs a value on its left.
+ *
+ * `−` is here as the *binary* minus. It is also the only one of them that can open a value
+ * rather than join two, which is the one exception [CalculatorExpr.appendOperator] makes.
+ */
+private val BINARY_KEYS: Set<KeyId> = setOf(
+    KeyId.ADD, KeyId.SUBTRACT, KeyId.MULTIPLY, KeyId.DIVIDE, KeyId.POWER,
+)
+
+/** Operators after which a `−` is the sign of the right operand rather than a subtraction. */
+private val NEGATABLE_KEYS: Set<KeyId> = setOf(KeyId.MULTIPLY, KeyId.DIVIDE, KeyId.POWER)
+
+/** Keys that modify the value to their left, and mean nothing without one. */
+private val POSTFIX_KEYS: Set<KeyId> = setOf(KeyId.FACTORIAL, KeyId.PERCENT, KeyId.SQUARE)
+
 internal val KeyId.isFunction: Boolean get() = this in FUNCTION_KEYS
 
 /**
@@ -57,6 +73,21 @@ internal val KeyId.opensGroup: Boolean get() = this == KeyId.LEFT_PAREN || isFun
 
 /** True when a value ends here, so the next paren key must close rather than open. */
 internal val KeyId.endsValue: Boolean get() = this in VALUE_ENDING_KEYS
+
+/** True when this key takes an operand on each side. */
+internal val KeyId.isBinaryOperator: Boolean get() = this in BINARY_KEYS
+
+/** True when this key modifies the value it follows. */
+internal val KeyId.isPostfix: Boolean get() = this in POSTFIX_KEYS
+
+/**
+ * True when this key joins or modifies a value that has to be there already.
+ *
+ * Public because a caller holding a value that is *not* a token sequence — the converter's
+ * adopted result — has to tell a key that would consume that value from one that starts a
+ * new one, before deciding whether to throw the value away for it.
+ */
+val KeyId.needsLeftOperand: Boolean get() = isBinaryOperator || isPostfix
 
 /** The digit this key types, or `null` when it is not a digit key. */
 internal val KeyId.digit: Char?
@@ -126,16 +157,25 @@ data class CalculatorExpr(val tokens: List<Token> = emptyList()) {
     fun isEmpty(): Boolean = tokens.isEmpty()
 
     /**
-     * Appends one key.
+     * Appends one key, dropping a keystroke that could not be part of an expression.
      *
      * Digits and the point fold into the trailing [Token.Number]; everything else becomes
-     * its own token. A closing paren with nothing to close is dropped rather than stored,
-     * so the token list never holds a shape the parser would have to reject.
+     * its own token — but only when there is something for it to attach to. A key that needs
+     * a value on its left and does not have one is dropped, and an operator pressed after
+     * another operator rewrites it rather than stacking on it, so the token list never holds
+     * a shape the parser would have to reject.
      */
     fun append(key: KeyId): CalculatorExpr {
         key.digit?.let { return appendToNumber(it) }
         if (key == KeyId.POINT) return appendPoint()
-        if (key == KeyId.RIGHT_PAREN && unclosedParens() == 0) return this
+        // A `)` needs both a group to close and a value to close over: `(1+` followed by it
+        // is `(1+)`, a syntax error rather than the nested group the user was reaching for.
+        if (key == KeyId.RIGHT_PAREN && (unclosedParens() == 0 || !endsWithValue())) return this
+        // `!`, `%` and `²` modify the value to their left. With no such value they are not
+        // input at all: `²` as the first keystroke used to be stored and then answered with
+        // a syntax error on every keystroke after it.
+        if (key.isPostfix && !endsWithValue()) return this
+        if (key.isBinaryOperator) return appendOperator(key)
         return CalculatorExpr(tokens + Token.Key(key))
     }
 
@@ -179,17 +219,108 @@ data class CalculatorExpr(val tokens: List<Token> = emptyList()) {
      * A function key is a single token whose glyph is `sin(`, so this deletes the whole
      * function in one press — deleting only the paren would leave a bare `sin` that can
      * never be completed by any further keystroke.
+     *
+     * Two things leave with the token rather than after it, because both would otherwise
+     * cost a press that changes nothing a reader could see:
+     *
+     * 1. The zero a leading `−` brought with it. [appendOperator] writes `0−` for one key,
+     *    so one key has to take it away; leaving the `0` behind means a press that redraws
+     *    the display exactly as it already was, since an empty line draws a `0` too.
+     * 2. A sign left standing in front of nothing. The keypad cannot build that shape, but
+     *    pasting `-2` and deleting the `2` can, and every operator key would then be refused
+     *    against a leading `−` the user has no way to explain.
      */
     fun deleteLastToken(): CalculatorExpr {
         val last = tokens.lastOrNull() ?: return this
         if (last is Token.Number && last.text.length > 1) {
             return CalculatorExpr(tokens.dropLast(1) + Token.Number(last.text.dropLast(1)))
         }
-        return CalculatorExpr(tokens.dropLast(1))
+        var remaining = tokens.size - 1
+        if (last is Token.Key && last.key == KeyId.SUBTRACT && isImplicitZeroAt(remaining - 1)) {
+            remaining--
+        }
+        var start = remaining
+        while (start > 0) {
+            val token = tokens[start - 1]
+            if (token !is Token.Key || !token.key.isBinaryOperator) break
+            start--
+        }
+        if (start < remaining && !endsWithValue(start)) remaining = start
+        return CalculatorExpr(tokens.subList(0, remaining).toList())
     }
 
     /** Discards everything. */
     fun clear(): CalculatorExpr = CalculatorExpr()
+
+    /**
+     * True when the first [count] tokens end in something an operator can take as its left
+     * operand.
+     *
+     * A number, a constant, a closed group or a postfix key ends a value; `(`, `sin(`, `√`
+     * and an operator do not, and neither does an empty expression.
+     */
+    private fun endsWithValue(count: Int = tokens.size): Boolean =
+        when (val last = tokens.getOrNull(count - 1)) {
+            is Token.Number -> true
+            is Token.Key -> last.key.endsValue
+            null -> false
+        }
+
+    /**
+     * Appends a binary operator, rewriting the run of operators already at the end.
+     *
+     * Two rules, both of which every desk calculator has:
+     *
+     * 1. An operator with no value on its left is not input. `×` as the first keystroke, or
+     *    straight after `(`, only ever built an expression the evaluator answered with a
+     *    syntax error — and it answered it on *every* keystroke after that, so the user had
+     *    to work out which invisible early press had poisoned the line. This holds for the
+     *    `−` too; see below.
+     * 2. One operator stands between two values. Pressing `+` after `×` means the user
+     *    changed their mind, so the new key replaces the run rather than extending it and
+     *    `5×+3` can never be typed.
+     *
+     * The exception is a `−` after `×`, `÷` or `^`, where it is the sign of the right operand
+     * rather than a second operator: `5×−3` and `2^−1` are what the user meant, and replacing
+     * there would put a negative operand out of the keypad's reach entirely.
+     *
+     * A leading `−` is not a second exception so much as the display's own `0` becoming
+     * real. With nothing to its left the sign belongs to a value that has not been typed
+     * yet, so the zero already on screen is written down and the sign attaches to it:
+     * `−5` is entered in two keystrokes and reaches the parser as `0−5`, which is the same
+     * number with something under the sign the whole way rather than a sign hanging alone.
+     *
+     * Not after `√`, which takes a *factor* rather than a whole expression: `√0−5` parses as
+     * `(√0)−5`, so a zero inserted there would quietly answer a different question. A
+     * negative radicand is written `√(0−5)`.
+     */
+    private fun appendOperator(key: KeyId): CalculatorExpr {
+        var start = tokens.size
+        while (start > 0) {
+            val token = tokens[start - 1]
+            if (token !is Token.Key || !token.key.isBinaryOperator) break
+            start--
+        }
+        if (!endsWithValue(start)) {
+            if (key != KeyId.SUBTRACT || !opensImplicitZero(start)) return this
+            return CalculatorExpr(
+                tokens.subList(0, start) +
+                    listOf(Token.Number(ZERO), Token.Key(KeyId.SUBTRACT)),
+            )
+        }
+        val leading = (tokens.getOrNull(start) as? Token.Key)?.key
+        val replacement = when {
+            key != KeyId.SUBTRACT -> listOf(key)
+            leading in NEGATABLE_KEYS -> listOf(leading!!, KeyId.SUBTRACT)
+            else -> listOf(KeyId.SUBTRACT)
+        }
+        val next = tokens.subList(0, start) + replacement.map { Token.Key(it) }
+        // Identity is the contract [accepts] reads: pressing `−` on `5−`, or again on `5×−`,
+        // rewrites the run to what it already was, and a caller that clears state around the
+        // call has to be able to tell that apart from an edit.
+        if (next == tokens) return this
+        return CalculatorExpr(next)
+    }
 
     /** How many opened groups — parens and function calls alike — are still open. */
     fun unclosedParens(): Int {
@@ -217,6 +348,9 @@ data class CalculatorExpr(val tokens: List<Token> = emptyList()) {
     override fun toString(): String = display()
 
     companion object {
+
+        /** The value the display already shows, written down when a leading `−` needs it. */
+        private const val ZERO: String = "0"
 
         /** A typed number longer than this is refused; it is a paste accident, not input. */
         internal const val MAX_NUMBER_LENGTH: Int = 64
@@ -502,6 +636,33 @@ data class CalculatorExpr(val tokens: List<Token> = emptyList()) {
             return CalculatorExpr(tokens.dropLast(1) + Token.Number(last.text + digit))
         }
         return CalculatorExpr(tokens + Token.Number(digit.toString()))
+    }
+
+    /**
+     * True when a `−` at [start] would be the sign of the first value in a group.
+     *
+     * The start of the expression, or straight after `(` or a function's own paren — the
+     * three places the parser reads what follows as a whole expression, and so the three
+     * places an inserted `0` stands in front of everything the sign is meant to cover.
+     */
+    private fun opensImplicitZero(start: Int): Boolean {
+        val previous = tokens.getOrNull(start - 1) ?: return true
+        return previous is Token.Key && previous.key.opensGroup
+    }
+
+    /**
+     * True when the token at [index] is a zero that a leading `−` could only have written.
+     *
+     * The same three positions [opensImplicitZero] writes it in — the start of the
+     * expression, or straight after `(` or a function's paren. A zero the user typed there
+     * is indistinguishable from it and is removed on the same press, which costs nothing:
+     * an expression holding only that zero draws exactly what an empty one draws.
+     */
+    private fun isImplicitZeroAt(index: Int): Boolean {
+        val token = tokens.getOrNull(index)
+        if (token !is Token.Number || token.text != ZERO) return false
+        val previous = tokens.getOrNull(index - 1) ?: return true
+        return previous is Token.Key && previous.key.opensGroup
     }
 
     /**

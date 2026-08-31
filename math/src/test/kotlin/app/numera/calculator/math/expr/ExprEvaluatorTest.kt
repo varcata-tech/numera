@@ -21,6 +21,13 @@ class ExprEvaluatorTest {
     private fun expr(vararg keys: KeyId): CalculatorExpr =
         keys.fold(CalculatorExpr()) { acc, key -> acc.append(key) }
 
+    /** An expression from text, for the shapes the keypad refuses but a paste can carry. */
+    private fun pasted(text: String): CalculatorExpr {
+        val expr = CalculatorExpr.fromText(text)
+        assertNotNull("unparseable: $text", expr)
+        return expr!!
+    }
+
     private fun eval(expr: CalculatorExpr, mode: AngleMode = AngleMode.DEGREES): EvalResult =
         ExprEvaluator.evaluate(expr, mode)
 
@@ -80,11 +87,11 @@ class ExprEvaluatorTest {
     fun `unary minus binds looser than exponentiation`() {
         // -2^2 is -(2^2) = -4, not (-2)^2 = 4. Getting this backwards is the single most
         // common precedence bug in hand-written calculators.
-        assertRational(
-            BoundedRational.of(-4L),
-            expr(KeyId.SUBTRACT, KeyId.D2, KeyId.POWER, KeyId.D2),
-            "-2^2",
-        )
+        //
+        // Pasted rather than typed: the keypad refuses a leading sign, so paste is the one
+        // path that still hands the parser a unary minus at the front of an expression —
+        // which is exactly why the parser must keep getting it right.
+        assertRational(BoundedRational.of(-4L), pasted("-2^2"), "-2^2")
     }
 
     @Test
@@ -135,6 +142,23 @@ class ExprEvaluatorTest {
             BoundedRational.of(90L),
             expr(KeyId.D1, KeyId.D0, KeyId.D0, KeyId.SUBTRACT, KeyId.D1, KeyId.D0, KeyId.PERCENT),
             "100-10%",
+        )
+    }
+
+    @Test
+    fun `a percentage of a literal zero is read as a hundredth, not as nothing`() {
+        // The keypad writes the leading zero itself: pressing − 5 % on a fresh line builds
+        // 0−5%. Under the relative rule that is "5% of zero", so the answer came back as 0
+        // and the 5 the user typed vanished without a trace on screen to explain it.
+        assertRational(
+            BoundedRational.of(-1L, 20L),
+            expr(KeyId.SUBTRACT, KeyId.D5, KeyId.PERCENT),
+            "−5%",
+        )
+        assertRational(
+            BoundedRational.of(1L, 10L),
+            expr(KeyId.D0, KeyId.ADD, KeyId.D1, KeyId.D0, KeyId.PERCENT),
+            "0+10%",
         )
     }
 
@@ -250,10 +274,7 @@ class ExprEvaluatorTest {
             EvalError.DIVIDE_BY_ZERO,
             error(expr(KeyId.D1, KeyId.DIVIDE, KeyId.D0)),
         )
-        assertEquals(
-            EvalError.NOT_A_NUMBER,
-            error(expr(KeyId.SQRT, KeyId.LEFT_PAREN, KeyId.SUBTRACT, KeyId.D1, KeyId.RIGHT_PAREN)),
-        )
+        assertEquals(EvalError.NOT_A_NUMBER, error(pasted("√(-1)")))
     }
 
     @Test

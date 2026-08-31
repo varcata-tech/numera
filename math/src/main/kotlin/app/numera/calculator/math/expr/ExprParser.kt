@@ -112,7 +112,12 @@ internal class ExprParser(private val tokens: List<Token>) {
                 if (key != KeyId.ADD && key != KeyId.SUBTRACT) break
                 position++
                 val (right, percent) = parseTerm()
-                node = Node.Additive(node, right, key == KeyId.SUBTRACT, percent)
+                node = Node.Additive(
+                    node,
+                    right,
+                    key == KeyId.SUBTRACT,
+                    percent && !node.isZeroLiteral(),
+                )
             }
             return node
         } finally {
@@ -257,6 +262,20 @@ internal class ExprParser(private val tokens: List<Token>) {
         }
         if (position < tokens.size) throw SyntaxException()
     }
+
+    /**
+     * A literal zero, which is the one left operand a relative percentage cannot describe.
+     *
+     * A percentage *of* zero is zero however large it is written, so `0−5%` under the
+     * relative rule answers `0` and throws the 5 away. That shape is not hypothetical: the
+     * keypad writes the leading zero itself when the user opens an expression with `−`, so
+     * pressing `−` `5` `%` would ask for a twentieth and be told nothing at all. Reading the
+     * percentage as an absolute hundredth there is the only reading that carries the number.
+     *
+     * Decided here rather than in the evaluator so that the exact walk and the `Double` walk
+     * used by the graph cannot come to different conclusions about the same tree.
+     */
+    private fun Node.isZeroLiteral(): Boolean = this is Node.Literal && rational.isZero
 
     private fun peek(): Token? = tokens.getOrNull(position)
 

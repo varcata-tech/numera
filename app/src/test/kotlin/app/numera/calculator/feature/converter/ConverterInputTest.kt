@@ -108,6 +108,25 @@ class ConverterInputTest {
     }
 
     @Test
+    fun `an operator does not throw a carried value away`() {
+        // × − % all ask to *use* the value in the field, and a carried value is not made of
+        // tokens they could join to. Answering that by dropping it left a bare `×` in an
+        // empty field — and once a leading `−` began writing its own zero, `0−` in place of
+        // the 2.54 cm the swap had just handed over.
+        // 5000/127 inches: too long to re-enter as digits, so it is genuinely carried as a
+        // value rather than as tokens — which is the case an operator used to destroy.
+        val inches = ConverterInput.adopt(convert(v("1"), "metre", "inch"))
+        assertNotNull("this value must be carried, not re-typed", inches.exact)
+        for (key in listOf(KeyId.MULTIPLY, KeyId.DIVIDE, KeyId.ADD, KeyId.SUBTRACT, KeyId.PERCENT)) {
+            val after = inches.append(key)
+            assertEquals("$key must leave the carried value alone", inches, after)
+            assertEquals(inches.exact, after.exact)
+        }
+        // A key that starts a fresh value still replaces it, exactly as before.
+        assertNull(inches.append(KeyId.D5).exact)
+    }
+
+    @Test
     fun `deleting a carried value empties the field in one press`() {
         val inches = convert(v("1"), "metre", "inch")
         val deleted = ConverterInput.adopt(inches).delete()

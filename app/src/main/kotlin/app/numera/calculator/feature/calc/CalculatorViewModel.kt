@@ -203,17 +203,10 @@ class CalculatorViewModel(
     // ------------------------------------------------------------------ key handling
 
     fun onKey(key: KeyId) {
-        when (_state.value.mode) {
-            // An error leaves the expression that caused it on screen, and the next key is
-            // almost always the correction to it. Clearing here would throw away `1÷0` at
-            // the moment the user reaches for the `0` to fix, which is what backspace out of
-            // an error already refuses to do.
-            DisplayMode.INPUT, DisplayMode.ERROR -> Unit
-            // A digit after a result starts fresh; an operator continues from the exact value.
-            DisplayMode.RESULT ->
-                expr = if (key.continuesFromResult()) seedFromResult() else CalculatorExpr()
-        }
-        expr = expr.append(key)
+        // The decision itself lives in KeyPress, where it can be tested without a device.
+        // A null is a press that must leave the display alone, not an empty expression.
+        val next = KeyPress.apply(_state.value.mode, expr, key) { seedFromResult() } ?: return
+        expr = next
         afterEdit()
     }
 
@@ -723,14 +716,6 @@ class CalculatorViewModel(
  * @property encodedExpression the exact calculation, for pasting back into Numera.
  */
 data class ClipboardPayload(val text: String, val encodedExpression: String)
-
-/** True when the key should continue from the previous answer rather than replace it. */
-private fun KeyId.continuesFromResult(): Boolean = when (this) {
-    KeyId.ADD, KeyId.SUBTRACT, KeyId.MULTIPLY, KeyId.DIVIDE,
-    KeyId.POWER, KeyId.FACTORIAL, KeyId.PERCENT, KeyId.SQUARE,
-    -> true
-    else -> false
-}
 
 /**
  * Whether a live preview would tell the user anything.
