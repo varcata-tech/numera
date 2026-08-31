@@ -286,11 +286,12 @@ fun CalculatorScreen(onOpenMode: (Route) -> Unit) {
                         .safeDrawingPadding()
                         .padding(dimensionResource(R.dimen.calc_screen_padding)),
                 ) {
-                    AngleModeChip(
-                        angleMode = state.angleMode,
-                        onToggle = viewModel::onToggleAngleMode,
-                        modifier = Modifier.align(Alignment.TopStart),
-                    )
+                    if (state.angleMode == AngleMode.RADIANS) {
+                        RadiansBadge(
+                            onToggle = viewModel::onToggleAngleMode,
+                            modifier = Modifier.align(Alignment.TopStart),
+                        )
+                    }
                     Box(modifier = Modifier.align(Alignment.TopEnd)) {
                         OverflowMenu(onOpenMode)
                     }
@@ -554,25 +555,34 @@ private fun ComputingIndicator(visible: Boolean) {
     }
 }
 
+/**
+ * The mark that trigonometry is being done in radians, shown only while it is.
+ *
+ * Degrees is the default and the unit nearly everything here is written in, so a permanent
+ * chip spent its life restating it — on a page whose keys it does not govern, since the trig
+ * keys are a swipe away on the advanced pad, and one stray tap from changing the unit of
+ * every calculation to come. Radians is the state that earns a mark on the display: the same
+ * keystrokes give a different answer and no error at all, so with the badge gone nothing on
+ * screen would say which unit produced the number above it.
+ *
+ * Tapping it returns to degrees; the advanced pad's own DEG/RAD key and the Settings entry
+ * are the other two ways in and out, and both are unchanged.
+ */
 @Composable
-private fun AngleModeChip(
-    angleMode: AngleMode,
+private fun RadiansBadge(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isDegrees = angleMode == AngleMode.DEGREES
     // Hoisted: stringResource cannot be called inside the semantics lambda, which is why
-    // this was two English string constants that no locale ever translated — invisible to
-    // the HardcodedText check, because that inspects XML attributes and not Kotlin.
-    val label = stringResource(
-        if (isDegrees) R.string.desc_switch_rad else R.string.desc_switch_deg,
-    )
+    // this was an English string constant that no locale ever translated — invisible to the
+    // HardcodedText check, because that inspects XML attributes and not Kotlin.
+    val label = stringResource(R.string.desc_switch_deg)
     TextButton(
         onClick = onToggle,
         modifier = modifier.semantics { contentDescription = label },
     ) {
         Text(
-            text = stringResource(if (isDegrees) R.string.mode_deg else R.string.mode_rad),
+            text = stringResource(R.string.mode_rad),
             style = MaterialTheme.typography.labelLarge,
         )
     }
