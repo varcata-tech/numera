@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- The product name. Not translated: it is a brand, not a word, and translating it
-         would give the same app a different identity in each locale's launcher. -->
-    <string name="app_name" translatable="false">Numera</string>
+    <!-- The launcher label. Deliberately the common noun rather than the brand "Numera", so the
+         app sits under the name people look for on a home screen; the Play listing is still
+         "Numera". Because it is a word and not a brand it is translated: an untranslated
+         "Calculator" under a home-screen full of localised labels reads as a foreign app. -->
+    <string name="app_name">Calculator</string>
 </resources>
