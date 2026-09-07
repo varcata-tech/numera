@@ -290,7 +290,7 @@ private val PICKER_YEARS: IntRange = 1800..2200
 private fun DateField(label: String, value: LocalDate, onChange: (LocalDate) -> Unit) {
     var showing: Boolean by rememberSaveable { mutableStateOf(false) }
     OutlinedButton(onClick = { showing = true }, modifier = Modifier.fillMaxWidth()) {
-        Text("$label: ${value.formatted()}")
+        Text(stringResource(R.string.dates_labelled_date, label, value.formatted()))
     }
     if (showing) {
         val state = rememberDatePickerState(

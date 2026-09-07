@@ -41,4 +41,5 @@
     <string name="dates_breakdown">%1$s %2$s %3$s</string>
     <string name="dates_next_birthday">次の誕生日は %1$s（あと %2$s）</string>
     <string name="dates_weeks">%1$sと %2$s</string>
+    <string name="dates_labelled_date">%1$s：%2$s</string>
 </resources>

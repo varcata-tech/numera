@@ -41,4 +41,5 @@
     <string name="dates_breakdown">%1$s %2$s %3$s</string>
     <string name="dates_next_birthday">下次生日 %1$s（还有 %2$s）</string>
     <string name="dates_weeks">%1$s零 %2$s</string>
+    <string name="dates_labelled_date">%1$s：%2$s</string>
 </resources>
