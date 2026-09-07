@@ -3,6 +3,8 @@ package app.numera.calculator.feature.calc
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.PersistableBundle
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
@@ -38,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -119,6 +122,12 @@ fun CalculatorScreen(onOpenMode: (Route) -> Unit) {
     val locale = LocalConfiguration.current.locales[0]
     val symbols = remember(locale) { DecimalFormatSymbols.getInstance(locale) }
 
+    // The one locale read the view model cannot make for itself. It is retained across the
+    // configuration change an in-app language switch causes, so left to `Locale.getDefault()`
+    // it would keep rendering answers in the previous locale's digits under a keypad that had
+    // already recomposed into the new one.
+    LaunchedEffect(viewModel, locale) { viewModel.onLocaleChanged(locale) }
+
     // The drawer is loaded lazily: the database is not touched until the screen exists.
     LaunchedEffect(history) { history.refresh() }
 
@@ -136,11 +145,23 @@ fun CalculatorScreen(onOpenMode: (Route) -> Unit) {
     // derivedStateOf narrows that to the one moment the drawer appears or disappears.
     val drawerVisible by remember { derivedStateOf { offset.value > 0f } }
 
-    fun settle(velocity: Float) {
-        val landed = DrawerState(offset = offset.value, maxOffset = drawerHeight).settle(velocity)
-        drawerOpen = landed.isOpen
-        scope.launch { offset.animateTo(landed.offset) }
+    /** Animates the drawer to wherever the state machine says it belongs. */
+    fun land(target: DrawerState) {
+        drawerOpen = target.isOpen
+        scope.launch { offset.animateTo(target.offset) }
     }
+
+    fun here(): DrawerState = DrawerState(offset = offset.value, maxOffset = drawerHeight)
+
+    fun settle(velocity: Float) = land(here().settle(velocity))
+
+    // Through the state machine rather than by hand. Written out inline, the two clamps
+    // agreed today and nothing would have noticed them diverging: DrawerStateTest builds
+    // every one of its settle cases on drag(), so a change to either copy alone would leave
+    // a green suite describing behaviour the app does not have.
+    fun closeDrawer() = land(here().closed())
+
+    fun toggleDrawer() = land(if (drawerOpen) here().closed() else here().opened())
 
     // Memoised so they are not a fresh instance on every recomposition. onPaste is also the
     // key of the formula line's gesture detector, and re-keying that mid-gesture cancels the
@@ -155,6 +176,26 @@ fun CalculatorScreen(onOpenMode: (Route) -> Unit) {
             }
         }
     }
+    // Hoisted out of the pads, and held as one remembered object rather than as seven
+    // lambdas. `CalculatorViewModel` is an unstable type, so a pad taking it could never be
+    // skipped: every keystroke re-emitted forty CalcButtons and re-ran each label's
+    // measurement loop, on the frame that has to answer the key press.
+    val actions: PadActions = remember(viewModel) {
+        PadActions(
+            onKey = viewModel::onKey,
+            onClear = viewModel::onClear,
+            onSmartParen = viewModel::onSmartParen,
+            onDelete = viewModel::onDelete,
+            onEquals = viewModel::onEquals,
+            onToggleInverse = viewModel::onToggleInverse,
+            onToggleAngleMode = viewModel::onToggleAngleMode,
+        )
+    }
+
+    // The drawer is an overlay pulled down over the pad, and back is how an overlay is
+    // dismissed. Without this the gesture leaves the app with the drawer still open, and the
+    // only other ways out are an upward drag, choosing a row, or clearing the list.
+    BackHandler(enabled = drawerVisible) { closeDrawer() }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         BoxWithWideBreakpoint { wide ->
@@ -180,9 +221,8 @@ fun CalculatorScreen(onOpenMode: (Route) -> Unit) {
                             .draggable(
                                 orientation = Orientation.Vertical,
                                 state = rememberDraggableState { delta ->
-                                    scope.launch {
-                                        offset.snapTo((offset.value + delta).coerceIn(0f, drawerHeight))
-                                    }
+                                    val dragged = here().drag(delta)
+                                    scope.launch { offset.snapTo(dragged.offset) }
                                 },
                                 onDragStopped = { velocity -> settle(velocity) },
                             ),
@@ -190,15 +230,22 @@ fun CalculatorScreen(onOpenMode: (Route) -> Unit) {
                         onCopy = onCopy,
                         onPaste = onPaste,
                         drawerOpen = drawerOpen,
-                        onToggleDrawer = {
-                            settle(velocity = if (drawerOpen) -Float.MAX_VALUE else Float.MAX_VALUE)
-                        },
+                        onToggleDrawer = { toggleDrawer() },
                     )
 
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1.4f)
+                            // The drawer is a child of this Box and is drawn at a negative
+                            // translationY while it is being pulled down. Nothing else in the
+                            // tree clips — graphicsLayer does not by default, the Column does
+                            // not, and Display's own clipToBounds governs Display's children
+                            // rather than a later sibling — so without this the drawer's
+                            // opaque surface paints over the display for the whole of every
+                            // drag, which is exactly what sliding it into the pad area
+                            // instead of over the display was meant to avoid.
+                            .clipToBounds()
                             .onSizeChanged { size ->
                                 val height = size.height.toFloat()
                                 if (height == drawerHeight) return@onSizeChanged
@@ -223,16 +270,26 @@ fun CalculatorScreen(onOpenMode: (Route) -> Unit) {
                                     dimensionResource(R.dimen.calc_key_spacing),
                                 ),
                             ) {
-                                AdvancedPad(state, viewModel, Modifier.weight(1f).fillMaxHeight())
-                                NumericPad(state, viewModel, Modifier.weight(1f).fillMaxHeight())
+                                AdvancedPad(
+                                    inverse = state.inverse,
+                                    angleMode = state.angleMode,
+                                    actions = actions,
+                                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                                )
+                                NumericPad(actions, Modifier.weight(1f).fillMaxHeight())
                             }
                         } else {
                             val pagerState = rememberPagerState(pageCount = { 2 })
                             HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
                                 if (page == 0) {
-                                    NumericPad(state, viewModel, Modifier.fillMaxSize())
+                                    NumericPad(actions, Modifier.fillMaxSize())
                                 } else {
-                                    AdvancedPad(state, viewModel, Modifier.fillMaxSize())
+                                    AdvancedPad(
+                                        inverse = state.inverse,
+                                        angleMode = state.angleMode,
+                                        actions = actions,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
                                 }
                             }
                         }
@@ -242,12 +299,14 @@ fun CalculatorScreen(onOpenMode: (Route) -> Unit) {
                                 entries = entries,
                                 onSelect = { entry ->
                                     viewModel.onInsertHistory(entry.expression)
-                                    settle(velocity = -Float.MAX_VALUE)
+                                    closeDrawer()
                                 },
-                                onCopy = { entry -> copyHistoryEntry(context, entry) },
+                                onCopy = { entry ->
+                                    scope.launch { copyHistoryEntry(context, viewModel, entry) }
+                                },
                                 onClear = {
                                     scope.launch { history.clear() }
-                                    settle(velocity = -Float.MAX_VALUE)
+                                    closeDrawer()
                                 },
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -358,18 +417,7 @@ private fun Display(
         }
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                // The drawer opens by dragging, which a switch- or screen-reader user cannot
-                // perform. The same action has to be reachable without the gesture.
-                .semantics {
-                    customActions = listOf(
-                        CustomAccessibilityAction(drawerLabel) {
-                            onToggleDrawer()
-                            true
-                        },
-                    )
-                },
+            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Bottom,
             horizontalAlignment = Alignment.End,
         ) {
@@ -377,11 +425,12 @@ private fun Display(
             // its digits in an RTL locale, and neither does Google Calculator; letting bidi
             // reorder a mixed expression would move the operators out from between operands.
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                HorizontallyScrollingText(
+                FormulaLine(
                     text = state.formula.ifEmpty { EmptyFormula },
                     scale = formulaScale * fit,
-                    contentDescription = stringResource(R.string.desc_formula),
-                    onLongPress = onPaste,
+                    onPaste = onPaste,
+                    drawerLabel = drawerLabel,
+                    onToggleDrawer = onToggleDrawer,
                     modifier = Modifier.fillMaxWidth(),
                 )
 
@@ -394,6 +443,7 @@ private fun Display(
                 }
                 ResultLine(
                     text = resultText,
+                    generation = state.resultGeneration,
                     scale = resultScale * fit,
                     isError = state.mode == DisplayMode.ERROR,
                     announce = showingResult,
@@ -417,6 +467,7 @@ private fun Display(
 @Composable
 private fun ResultLine(
     text: String,
+    generation: Int,
     scale: Float,
     isError: Boolean,
     announce: Boolean,
@@ -426,7 +477,16 @@ private fun ResultLine(
 ) {
     val scrollState = rememberScrollState()
     val moreDigitsLabel = stringResource(R.string.desc_more_digits)
+    val copyLabel = stringResource(R.string.action_copy)
     var showCopy by remember { mutableStateOf(false) }
+
+    // One ScrollState serves every result this line ever shows, and a ScrollState clamps its
+    // value down when the content shrinks — so a new, short answer arriving under a position
+    // scrolled three hundred digits into the previous one lands parked at its right-hand end,
+    // with its leading digits off screen. Keyed on the generation rather than on the text,
+    // because an expansion appends to the same answer and must keep the position the user's
+    // finger reached to ask for it.
+    LaunchedEffect(generation) { scrollState.scrollTo(0) }
 
     if (hasMoreDigits) {
         LaunchedEffect(scrollState, hasMoreDigits) {
@@ -434,7 +494,10 @@ private fun ResultLine(
                 .collect { (value, max) ->
                     // Ask well before the end so the next block of digits has landed by the
                     // time the finger gets there; waiting until the true edge shows a stop.
-                    if (max > 0 && value >= max - 8) onRequestMoreDigits()
+                    // `value > 0` is what keeps a line that merely overflows its box by a few
+                    // pixels from requesting an expansion nobody scrolled for — including the
+                    // clamped position a shrinking result leaves behind.
+                    if (max > 0 && value > 0 && value >= max - 8) onRequestMoreDigits()
                 }
         }
     }
@@ -468,14 +531,24 @@ private fun ResultLine(
                     // a live region there interrupts with a number after every single key,
                     // burying the announcement of the key that was actually pressed.
                     if (announce) liveRegion = LiveRegionMode.Polite
-                    if (hasMoreDigits) {
-                        customActions = listOf(
-                            CustomAccessibilityAction(moreDigitsLabel) {
-                                onRequestMoreDigits()
-                                true
-                            },
-                        )
+                    val actions = ArrayList<CustomAccessibilityAction>(2)
+                    // Copy is a long press and nothing else, and a switch-access user has no
+                    // long press at all — so without this the one place the exact answer can
+                    // be got out of the app is unreachable for them. HistoryRow already
+                    // states the rule and offers the same action on its own copy gesture.
+                    if (text.isNotEmpty() && !isError) {
+                        actions += CustomAccessibilityAction(copyLabel) {
+                            onCopy()
+                            true
+                        }
                     }
+                    if (hasMoreDigits) {
+                        actions += CustomAccessibilityAction(moreDigitsLabel) {
+                            onRequestMoreDigits()
+                            true
+                        }
+                    }
+                    if (actions.isNotEmpty()) customActions = actions
                 },
         )
 
@@ -491,20 +564,31 @@ private fun ResultLine(
     }
 }
 
+/**
+ * The expression line: what the user is typing, and the only place a paste can be made.
+ *
+ * It carries no `contentDescription`. One used to name the field — the literal word
+ * "formula" — on the very node that holds the expression, and TalkBack reads a
+ * contentDescription *instead of* the text, so the announcement of the user's own sum was
+ * replaced by the name of the box it sits in. The result line has never had one, which is why
+ * it reads correctly.
+ */
 @Composable
-private fun HorizontallyScrollingText(
+private fun FormulaLine(
     text: String,
     scale: Float,
-    contentDescription: String,
-    onLongPress: () -> Unit,
+    onPaste: () -> Unit,
+    drawerLabel: String,
+    onToggleDrawer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
+    val pasteLabel = stringResource(R.string.action_paste)
     // Read through rememberUpdatedState so the gesture detector below can be keyed on Unit.
     // Keyed on the callback instead, any recomposition that produced a new lambda — a
     // preview result landing, for instance — would restart the pointer-input node and throw
     // away a long press already in progress.
-    val longPress by rememberUpdatedState(onLongPress)
+    val longPress by rememberUpdatedState(onPaste)
     // Re-pin to the right whenever the text grows, so the caret end stays visible while
     // typing. Keyed on maxValue too: on the frame the text changes, maxValue still holds
     // the previous width and scrolling to it lands short of the new end.
@@ -525,7 +609,23 @@ private fun HorizontallyScrollingText(
             .pointerInput(Unit) {
                 detectTapGestures(onLongPress = { longPress() })
             }
-            .semantics { this.contentDescription = contentDescription },
+            // Both actions live here rather than on the Display column, which had the drawer
+            // action on a node with no text, no description and no role: Compose makes a node
+            // screen-reader focusable when it carries content, so an action alone on an empty
+            // container is plausibly unreachable. This line always has content — the
+            // placeholder zero at the very least — so it is the node that can be reached.
+            .semantics {
+                customActions = listOf(
+                    CustomAccessibilityAction(pasteLabel) {
+                        longPress()
+                        true
+                    },
+                    CustomAccessibilityAction(drawerLabel) {
+                        onToggleDrawer()
+                        true
+                    },
+                )
+            },
     )
 }
 
@@ -630,10 +730,29 @@ private fun MenuEntry(
 
 // ---------------------------------------------------------------------------- pads
 
+/**
+ * What a key press does, as data the pads can be skipped on.
+ *
+ * The pads used to take the view model itself. A view model is an unstable type as far as the
+ * Compose compiler can tell, so a composable holding one can never be skipped: every
+ * keystroke re-emitted both pads in full — some forty [CalcButton]s, each re-running its
+ * label's shrink-to-fit measurement — on the frame that had to answer the key. Held here as
+ * one remembered, immutable object, the pads recompose only when what they draw changes.
+ */
+@Immutable
+private class PadActions(
+    val onKey: (KeyId) -> Unit,
+    val onClear: () -> Unit,
+    val onSmartParen: () -> Unit,
+    val onDelete: () -> Unit,
+    val onEquals: () -> Unit,
+    val onToggleInverse: () -> Unit,
+    val onToggleAngleMode: () -> Unit,
+)
+
 @Composable
 private fun NumericPad(
-    state: CalculatorUiState,
-    viewModel: CalculatorViewModel,
+    actions: PadActions,
     modifier: Modifier,
 ) {
     // Read through LocalConfiguration, not Locale.getDefault(). The latter is invisible to
@@ -656,48 +775,48 @@ private fun NumericPad(
         ) {
             PadRow {
                 Key(stringResource(R.string.key_clear), stringResource(R.string.desc_clear),
-                    KeyStyle.DESTRUCTIVE) { viewModel.onClear() }
+                    KeyStyle.DESTRUCTIVE) { actions.onClear() }
                 Key(stringResource(R.string.key_paren), stringResource(R.string.desc_paren),
-                    KeyStyle.FUNCTION) { viewModel.onSmartParen() }
+                    KeyStyle.FUNCTION) { actions.onSmartParen() }
                 Key(stringResource(R.string.op_pct), stringResource(R.string.desc_op_pct),
-                    KeyStyle.FUNCTION) { viewModel.onKey(KeyId.PERCENT) }
+                    KeyStyle.FUNCTION) { actions.onKey(KeyId.PERCENT) }
                 Key(stringResource(R.string.op_div), stringResource(R.string.desc_op_div),
-                    KeyStyle.OPERATOR) { viewModel.onKey(KeyId.DIVIDE) }
+                    KeyStyle.OPERATOR) { actions.onKey(KeyId.DIVIDE) }
             }
             PadRow {
-                DigitKey(digit(7), viewModel, KeyId.D7)
-                DigitKey(digit(8), viewModel, KeyId.D8)
-                DigitKey(digit(9), viewModel, KeyId.D9)
+                DigitKey(digit(7), KeyId.D7, actions)
+                DigitKey(digit(8), KeyId.D8, actions)
+                DigitKey(digit(9), KeyId.D9, actions)
                 Key(stringResource(R.string.op_mul), stringResource(R.string.desc_op_mul),
-                    KeyStyle.OPERATOR) { viewModel.onKey(KeyId.MULTIPLY) }
+                    KeyStyle.OPERATOR) { actions.onKey(KeyId.MULTIPLY) }
             }
             PadRow {
-                DigitKey(digit(4), viewModel, KeyId.D4)
-                DigitKey(digit(5), viewModel, KeyId.D5)
-                DigitKey(digit(6), viewModel, KeyId.D6)
+                DigitKey(digit(4), KeyId.D4, actions)
+                DigitKey(digit(5), KeyId.D5, actions)
+                DigitKey(digit(6), KeyId.D6, actions)
                 Key(stringResource(R.string.op_sub), stringResource(R.string.desc_op_sub),
-                    KeyStyle.OPERATOR) { viewModel.onKey(KeyId.SUBTRACT) }
+                    KeyStyle.OPERATOR) { actions.onKey(KeyId.SUBTRACT) }
             }
             PadRow {
-                DigitKey(digit(1), viewModel, KeyId.D1)
-                DigitKey(digit(2), viewModel, KeyId.D2)
-                DigitKey(digit(3), viewModel, KeyId.D3)
+                DigitKey(digit(1), KeyId.D1, actions)
+                DigitKey(digit(2), KeyId.D2, actions)
+                DigitKey(digit(3), KeyId.D3, actions)
                 Key(stringResource(R.string.op_add), stringResource(R.string.desc_op_add),
-                    KeyStyle.OPERATOR) { viewModel.onKey(KeyId.ADD) }
+                    KeyStyle.OPERATOR) { actions.onKey(KeyId.ADD) }
             }
             PadRow {
-                DigitKey(digit(0), viewModel, KeyId.D0)
+                DigitKey(digit(0), KeyId.D0, actions)
                 Key(separator.toString(), stringResource(R.string.desc_dec_point),
-                    KeyStyle.DIGIT) { viewModel.onKey(KeyId.POINT) }
+                    KeyStyle.DIGIT) { actions.onKey(KeyId.POINT) }
                 // Long-press clears everything, exactly as Google Calculator does.
                 Key(
                     label = stringResource(R.string.key_del),
                     description = stringResource(R.string.desc_del),
                     style = KeyStyle.FUNCTION,
-                    onLongClick = { viewModel.onClear() },
-                ) { viewModel.onDelete() }
+                    onLongClick = { actions.onClear() },
+                ) { actions.onDelete() }
                 Key(stringResource(R.string.key_eq), stringResource(R.string.desc_eq),
-                    KeyStyle.ACCENT) { viewModel.onEquals() }
+                    KeyStyle.ACCENT) { actions.onEquals() }
             }
         }
     }
@@ -705,11 +824,11 @@ private fun NumericPad(
 
 @Composable
 private fun AdvancedPad(
-    state: CalculatorUiState,
-    viewModel: CalculatorViewModel,
+    inverse: Boolean,
+    angleMode: AngleMode,
+    actions: PadActions,
     modifier: Modifier,
 ) {
-    val inverse = state.inverse
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.calc_key_spacing)),
@@ -719,65 +838,65 @@ private fun AdvancedPad(
                 stringResource(R.string.key_inv),
                 stringResource(if (inverse) R.string.desc_inv_on else R.string.desc_inv_off),
                 KeyStyle.FUNCTION,
-            ) { viewModel.onToggleInverse() }
+            ) { actions.onToggleInverse() }
             Key(
-                stringResource(if (state.angleMode == AngleMode.DEGREES) R.string.mode_deg else R.string.mode_rad),
+                stringResource(if (angleMode == AngleMode.DEGREES) R.string.mode_deg else R.string.mode_rad),
                 stringResource(
-                    if (state.angleMode == AngleMode.DEGREES) R.string.desc_switch_rad
+                    if (angleMode == AngleMode.DEGREES) R.string.desc_switch_rad
                     else R.string.desc_switch_deg,
                 ),
                 KeyStyle.FUNCTION,
-            ) { viewModel.onToggleAngleMode() }
+            ) { actions.onToggleAngleMode() }
             // INV swaps the six trig and log labels in place rather than revealing a third
             // pad, which is what keeps the layout stable under the user's thumb.
             Key(
                 stringResource(if (inverse) R.string.fun_arcsin else R.string.fun_sin),
                 stringResource(if (inverse) R.string.desc_fun_arcsin else R.string.desc_fun_sin),
                 KeyStyle.FUNCTION,
-            ) { viewModel.onKey(if (inverse) KeyId.ASIN else KeyId.SIN) }
+            ) { actions.onKey(if (inverse) KeyId.ASIN else KeyId.SIN) }
             Key(
                 stringResource(if (inverse) R.string.fun_arccos else R.string.fun_cos),
                 stringResource(if (inverse) R.string.desc_fun_arccos else R.string.desc_fun_cos),
                 KeyStyle.FUNCTION,
-            ) { viewModel.onKey(if (inverse) KeyId.ACOS else KeyId.COS) }
+            ) { actions.onKey(if (inverse) KeyId.ACOS else KeyId.COS) }
             Key(
                 stringResource(if (inverse) R.string.fun_arctan else R.string.fun_tan),
                 stringResource(if (inverse) R.string.desc_fun_arctan else R.string.desc_fun_tan),
                 KeyStyle.FUNCTION,
-            ) { viewModel.onKey(if (inverse) KeyId.ATAN else KeyId.TAN) }
+            ) { actions.onKey(if (inverse) KeyId.ATAN else KeyId.TAN) }
         }
         PadRow {
             Key(stringResource(R.string.const_pi), stringResource(R.string.desc_const_pi),
-                KeyStyle.FUNCTION) { viewModel.onKey(KeyId.PI) }
+                KeyStyle.FUNCTION) { actions.onKey(KeyId.PI) }
             Key(stringResource(R.string.const_e), stringResource(R.string.desc_const_e),
-                KeyStyle.FUNCTION) { viewModel.onKey(KeyId.E) }
+                KeyStyle.FUNCTION) { actions.onKey(KeyId.E) }
             Key(stringResource(R.string.op_pow), stringResource(R.string.desc_op_pow),
-                KeyStyle.FUNCTION) { viewModel.onKey(KeyId.POWER) }
+                KeyStyle.FUNCTION) { actions.onKey(KeyId.POWER) }
             Key(
                 stringResource(if (inverse) R.string.op_sqr else R.string.op_sqrt),
                 stringResource(if (inverse) R.string.desc_op_sqr else R.string.desc_op_sqrt),
                 KeyStyle.FUNCTION,
-            ) { viewModel.onKey(if (inverse) KeyId.SQUARE else KeyId.SQRT) }
+            ) { actions.onKey(if (inverse) KeyId.SQUARE else KeyId.SQRT) }
             Key(stringResource(R.string.op_fact), stringResource(R.string.desc_op_fact),
-                KeyStyle.FUNCTION) { viewModel.onKey(KeyId.FACTORIAL) }
+                KeyStyle.FUNCTION) { actions.onKey(KeyId.FACTORIAL) }
         }
         PadRow {
             Key(
                 stringResource(if (inverse) R.string.fun_exp else R.string.fun_ln),
                 stringResource(if (inverse) R.string.desc_fun_exp else R.string.desc_fun_ln),
                 KeyStyle.FUNCTION,
-            ) { viewModel.onKey(if (inverse) KeyId.EXPE else KeyId.LN) }
+            ) { actions.onKey(if (inverse) KeyId.EXPE else KeyId.LN) }
             Key(
                 stringResource(if (inverse) R.string.fun_10pow else R.string.fun_log),
                 stringResource(if (inverse) R.string.desc_fun_10pow else R.string.desc_fun_log),
                 KeyStyle.FUNCTION,
-            ) { viewModel.onKey(if (inverse) KeyId.EXP10 else KeyId.LOG) }
+            ) { actions.onKey(if (inverse) KeyId.EXP10 else KeyId.LOG) }
             Key(stringResource(R.string.key_lparen), stringResource(R.string.desc_paren),
-                KeyStyle.FUNCTION) { viewModel.onKey(KeyId.LEFT_PAREN) }
+                KeyStyle.FUNCTION) { actions.onKey(KeyId.LEFT_PAREN) }
             Key(stringResource(R.string.key_rparen), stringResource(R.string.desc_paren),
-                KeyStyle.FUNCTION) { viewModel.onKey(KeyId.RIGHT_PAREN) }
+                KeyStyle.FUNCTION) { actions.onKey(KeyId.RIGHT_PAREN) }
             Key(stringResource(R.string.op_pct), stringResource(R.string.desc_op_pct),
-                KeyStyle.FUNCTION) { viewModel.onKey(KeyId.PERCENT) }
+                KeyStyle.FUNCTION) { actions.onKey(KeyId.PERCENT) }
         }
     }
 }
@@ -818,10 +937,10 @@ private fun androidx.compose.foundation.layout.RowScope.Key(
 @Composable
 private fun androidx.compose.foundation.layout.RowScope.DigitKey(
     label: String,
-    viewModel: CalculatorViewModel,
     key: KeyId,
+    actions: PadActions,
 ) {
-    Key(label, stringResource(R.string.desc_digit, label), KeyStyle.DIGIT) { viewModel.onKey(key) }
+    Key(label, stringResource(R.string.desc_digit, label), KeyStyle.DIGIT) { actions.onKey(key) }
 }
 
 // ---------------------------------------------------------------------------- helpers
@@ -843,8 +962,8 @@ private fun BoxWithWideBreakpoint(content: @Composable (Boolean) -> Unit) {
 /**
  * Copies the current result.
  *
- * Puts two items on the clipboard: the readable value for other applications, and Numera's
- * own encoded expression as a second item. The previous implementation copied
+ * Puts the readable value on the clipboard for other applications, with Numera's own encoded
+ * expression alongside it where only Numera looks. The first implementation copied
  * `state.result` — the *localised, twenty-character truncated* display string — which lost
  * precision twice over and, in a locale with non-Latin digits, could not even be pasted back.
  */
@@ -853,26 +972,44 @@ private suspend fun copyResult(context: Context, viewModel: CalculatorViewModel)
     putOnClipboard(context, payload.text, payload.encodedExpression)
 }
 
-/** Copies a history row, carrying its exact expression the same way. */
-private fun copyHistoryEntry(context: Context, entry: HistoryEntry) {
-    putOnClipboard(context, entry.result, ExprCodec.encodeToString(entry.expression))
+/**
+ * Copies a history row, carrying its exact expression the same way.
+ *
+ * The row's own `result` is a display string — grouped, localised, cut to twenty characters
+ * and ellipsised — so the value handed to other applications is re-derived from the stored
+ * calculation instead; see `CalculatorViewModel.historyPayload`.
+ */
+private suspend fun copyHistoryEntry(
+    context: Context,
+    viewModel: CalculatorViewModel,
+    entry: HistoryEntry,
+) {
+    val payload = viewModel.historyPayload(entry)
+    putOnClipboard(context, payload.text, payload.encodedExpression)
 }
 
 private fun putOnClipboard(context: Context, text: String, encodedExpression: String) {
     if (text.isEmpty()) return
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val clip = ClipData.newPlainText(CLIP_LABEL, text)
-    // A second item, read only by us. Other apps see item 0 and are unaffected.
-    clip.addItem(ClipData.Item(encodedExpression))
+    // In the description's extras, not as a second item. A clip's *items* are all pasted:
+    // the plain-text receive path every stock EditText uses loops over every item, coerces
+    // each to text and joins them with a newline, so a second item put the whole Base64 token
+    // stream into the user's message the moment they pasted an answer into Messages or Gmail.
+    // Nothing but Numera reads the extras.
+    clip.description.extras = PersistableBundle().apply {
+        putString(CLIP_EXTRA_EXPR, encodedExpression)
+    }
     clipboard.setPrimaryClip(clip)
 }
 
 /**
  * Reads the clipboard, preferring Numera's own exact payload over the rendered text.
  *
- * The label is the marker. When it matches, the second item holds the original token stream,
- * so copy-then-paste round-trips a value with no loss at all; anything else falls back to
- * tokenising whatever text is there, which is what makes pasting `12+34` from a notes app work.
+ * The label is the marker. When it matches, the description's extras hold the original token
+ * stream, so copy-then-paste round-trips a value with no loss at all; anything else falls back
+ * to tokenising whatever text is there, which is what makes pasting `12+34` from a notes app
+ * work — a clip this app wrote before the payload moved into the extras included.
  *
  * On [Dispatchers.IO] because reading a clip is not necessarily cheap: `coerceToText` on a
  * `content://` clip — what copying a photo or a file leaves behind — resolves the URI through
@@ -886,8 +1023,8 @@ private suspend fun pasteFromClipboard(
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val clip = clipboard.primaryClip ?: return@withContext null
 
-    if (clip.description.label == CLIP_LABEL && clip.itemCount > 1) {
-        val encoded = clip.getItemAt(1).text?.toString()
+    if (clip.description.label == CLIP_LABEL) {
+        val encoded: String? = clip.description.extras?.getString(CLIP_EXTRA_EXPR)
         if (encoded != null) {
             val decoded = ExprCodec.decodeFromString(encoded)
             if (decoded != null) return@withContext decoded
@@ -932,3 +1069,6 @@ private val ComputingIndicatorHeight = 4.dp
 
 /** Distinctive enough that another app's clipboard entry cannot be mistaken for ours. */
 private const val CLIP_LABEL = "app.numera.calculator/expression"
+
+/** Where the exact token stream rides: read by this app, pasted by nothing. */
+private const val CLIP_EXTRA_EXPR = "app.numera.calculator.EXPRESSION"

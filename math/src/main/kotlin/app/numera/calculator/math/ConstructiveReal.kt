@@ -160,19 +160,39 @@ abstract class ConstructiveReal {
     /**
      * `e^this`, by halving the argument until the Taylor series converges quickly and then
      * squaring back up. Without the reduction, `exp(50)` would need hundreds of terms.
+     *
+     * The reduction is a loop, and it is bounded, for the same reason. Its depth is
+     * `log2(|x|) + 10` *whatever the sign of `x`*, so writing it as a recursion paid that
+     * depth in stack frames twice — once building the chain and once approximating it —
+     * while the only guard on it lived in [UnifiedReal] and looked at the sign. The half
+     * that could not be bounded there is closed here instead, because this is the one place
+     * every route to an exponential passes through: [UnifiedReal.exp] on an opaque value,
+     * `powViaExpLn`, and `10^x` all arrive at this method with no check of their own.
+     *
+     * The failure it prevents is not an error but a crash: the tree is expanded when the
+     * *formatter* asks for a digit, and a `StackOverflowError` there is an `Error` that no
+     * catch in the app is looking for.
      */
     fun exp(): ConstructiveReal {
         // In units of 2^-10, so this halves whenever |x| exceeds about 1/512. Deliberately
         // far more conservative than the series strictly needs: halving is cheap, and a
         // series asked to converge near the edge of its stated range is how wrong digits
         // appear hundreds of places to the right where nothing will notice them.
-        val rough = getAppr(-10)
-        return if (rough > BIG2 || rough < BIG2.negate()) {
-            val half = shiftRight(1).exp()
-            half * half
-        } else {
-            PrescaledExpCR(this)
+        val rough = getAppr(-10).abs()
+        if (rough <= BIG2) return PrescaledExpCR(this)
+        // rough is |x| scaled by 2^10, so its bit length past ten is log2(|x|).
+        if (rough.bitLength() - 10 > CalculationLimits.MAX_EXP_ARGUMENT_BITS) {
+            throw TooMuchMemoryException()
         }
+        // The smallest k with rough/2^k ≤ 2 — the same count the recursion would have
+        // reached one frame at a time — and a single shift rather than k nested ones.
+        val halvings = rough.subtract(BIG1).bitLength() - 1
+        var result: ConstructiveReal = PrescaledExpCR(shiftRight(halvings))
+        repeat(halvings) {
+            checkNotAborted()
+            result = result * result
+        }
+        return result
     }
 
     /**
@@ -275,10 +295,10 @@ abstract class ConstructiveReal {
             val result = signumOrZero(a)
             if (result != 0) return result
             // The same budget the msd search uses, for the same problem. Without it the
-            // doubling only stops where checkPrecision throws, at 268 million bits — past
-            // CalculationLimits.MAX_BITS, and a hundred times past the point at which the
-            // module has already decided elsewhere that a value it cannot separate from
-            // zero is undecidable rather than merely stubborn.
+            // doubling only stops where checkPrecision throws, at 268 million bits — a
+            // hundred times past the point at which the module has already decided
+            // elsewhere that a value it cannot separate from zero is undecidable rather
+            // than merely stubborn.
             if (a <= CalculationLimits.MIN_MSD_PRECISION) throw PrecisionOverflowException()
             a = maxOf(a * 2, CalculationLimits.MIN_MSD_PRECISION)
         }

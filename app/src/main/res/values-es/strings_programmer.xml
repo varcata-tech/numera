@@ -9,4 +9,12 @@
     <string name="desc_key_unavailable">no disponible en esta base</string>
     <string name="desc_op_shl">desplazar a la izquierda</string>
     <string name="desc_op_shr">desplazar a la derecha</string>
+    <string name="desc_op_mod">módulo</string>
+    <string name="desc_op_neg">cambiar de signo</string>
+    <string name="desc_op_and">y a nivel de bits</string>
+    <string name="desc_op_or">o a nivel de bits</string>
+    <string name="desc_op_xor">o exclusivo a nivel de bits</string>
+    <string name="desc_op_not">no a nivel de bits</string>
+    <string name="desc_op_rol">rotar a la izquierda</string>
+    <string name="desc_op_ror">rotar a la derecha</string>
 </resources>

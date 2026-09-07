@@ -22,10 +22,11 @@
     <string name="angle_degrees">Gradi</string>
     <string name="angle_radians">Radianti</string>
     <string name="about_version">Versione %1$s</string>
-    <string name="about_attribution">L\'aritmetica esatta deriva dall\'ExactCalculator dell\'Android Open Source Project, rilasciato con licenza Apache 2.0, e dagli algoritmi pubblicati della libreria di reali costruttivi di Hans-J. Boehm. Non è incluso codice di terze parti e nulla lascia il dispositivo.</string>
+    <string name="about_attribution">L\'aritmetica esatta deriva dall\'ExactCalculator dell\'Android Open Source Project, rilasciato con licenza Apache 2.0, e dagli algoritmi pubblicati della libreria di reali costruttivi di Hans-J. Boehm. A parte AndroidX, la libreria standard di Kotlin e kotlinx-coroutines, tutte con licenza Apache 2.0, non è incluso codice di terze parti e nulla lascia il dispositivo.</string>
     <string name="about_license_show">Mostra la Licenza Apache 2.0</string>
     <string name="about_license_hide">Nascondi la Licenza Apache 2.0</string>
     <string name="about_license_loading">Caricamento della licenza…</string>
+    <string name="about_asset_error">Impossibile caricare questo testo.</string>
     <string name="shortcut_converter_short">Converti</string>
     <string name="shortcut_converter_long">Apri il convertitore di unità</string>
     <string name="shortcut_programmer_short">Programmatore</string>
@@ -34,4 +35,5 @@
     <string name="shortcut_graphing_long">Apri la calcolatrice grafica</string>
     <string name="about_privacy_show">Informativa sulla privacy</string>
     <string name="about_privacy_hide">Nascondi l\'informativa sulla privacy</string>
+    <string name="about_privacy_loading">Caricamento dell\'informativa sulla privacy…</string>
 </resources>

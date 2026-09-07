@@ -41,4 +41,16 @@ data class CalculatorUiState(
     val hasMoreDigits: Boolean = false,
     /** True while a long evaluation is still running, so the UI can show progress. */
     val computing: Boolean = false,
+    /**
+     * Bumped whenever [result] is replaced by a *different* answer rather than extended.
+     *
+     * The result line keeps one scroll position for every result it ever shows, and a
+     * `ScrollState` clamps its value down when the content shrinks — so scrolling one seventh
+     * out to three hundred digits and then pressing equals again parks the new, short answer
+     * at its right-hand end with the leading digits off screen. Scrolling back to the start
+     * on a *new* answer is what fixes that, and it has to be a new answer rather than merely
+     * new text: an expansion appends digits to the same value and must leave the position
+     * where the user's finger put it.
+     */
+    val resultGeneration: Int = 0,
 )

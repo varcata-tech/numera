@@ -26,11 +26,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.SaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
@@ -38,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import app.numera.calculator.R
 import app.numera.calculator.ui.common.ModeScaffold
 import java.math.BigDecimal
+import java.text.DecimalFormatSymbols
+import java.util.Locale
 
 /**
  * The financial calculators: loan, compound interest, tip, discount and tax.
@@ -54,6 +59,7 @@ import java.math.BigDecimal
 @Composable
 fun FinancialScreen(onBack: () -> Unit) {
     var tab: Int by rememberSaveable { mutableStateOf(0) }
+    val tabState: SaveableStateHolder = rememberSaveableStateHolder()
     val titles = listOf(
         R.string.fin_tab_loan,
         R.string.fin_tab_interest,
@@ -86,12 +92,19 @@ fun FinancialScreen(onBack: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            when (tab) {
-                0 -> LoanTab()
-                1 -> InterestTab()
-                2 -> TipTab()
-                3 -> DiscountTab()
-                else -> TaxTab()
+            // Keyed by tab, for the reason CalculatorApp keys the mode `when` by route.
+            // rememberSaveable only hands its value to the registry while it is still in
+            // composition, and a tab that stops matching this `when` is simply forgotten —
+            // so without a holder, filling in the loan and glancing at the tip tab threw the
+            // loan away, which is exactly what this file's KDoc promises does not happen.
+            tabState.SaveableStateProvider(tab) {
+                when (tab) {
+                    0 -> LoanTab()
+                    1 -> InterestTab()
+                    2 -> TipTab()
+                    3 -> DiscountTab()
+                    else -> TaxTab()
+                }
             }
         }
     }
@@ -270,7 +283,11 @@ private fun TipTab() {
             // Reported rather than hidden: three people splitting 10.00 cannot each pay
             // 3.33, and quietly losing the cent is how a bill fails to add up.
             Text(
-                text = stringResource(R.string.fin_extra_cents, split.peoplePayingExtra),
+                text = pluralStringResource(
+                    R.plurals.fin_extra_cents,
+                    split.peoplePayingExtra,
+                    split.peoplePayingExtra,
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -295,6 +312,15 @@ private fun DiscountTab() {
     val d2 = second.toOptionalBigDecimalOrNull()
     if (p == null || d1 == null || d2 == null) {
         Notice(R.string.fin_invalid_input)
+        return
+    }
+    // Refused, not computed. A discount above 100% turns the price negative and the saving
+    // larger than the price, and two of them multiply back into a positive price that looks
+    // entirely reasonable — all three rendered in the same card as a correct answer, under a
+    // note explaining how carefully the discounts were composed. Same shape as the tip tab's
+    // headcount guard: an unaskable question gets no answer.
+    if (!d1.isPercentage() || !d2.isPercentage()) {
+        Notice(R.string.fin_out_of_range)
         return
     }
     val discounts = listOf(d1, d2).filter { it.signum() != 0 }
@@ -363,9 +389,10 @@ private fun MoneyField(
     decimal: Boolean = true,
     onChange: (String) -> Unit,
 ) {
+    val separator = LocalConfiguration.current.locales[0].decimalSeparator()
     OutlinedTextField(
         value = value,
-        onValueChange = { text -> onChange(sanitiseAmount(text, decimal)) },
+        onValueChange = { text -> onChange(sanitiseAmount(text, decimal, separator)) },
         label = { Text(label) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(
@@ -432,16 +459,34 @@ private fun BigDecimal.money(): String =
 private fun BigDecimal.percent(): String =
     formatPercent(this, LocalConfiguration.current.locales[0])
 
+/** Whether this reads as a share of something: 0 to 100 inclusive. */
+private fun BigDecimal.isPercentage(): Boolean =
+    signum() >= 0 && this <= BigDecimal("100")
+
+/**
+ * Reads a field back, in the same locale [MoneyField] wrote it in.
+ *
+ * Composable, and reading `LocalConfiguration`, for the reason [money] is: the field holds
+ * the user's own separator, so parsing it against `Locale.getDefault()` would disagree with
+ * the keypad the moment a per-app language differs from the system one.
+ */
+@Composable
 private fun String.toBigDecimalOrNull(): BigDecimal? =
-    try {
-        if (isBlank()) null else BigDecimal(this)
-    } catch (e: NumberFormatException) {
-        null
-    }
+    parseAmount(this, LocalConfiguration.current.locales[0].decimalSeparator())
 
 /** For fields that are allowed to be empty: blank is zero, but nonsense is still nothing. */
+@Composable
 private fun String.toOptionalBigDecimalOrNull(): BigDecimal? =
     if (isBlank()) BigDecimal.ZERO else toBigDecimalOrNull()
+
+/**
+ * The character this locale puts between the whole and fractional parts.
+ *
+ * One definition, used by the filter and by the parser, so the two can never disagree about
+ * what the user is allowed to have typed.
+ */
+private fun Locale.decimalSeparator(): Char =
+    DecimalFormatSymbols.getInstance(this).decimalSeparator
 
 private fun FinanceMath.Compounding.labelRes(): Int = when (this) {
     FinanceMath.Compounding.ANNUAL -> R.string.fin_compound_annual

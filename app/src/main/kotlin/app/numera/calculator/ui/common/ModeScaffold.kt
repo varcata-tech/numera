@@ -2,6 +2,9 @@ package app.numera.calculator.ui.common
 
 import androidx.activity.BackEventCompat
 import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -18,10 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
@@ -32,6 +32,9 @@ import kotlinx.coroutines.flow.Flow
 
 /** How far the screen shrinks at a fully committed back gesture. */
 private const val BACK_GESTURE_MIN_SCALE = 0.92f
+
+/** How long an abandoned back gesture takes to settle back to full size. */
+private const val BACK_GESTURE_CANCEL_MILLIS: Int = 180
 
 /**
  * The frame every mode other than the main calculator is drawn in.
@@ -48,7 +51,12 @@ fun ModeScaffold(
     onBack: () -> Unit,
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    var backProgress: Float by remember { mutableFloatStateOf(0f) }
+    // An Animatable rather than a plain float, because the two ways a gesture ends need
+    // different motion. While the finger is down the preview must track it exactly, so the
+    // progress is snapped; when the gesture is abandoned the platform's own cancel is
+    // animated, and assigning 0f jumped the screen from 0.92 scale back to 1.0 in a single
+    // frame — which reads as a rendering glitch rather than as the swipe being refused.
+    val backProgress: Animatable<Float, AnimationVector1D> = remember { Animatable(0f) }
 
     // A plain BackHandler would consume the gesture and the system would fall back to the
     // non-predictive animation, so at targetSdk 36 the user gets the system's cross-activity
@@ -57,24 +65,30 @@ fun ModeScaffold(
     PredictiveBackHandler(enabled = true) { progress: Flow<BackEventCompat> ->
         try {
             progress.collect { event: BackEventCompat ->
-                backProgress = event.progress
+                backProgress.snapTo(event.progress)
             }
-            backProgress = 0f
+            backProgress.snapTo(0f)
             onBack()
         } catch (cancelled: CancellationException) {
-            // The user swiped back and let go outside the commit threshold. Snapping the
-            // scale back is the whole point of the preview; rethrowing would abort the
-            // handler's coroutine before the screen returns to rest.
-            backProgress = 0f
+            // The user swiped back and let go outside the commit threshold. Cancelling the
+            // gesture cancels the progress flow, not this coroutine, which is what makes it
+            // safe to suspend here; rethrowing would abort the handler before the screen
+            // has returned to rest and leave the mode drawn permanently shrunk.
+            backProgress.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(durationMillis = BACK_GESTURE_CANCEL_MILLIS),
+            )
         }
     }
-
-    val scale: Float = 1f - (1f - BACK_GESTURE_MIN_SCALE) * backProgress
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .graphicsLayer {
+                // Read here rather than in composition: the progress changes on every frame
+                // of the gesture, and reading it inside the layer block keeps that to the
+                // draw phase instead of recomposing the whole mode sixty times a second.
+                val scale: Float = 1f - (1f - BACK_GESTURE_MIN_SCALE) * backProgress.value
                 scaleX = scale
                 scaleY = scale
             }

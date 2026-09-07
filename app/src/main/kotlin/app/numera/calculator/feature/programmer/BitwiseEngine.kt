@@ -62,10 +62,6 @@ object BitwiseEngine {
 
     fun not(a: Long, size: WordSize): Long = truncate(a.inv(), size)
 
-    fun nand(a: Long, b: Long, size: WordSize): Long = truncate((a and b).inv(), size)
-
-    fun nor(a: Long, b: Long, size: WordSize): Long = truncate((a or b).inv(), size)
-
     /**
      * Shifts left, clearing the word for any count outside `0 until size.bits`.
      *
@@ -113,20 +109,14 @@ object BitwiseEngine {
     fun rotateRight(a: Long, by: Long, size: WordSize): Long =
         rotateLeft(a, size.bits - (((by % size.bits) + size.bits) % size.bits), size)
 
-    /** Reverses the byte order, as a network-to-host swap would. */
-    fun byteSwap(a: Long, size: WordSize): Long {
-        var value = truncate(a, size)
-        var result = 0L
-        repeat(size.bits / 8) {
-            result = (result shl 8) or (value and 0xFFL)
-            value = value ushr 8
-        }
-        return truncate(result, size)
-    }
-
+    /**
+     * Negates within the word, wrapping the way the hardware does.
+     *
+     * The one value with no negative in a signed word is the most negative one: negating
+     * −128 in eight bits gives −128 back. That is what the register really does, so it is
+     * what this returns rather than an error.
+     */
     fun twosComplement(a: Long, size: WordSize): Long = truncate(-truncate(a, size), size)
-
-    fun onesComplement(a: Long, size: WordSize): Long = not(a, size)
 
     /** Adds, reporting whether the result left the representable range. */
     fun add(a: Long, b: Long, size: WordSize, signed: Boolean): Operation =
@@ -188,6 +178,12 @@ object BitwiseEngine {
         return Operation(truncate(quotient, size), overflow)
     }
 
+    /**
+     * What is left over after [divide]. Null for a zero divisor, for the same reason.
+     *
+     * Shares [divide]'s unsigned branch: at 64 bits the raw pattern of an unsigned word above
+     * 2^63−1 arrives as a negative Long, and `%` would answer the signed question instead.
+     */
     fun remainder(a: Long, b: Long, size: WordSize, signed: Boolean): Operation? {
         val divisor = interpret(b, size, signed)
         if (divisor == 0L) return null
@@ -273,10 +269,42 @@ object BitwiseEngine {
         if (cleaned.any { it !in base.digits }) return null
         return try {
             val parsed = java.lang.Long.parseUnsignedLong(cleaned, base.radix)
-            if (size.bits < 64 && parsed > size.mask) null else truncate(parsed, size)
+            // Compared unsigned. parseUnsignedLong hands back a raw bit pattern, so anything
+            // from 2^63 up arrives as a *negative* Long: a signed `parsed > size.mask` is
+            // then false against a small positive mask, the guard is skipped, and a
+            // sixteen-digit hex string is silently truncated into a 32-bit word instead of
+            // being refused. At 64 bits the mask is all ones, which read unsigned is 2^64−1,
+            // so the one comparison also admits every pattern the parser can produce.
+            if (java.lang.Long.compareUnsigned(parsed, size.mask) <= 0) {
+                truncate(parsed, size)
+            } else {
+                null
+            }
         } catch (e: NumberFormatException) {
             null
         }
+    }
+
+    /**
+     * The value with the last digit of its [base] rendering removed.
+     *
+     * What backspace has to mean once the typed entry has been committed — after an operator,
+     * a bit tap or a base switch there is no entry buffer left to shorten, and clearing the
+     * whole register instead destroys a value the user was only trying to correct.
+     *
+     * The magnitude is divided unsigned throughout. Negating the most negative signed value
+     * wraps it back to itself, and `-9223372036854775808 / 10` would then keep the sign in
+     * the wrong place; read as unsigned, that same wrapped pattern is exactly the magnitude
+     * 2^63, which is what the digits on screen say.
+     */
+    fun dropLastDigit(raw: Long, size: WordSize, signed: Boolean, base: NumberBase): Long {
+        val masked = truncate(raw, size)
+        // Only the decimal row shows a sign; the other three show the bit pattern, and their
+        // leading digit is not a minus.
+        val negative = base == NumberBase.DEC && signed && interpret(masked, size, true) < 0L
+        val magnitude = if (negative) -interpret(masked, size, true) else masked
+        val shortened = java.lang.Long.divideUnsigned(magnitude, base.radix.toLong())
+        return truncate(if (negative) -shortened else shortened, size)
     }
 
     /** Whether [digit] can legally be typed in [base]; drives disabling keys rather than hiding them. */

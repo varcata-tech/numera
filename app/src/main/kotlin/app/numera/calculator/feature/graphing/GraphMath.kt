@@ -1,9 +1,11 @@
 package app.numera.calculator.feature.graphing
 
+import androidx.compose.runtime.Immutable
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.log10
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.pow
 
 /**
@@ -48,8 +50,26 @@ data class Viewport(
      * the user is pinching slides away from under them.
      */
     fun zoom(factorX: Double, factorY: Double, aboutX: Double, aboutY: Double): Viewport {
-        val newWidth = (width / factorX).coerceIn(MIN_SPAN, MAX_SPAN)
-        val newHeight = (height / factorY).coerceIn(MIN_SPAN, MAX_SPAN)
+        val requestedWidth = width / factorX
+        val requestedHeight = height / factorY
+        // A factor of zero, of infinity or of NaN is not a gesture; scaling by it would put a
+        // non-finite span into the window and every world-to-screen conversion after it.
+        if (!requestedWidth.isFinite() || !requestedHeight.isFinite()) return this
+        if (requestedWidth <= 0.0 || requestedHeight <= 0.0) return this
+        // Both axes are clamped by one common ratio. Coercing each span on its own let the
+        // axis that had not yet reached the limit carry on shrinking after the other had
+        // stopped, so a pinch that runs into MIN_SPAN silently un-squares the window that
+        // "Square the axes" had just made square — a plot that was round at the start of the
+        // pinch is visibly squashed by the end, with nothing on screen to say why.
+        val grow = max(MIN_SPAN / requestedWidth, MIN_SPAN / requestedHeight).coerceAtLeast(1.0)
+        val shrink = min(MAX_SPAN / requestedWidth, MAX_SPAN / requestedHeight).coerceAtMost(1.0)
+        // The two can only pull against each other when the window's own aspect ratio is
+        // wider than the whole allowed range, which no gesture can reach. Keeping the window
+        // out of the degenerate end matters more than its shape, so the lower bound wins and
+        // the coercions below stay as the backstop.
+        val scale = if (grow > 1.0) grow else shrink
+        val newWidth = (requestedWidth * scale).coerceIn(MIN_SPAN, MAX_SPAN)
+        val newHeight = (requestedHeight * scale).coerceIn(MIN_SPAN, MAX_SPAN)
         val ratioX = (aboutX - minX) / width
         val ratioY = (aboutY - minY) / height
         val newMinX = aboutX - ratioX * newWidth
@@ -60,7 +80,11 @@ data class Viewport(
     /** Makes one world unit the same number of pixels on both axes. */
     fun squared(pixelWidth: Float, pixelHeight: Float): Viewport {
         if (pixelWidth <= 0f || pixelHeight <= 0f) return this
-        val targetHeight = width * (pixelHeight / pixelWidth)
+        // Clamped like a zoom is. Squaring a window that is already at a zoom limit asks for a
+        // height outside the range the two constants exist to hold — a landscape canvas
+        // scales the width *down* — and every later gesture then starts from a window the
+        // clamps had already rejected.
+        val targetHeight = (width * (pixelHeight / pixelWidth)).coerceIn(MIN_SPAN, MAX_SPAN)
         val centreY = (minY + maxY) / 2
         return copy(minY = centreY - targetHeight / 2, maxY = centreY + targetHeight / 2)
     }
@@ -128,7 +152,15 @@ object AxisTicks {
     }
 }
 
-/** One sampled column of the plot. `y` is NaN where the function has no value there. */
+/**
+ * One sampled column of the plot. `y` is NaN where the function has no value there.
+ *
+ * Annotated rather than converted to a `data class`: the arrays are filled once in
+ * [GraphSampler.sample] and never written to again, but Compose cannot see that on its own
+ * and infers the type — and with it [Plot], the plot list and every composable holding one —
+ * unstable, which makes the whole graphing screen non-skippable during a pan.
+ */
+@Immutable
 class Samples(val xs: DoubleArray, val ys: DoubleArray)
 
 object GraphSampler {
@@ -203,14 +235,24 @@ object RootFinder {
      * are only about 2(columns-1)/width in size — around a hundred in the default window —
      * while a perfectly ordinary steep line such as 1e9x has enormous endpoints and a real
      * root at the origin.
+     *
+     * Only the first plot on the screen is ever passed here; there is no reporting of where
+     * two plotted curves meet.
      */
     fun roots(f: (Double) -> Double, samples: Samples, limit: Int = MAX_ROOTS): List<Double> {
         val found = ArrayList<Double>()
-        for (i in 0 until samples.xs.size - 1) {
+        val count = samples.xs.size
+        // Every column is visited, the last one included. Stopping one short tested each
+        // sample for zero except the final one, and the sign-change test below cannot stand
+        // in for it — `y0 > 0 != y1 > 0` needs y0 positive when y1 is zero — so a curve
+        // arriving at zero from below at the right edge produced no bracket at all. In the
+        // reset window the last sample is exactly 10.0 on every device width, so x^2-100
+        // deterministically reported its left root and not its right one, while the plot
+        // visibly crossed the axis at both.
+        for (i in 0 until count) {
             if (found.size >= limit) break
             val y0 = samples.ys[i]
-            val y1 = samples.ys[i + 1]
-            if (y0.isNaN() || y1.isNaN()) continue
+            if (y0.isNaN()) continue
             if (y0 == 0.0) {
                 // Once the window is narrower than one ulp of where it sits, every column
                 // samples the same double, and reporting the same root a hundred times over
@@ -218,45 +260,66 @@ object RootFinder {
                 if (found.lastOrNull() != samples.xs[i]) found += samples.xs[i]
                 continue
             }
+            if (i == count - 1) break
+            val y1 = samples.ys[i + 1]
+            if (y1.isNaN()) continue
+            // A zero sitting at the far end of the bracket is reported at its own column, on
+            // the next iteration or by the zero branch above. Refining a bracket that already
+            // has an endpoint *at* zero would report the same crossing twice: once bisected
+            // to within an ulp of the column and once exactly on it, which prints as the same
+            // number listed twice.
+            if (y1 == 0.0) continue
             if (y0 > 0 != y1 > 0) {
-                val root = bisect(f, samples.xs[i], samples.xs[i + 1]) ?: continue
-                if (isCrossing(f, root, y0, y1) && found.lastOrNull() != root) found += root
+                val refined = bisect(f, samples.xs[i], samples.xs[i + 1]) ?: continue
+                if (isCrossing(f, refined, y0, y1) && found.lastOrNull() != refined.root) {
+                    found += refined.root
+                }
             }
         }
         return found
     }
 
     /**
-     * Whether the refined [root] is a crossing rather than a pole bisection walked into.
+     * Whether the refined root is a crossing rather than a pole bisection walked into.
      *
      * Around a root |f| falls away as the bracket narrows; around a pole it grows without
      * bound, so the converged point of a pole carries a value orders of magnitude *larger*
      * than the samples that bracketed it. Measuring against those samples rather than against
-     * a constant is what makes the test hold at every zoom and for every scale of function.
+     * a constant is what makes the test hold at every scale of function.
+     *
+     * The test needs bisection to have actually narrowed something. When the two bracketing
+     * columns are already adjacent doubles there is nothing to narrow, the residual is simply
+     * the value at one of those two samples, and demanding that it have fallen by half throws
+     * a real crossing away: at the tightest zoom the app allows, around x = 1e6, the sample
+     * step is far under one ulp and a genuine root of x²-K rejects with a residual of exactly
+     * half its own bracket. A sign change between two adjacent doubles is as much of a
+     * crossing as this arithmetic can describe, so it is taken as one. That admits a pole
+     * whose two neighbouring doubles happen to be sampled — but a pole there already passes
+     * the residual test whenever the smaller of its two endpoints is under half the larger,
+     * so nothing new is let through, and no other information is left to tell them apart.
      */
     private fun isCrossing(
         f: (Double) -> Double,
-        root: Double,
+        refined: Refined,
         y0: Double,
         y1: Double,
     ): Boolean {
-        val residual = abs(f(root))
+        val residual = abs(f(refined.root))
         if (!residual.isFinite()) return false
         if (residual == 0.0) return true
+        if (refined.atResolution) return true
         val bracketScale = max(abs(y0), abs(y1))
         return residual < bracketScale * MAX_RESIDUAL_FRACTION
     }
 
-    /** Where two functions meet, found as the roots of their difference. */
-    fun intersections(
-        f: (Double) -> Double,
-        g: (Double) -> Double,
-        viewport: Viewport,
-        columns: Int,
-    ): List<Double> {
-        val difference = { x: Double -> f(x) - g(x) }
-        return roots(difference, GraphSampler.sample(difference, viewport, columns))
-    }
+    /**
+     * Where bisection stopped, and whether it was handed a bracket it could not narrow.
+     *
+     * [atResolution] is the case [isCrossing] cannot judge on the residual, and it is
+     * deliberately *not* set when bisection narrowed the bracket first and only then ran out
+     * of doubles — which is the ordinary way a run of bisection ends.
+     */
+    private class Refined(val root: Double, val atResolution: Boolean)
 
     /**
      * Halves the bracket until it cannot be halved again.
@@ -267,19 +330,22 @@ object RootFinder {
      * [isCrossing] would then throw a real root away, and at maximum zoom-out it can never be
      * reached and every iteration of the cap is spent.
      */
-    private fun bisect(f: (Double) -> Double, lowStart: Double, highStart: Double): Double? {
+    private fun bisect(f: (Double) -> Double, lowStart: Double, highStart: Double): Refined? {
         var low = lowStart
         var high = highStart
         var fLow = f(low)
         if (!fLow.isFinite()) return null
+        var narrowed = false
         repeat(MAX_ITERATIONS) {
             val mid = (low + high) / 2
             // The ends are adjacent doubles: halving again would return this same midpoint
-            // for ever.
-            if (mid <= low || mid >= high) return mid
+            // for ever. Whether anything was narrowed on the way here is what tells a
+            // converged root from a bracket that arrived already collapsed.
+            if (mid <= low || mid >= high) return Refined(mid, atResolution = !narrowed)
             val fMid = f(mid)
             if (!fMid.isFinite()) return null
-            if (fMid == 0.0) return mid
+            if (fMid == 0.0) return Refined(mid, atResolution = false)
+            narrowed = true
             if ((fMid > 0) == (fLow > 0)) {
                 low = mid
                 fLow = fMid
@@ -287,7 +353,7 @@ object RootFinder {
                 high = mid
             }
         }
-        return (low + high) / 2
+        return Refined((low + high) / 2, atResolution = false)
     }
 
     private const val MAX_ITERATIONS = 200

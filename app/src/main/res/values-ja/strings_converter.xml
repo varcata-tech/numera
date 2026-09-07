@@ -19,6 +19,7 @@
     <string name="converter_from">変換元</string>
     <string name="converter_to">変換先</string>
     <string name="converter_swap">単位を入れ替える</string>
+    <string name="converter_change_unit">単位を変更: %1$s</string>
     <string name="converter_search">単位を検索</string>
     <string name="converter_common">よく使う換算</string>
     <string name="unit_bit">ビット</string>

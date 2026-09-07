@@ -6,7 +6,7 @@
     <string name="fin_tab_discount">Descuento</string>
     <string name="fin_tab_tax">Impuesto</string>
     <string name="fin_principal">Capital</string>
-    <string name="fin_rate">Tasa anual %</string>
+    <string name="fin_rate" formatted="false">Tasa anual %</string>
     <string name="fin_months">Plazo (meses)</string>
     <string name="fin_years">Años</string>
     <string name="fin_instalment">Cuota mensual</string>
@@ -18,22 +18,21 @@
     <string name="fin_contribution">Aportación por periodo</string>
     <string name="fin_final_balance">Saldo final</string>
     <string name="fin_bill">Cuenta</string>
-    <string name="fin_tip_percent">Propina %</string>
+    <string name="fin_tip_percent" formatted="false">Propina %</string>
     <string name="fin_people">Personas</string>
     <string name="fin_round_up">Redondear el total hacia arriba</string>
     <string name="fin_tip_amount">Propina</string>
     <string name="fin_total">Total</string>
     <string name="fin_per_person">Por persona</string>
-    <string name="fin_extra_cents">%1$d pagan una unidad más</string>
     <string name="fin_price">Precio</string>
-    <string name="fin_discount_1">Primer descuento %</string>
-    <string name="fin_discount_2">Segundo descuento %</string>
+    <string name="fin_discount_1" formatted="false">Primer descuento %</string>
+    <string name="fin_discount_2" formatted="false">Segundo descuento %</string>
     <string name="fin_final_price">Precio final</string>
     <string name="fin_saved">Ahorras</string>
     <string name="fin_effective">Descuento efectivo</string>
     <string name="fin_successive_note" formatted="false">Los descuentos sucesivos se componen: 20% y luego 10% es un 28%, no un 30%.</string>
     <string name="fin_amount">Importe</string>
-    <string name="fin_tax_rate">Tipo impositivo %</string>
+    <string name="fin_tax_rate" formatted="false">Tipo impositivo %</string>
     <string name="fin_add_tax">Añadir impuesto</string>
     <string name="fin_remove_tax">Quitar impuesto</string>
     <string name="fin_net">Neto</string>
@@ -49,4 +48,8 @@
     <string name="fin_invalid_input">Introduce un número válido en cada campo.</string>
     <string name="fin_out_of_range">Estos valores están fuera del rango que esta calculadora puede calcular.</string>
     <string name="fin_contribution_continuous">La capitalización continua no tiene periodo, por lo que no se incluyen las aportaciones.</string>
+    <plurals name="fin_extra_cents">
+        <item quantity="one">%1$d paga una unidad más</item>
+        <item quantity="other">%1$d pagan una unidad más</item>
+    </plurals>
 </resources>

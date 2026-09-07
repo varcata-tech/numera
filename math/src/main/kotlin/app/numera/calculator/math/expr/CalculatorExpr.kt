@@ -220,8 +220,9 @@ data class CalculatorExpr(val tokens: List<Token> = emptyList()) {
      * function in one press — deleting only the paren would leave a bare `sin` that can
      * never be completed by any further keystroke.
      *
-     * Two things leave with the token rather than after it, because both would otherwise
-     * cost a press that changes nothing a reader could see:
+     * Three things leave with the token rather than after it. The first two would otherwise
+     * cost a press that changes nothing a reader could see; the third leaves behind a token
+     * nothing else in the system accepts:
      *
      * 1. The zero a leading `−` brought with it. [appendOperator] writes `0−` for one key,
      *    so one key has to take it away; leaving the `0` behind means a press that redraws
@@ -229,11 +230,25 @@ data class CalculatorExpr(val tokens: List<Token> = emptyList()) {
      * 2. A sign left standing in front of nothing. The keypad cannot build that shape, but
      *    pasting `-2` and deleting the `2` can, and every operator key would then be refused
      *    against a leading `−` the user has no way to explain.
+     * 3. The `E` of an exponent, and its sign with it. Peeling `6.02E+23` one character at a
+     *    time passes through `6.02E+` and `6.02E`, neither of which is a number
+     *    [isNumberLiteral] accepts — so [ExprCodec.decode] rejects the *whole* blob and the
+     *    expression the user pasted vanishes at the next process death, with nothing on
+     *    screen to say it was ever in an unsaveable state. The exponent marker leaves with
+     *    the digit that introduced it, exactly as `sin(` leaves as one token.
      */
     fun deleteLastToken(): CalculatorExpr {
         val last = tokens.lastOrNull() ?: return this
-        if (last is Token.Number && last.text.length > 1) {
-            return CalculatorExpr(tokens.dropLast(1) + Token.Number(last.text.dropLast(1)))
+        if (last is Token.Number) {
+            var shortened = last.text.dropLast(1)
+            while (shortened.isNotEmpty() && !isNumberLiteral(shortened)) {
+                shortened = shortened.dropLast(1)
+            }
+            if (shortened.isNotEmpty()) {
+                return CalculatorExpr(tokens.dropLast(1) + Token.Number(shortened))
+            }
+            // Nothing survives as a literal — a one-character token, or a pasted `.5` whose
+            // point cannot stand alone — so the token goes in full, below.
         }
         var remaining = tokens.size - 1
         if (last is Token.Key && last.key == KeyId.SUBTRACT && isImplicitZeroAt(remaining - 1)) {
@@ -358,10 +373,12 @@ data class CalculatorExpr(val tokens: List<Token> = emptyList()) {
         /**
          * The longest literal any [Token.Number] may carry, however it was produced.
          *
-         * 255 because [ExprCodec] writes a number token's length in a single byte. A longer
-         * token would be written with a wrapped length and read back as a different number,
-         * so a value that cannot be expressed within this is refused rather than persisted
-         * wrongly. Larger than [MAX_NUMBER_LENGTH] because [seedFromDecimal] generates
+         * 255 because that is the length [ExprCodec]'s compact number frame can state. The
+         * codec no longer *depends* on the ceiling — it frames a longer token correctly
+         * rather than wrapping the length — but a value that needs more significant digits
+         * than this is still refused rather than seeded, because a literal that wide is a
+         * number nobody can read back off the formula line either. Larger than
+         * [MAX_NUMBER_LENGTH] because [seedFromDecimal] generates
          * literals the keypad never could — the 158 digits of `100!`, for one.
          */
         internal const val MAX_LITERAL_LENGTH: Int = 255

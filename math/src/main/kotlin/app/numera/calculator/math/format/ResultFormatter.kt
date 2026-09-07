@@ -171,20 +171,36 @@ object ResultFormatter {
      * separators are the reason it exists separately from [formatWithDigits]: every other
      * entry point here groups, including under `Locale.ROOT`, and a grouped `1,745.13` is
      * not a number any tokenizer will take back — it is two of them. Exact when the value
-     * terminates; otherwise truncated to [digits] places, silently, because the caller is
-     * not a display and an ellipsis would not survive being read back either.
+     * terminates; otherwise cut to [digits] places, silently, because the caller is not a
+     * display and an ellipsis would not survive being read back either.
      *
-     * Not currently reached from the app: `CalculatorViewModel.clipboardPayload` builds its
-     * text from [UnifiedReal.exactDecimalOrNull] and [formatWithDigits] instead, so its
-     * non-terminating case does carry grouping separators. Kept because it is the only
-     * ungrouped entry point and the trap above is the reason a caller would want one.
+     * This is what `CalculatorViewModel.clipboardPayload` copies. Rounded rather than
+     * truncated for the same reason [formatWithDigits] is: [ConstructiveReal.toStringTruncated]
+     * truncates an approximation that is only good to one unit in the last place, so its final
+     * digit is decided by luck and can sit one *above* the true expansion — a digit belonging
+     * to no rendering of the number. It would also disagree with the correctly rounded result
+     * line about half the time, so a value copied out of Numera would not match the value
+     * Numera was showing.
      */
     fun formatPlain(value: UnifiedReal, digits: Int): String =
-        value.exactDecimalOrNull() ?: realOf(value).toStringTruncated(maxOf(digits, 0))
+        value.exactDecimalOrNull() ?: realOf(value).toStringRounded(maxOf(digits, 0))
 
-    /** True when [value] fits in [maxChars] with every digit it has — no ellipsis needed. */
-    fun isExactlyDisplayable(value: UnifiedReal, maxChars: Int): Boolean =
-        exactOrNull(value.exactDecimalOrNull(), maxOf(maxChars, MIN_BUDGET), Locale.getDefault()) != null
+    /**
+     * True when [value] fits in [maxChars] with every digit it has — no ellipsis needed.
+     *
+     * [locale] must be the one the matching [formatShort] call was given. The verdict is
+     * genuinely locale-dependent, because the width being measured is the *grouped* width and
+     * grouping is not universal — `hi-IN` writes a fifteen-digit integer with six separators
+     * where `en` writes four. Answering under one locale for a line rendered in another
+     * produces a result that shows an ellipsis while reporting that nothing was dropped, and
+     * scrolling for more digits then refuses to move.
+     */
+    fun isExactlyDisplayable(
+        value: UnifiedReal,
+        maxChars: Int,
+        locale: Locale = Locale.getDefault(),
+    ): Boolean =
+        exactOrNull(value.exactDecimalOrNull(), maxOf(maxChars, MIN_BUDGET), locale) != null
 
     /**
      * Formats an inexact [Double], for the converters and the graph readout.
@@ -230,6 +246,13 @@ object ResultFormatter {
     private fun exactOrNull(exact: String?, budget: Int, locale: Locale): String? {
         if (exact == null) return null
         if (leadingZeros(exact) > MAX_LEADING_ZEROS) return null
+        // Localising cannot shorten a string — digits map one for one, grouping only inserts
+        // separators, and the minus sign stays one character — so an ASCII form already wider
+        // than the budget proves the localised form is too. Measuring first is what keeps
+        // `20000!` from re-parsing its 77,338 digits into a BigInteger and formatting them
+        // into a 103,000-character grouped string, on the frame that publishes the answer,
+        // only to discard it for being longer than twenty characters.
+        if (exact.length > budget) return null
         val text = localize(exact, locale, grouping = true)
         return if (text.length <= budget) text else null
     }

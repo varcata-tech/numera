@@ -9,4 +9,12 @@
     <string name="desc_key_unavailable">недоступно в этой системе счисления</string>
     <string name="desc_op_shl">сдвиг влево</string>
     <string name="desc_op_shr">сдвиг вправо</string>
+    <string name="desc_op_mod">остаток от деления</string>
+    <string name="desc_op_neg">изменить знак</string>
+    <string name="desc_op_and">побитовое и</string>
+    <string name="desc_op_or">побитовое или</string>
+    <string name="desc_op_xor">побитовое исключающее или</string>
+    <string name="desc_op_not">побитовое не</string>
+    <string name="desc_op_rol">циклический сдвиг влево</string>
+    <string name="desc_op_ror">циклический сдвиг вправо</string>
 </resources>

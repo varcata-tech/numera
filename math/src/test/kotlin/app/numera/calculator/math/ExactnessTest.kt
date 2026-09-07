@@ -26,6 +26,35 @@ class ExactnessTest {
         assertEquals(label, expected, actual.asRational())
     }
 
+    /**
+     * Runs [body] on a thread with the 1 MB stack ART gives a non-main thread.
+     *
+     * The JVM running these tests hands the main thread eight megabytes, which is enough to
+     * hide a reduction depth that kills the app on a device — and it kills it rather than
+     * failing it, because a `StackOverflowError` is an `Error` that no catch in the engine
+     * or the view model is looking for. Anything asserting a depth bound has to be measured
+     * against the stack the work will actually run on.
+     */
+    private fun onAOneMegabyteStack(label: String, body: () -> Unit) {
+        var thrown: Throwable? = null
+        val worker = Thread(
+            null,
+            {
+                try {
+                    body()
+                } catch (t: Throwable) {
+                    thrown = t
+                }
+            },
+            label,
+            1L shl 20,
+        )
+        worker.start()
+        worker.join(60_000)
+        assertTrue("$label did not finish", !worker.isAlive)
+        thrown?.let { throw AssertionError("$label threw $it", it) }
+    }
+
     @Test
     fun `one third times three is exactly one`() {
         assertExactly(BoundedRational.ONE, (n(1) / n(3)) * n(3), "1/3*3")
@@ -56,6 +85,60 @@ class ExactnessTest {
         val sum = n(2).sqrt() + n(8).sqrt()
         assertEquals(Factor.Sqrt(BigInteger.TWO), sum.factor)
         assertEquals(BoundedRational.of(3L), sum.ratFactor)
+    }
+
+    @Test
+    fun `a square factor past the trial division bound is still pulled out of the radicand`() {
+        // Trial division stops at ten thousand, so 10007² — one prime past it — was left
+        // inside the radicand and √200280098 became a different object from 10007√2. The
+        // value was never wrong; what was lost is decidability, and with it the app's
+        // headline claim for these inputs: a difference that is exactly zero came back as
+        // 0… with an ellipsis instead of as an exact 0. Once the small primes still present
+        // are known, the part of the remainder built only from large ones can be tested for
+        // being a perfect square in a single step, which settles this without factoring.
+        val normalised = n(200280098).sqrt()
+        assertEquals(Factor.Sqrt(BigInteger.TWO), normalised.factor)
+        assertEquals(BoundedRational.of(10007L), normalised.ratFactor)
+        val byHand = n(10007) * n(2).sqrt()
+        assertEquals(byHand, normalised)
+        val difference = normalised - byHand
+        assertTrue(
+            "√200280098 − 10007√2 was ${difference.toNiceString()}",
+            difference.definitelyZero(),
+        )
+        // The square-free part may be a product of several distinct small primes rather
+        // than one: 10007²·6 is 600,840,294, and must come back as 10007√6.
+        val several = n(600840294L).sqrt()
+        assertEquals(Factor.Sqrt(BigInteger.valueOf(6L)), several.factor)
+        assertEquals(BoundedRational.of(10007L), several.ratFactor)
+        // The ordinary cases have to keep agreeing after the change of algorithm.
+        assertEquals(BoundedRational.of(5L), n(50).sqrt().ratFactor)
+        assertEquals(Factor.Sqrt(BigInteger.TWO), n(50).sqrt().factor)
+        assertExactly(BoundedRational.of(3L), n(9).sqrt(), "√9")
+        assertExactly(BoundedRational.of(1L, 2L), frac(1, 4).sqrt(), "√0.25")
+    }
+
+    @Test
+    fun `an interrupted square root stops instead of finishing the factorisation`() {
+        // The inner peel-one-square-at-a-time loop was the only loop in this module with no
+        // cancellation point, and it is where all the time went: the outer loop runs at most
+        // ten thousand cheap iterations, the inner one runs once per factor and is unbounded
+        // in the size of the input. √(1E100000) spent seven seconds there, four of them
+        // *after* the interrupt landed — so withTimeoutOrNull returned, the UI moved on, and
+        // a Dispatchers.Default thread kept a core pinned for every later keystroke.
+        var thrown: Throwable? = null
+        val worker = Thread {
+            Thread.currentThread().interrupt()
+            try {
+                UnifiedReal.of(BoundedRational.parse("1E100000")).sqrt()
+            } catch (t: Throwable) {
+                thrown = t
+            }
+        }
+        worker.start()
+        worker.join(30_000)
+        assertTrue("worker did not stop", !worker.isAlive)
+        assertTrue("expected AbortedException but got $thrown", thrown is AbortedException)
     }
 
     @Test
@@ -226,12 +309,123 @@ class ExactnessTest {
             throw AssertionError("expected TooMuchMemoryException")
         } catch (expected: TooMuchMemoryException) {
         }
-        // A negative exponent is deliberately not refused: e^(−10^7) is zero to every digit
-        // anyone can scroll to, and the approximation layer settles it without allocating.
+        // A negative exponent of an ordinary size is still not refused for its *width*:
+        // e^(−10^7) is zero to every digit anyone can scroll to. Asserting that the factor
+        // was built is not enough on its own, though — that was the shape of the assertion
+        // that let the crash below through — so the value has to yield a digit as well.
         assertEquals(Factor.Exp(BoundedRational.of(-10000000L)), n(-10000000).exp().factor)
+        val tiny = n(-10000000).exp().toConstructiveReal().toStringTruncated(20)
+        assertEquals("0.00000000000000000000", tiny)
         // What was answerable before must stay answerable.
         assertExactly(BoundedRational.of(1024L), n(2).pow(n(10)), "2^10")
         assertFalse(n(2).pow(n(100000)).isRational)
+    }
+
+    @Test
+    fun `a negative exponential too deep to reduce is refused instead of killing the process`() {
+        // The old guard returned early for any non-positive exponent, on the reasoning that
+        // e^(−10^7) is zero to every digit anyone can scroll to. That reasoning is about the
+        // *width* of the answer; the cost that actually bites is the *depth* of the argument
+        // reduction in ConstructiveReal.exp, which halves until |x| is under about 1/512 and
+        // is therefore log2(|x|) levels deep whatever the sign — symmetric where the guard
+        // was not. e^(0−10^600) is ten keypresses.
+        //
+        // What makes it a crash rather than an error is when the recursion runs. The
+        // evaluator returns in microseconds, because Factor.Exp is only expanded once the
+        // *formatter* asks for a digit — and a StackOverflowError is an Error, so it escapes
+        // runInterruptible, withTimeoutOrNull and every catch in the view model and reaches
+        // the platform handler. It fires from the preview job while typing, before = is ever
+        // pressed. The only safe answer is a refusal the evaluator can still report.
+        val huge = UnifiedReal.of(BoundedRational.parse("1E600"))
+        try {
+            (UnifiedReal.ZERO - huge).exp()
+            throw AssertionError("expected TooMuchMemoryException")
+        } catch (expected: TooMuchMemoryException) {
+        }
+
+        // And the bound has to leave room, or it only moves the crash: the largest argument
+        // still accepted must render on the 1 MB stack a non-main Android thread is given.
+        val nearTheLimit = UnifiedReal.of(
+            BoundedRational.of(BigInteger.TWO.pow(299), BigInteger.ONE),
+        )
+        onAOneMegabyteStack("e^(−2^299)") {
+            val text = (UnifiedReal.ZERO - nearTheLimit).exp()
+                .toConstructiveReal()
+                .toStringTruncated(20)
+            assertEquals("0.00000000000000000000", text)
+        }
+    }
+
+    @Test
+    fun `an oversized exponent is refused the same way once it stops being rational`() {
+        // BoundedRational gives up above MAX_RATIONAL_BITS, so 1E10000 is an exact rational
+        // and 1E10000 + 1 is a Factor.Opaque — one keypress apart. exp() bounded only the
+        // rational branch, so the second one descended thirty thousand halvings and was
+        // reported as "Bad expression", by way of ExprEvaluator's StackOverflowError catch,
+        // for a value whose actual problem is its size. Two adjacent expressions, two
+        // different diagnoses, one of them wrong. The bound belongs where every route passes.
+        val big = UnifiedReal.of(BoundedRational.parse("1E10000"))
+        try {
+            big.exp()
+            throw AssertionError("expected TooMuchMemoryException from the rational branch")
+        } catch (expected: TooMuchMemoryException) {
+        }
+
+        val opaque = big + UnifiedReal.ONE
+        assertFalse("1E10000 + 1 was expected to fall through to Factor.Opaque", opaque.isRational)
+        try {
+            opaque.exp()
+            throw AssertionError("expected TooMuchMemoryException from the opaque branch")
+        } catch (expected: TooMuchMemoryException) {
+        }
+        // 10^x and y^x reach the same Taylor series through powViaExpLn, with no check of
+        // their own, so they have to be refused by the same bound.
+        try {
+            n(10).pow(opaque)
+            throw AssertionError("expected TooMuchMemoryException from powViaExpLn")
+        } catch (expected: TooMuchMemoryException) {
+        }
+    }
+
+    @Test
+    fun `a power driven far below one is answered rather than refused`() {
+        // The mirror image of the exponential's sign bug. The pre-emptive size check
+        // measured the exponent by its magnitude, so it refused a large *negative* one too:
+        // 2^(−1000000) and (1/2)^1000000 are the same value, about 10^−301030, and both
+        // reported "requires too much memory" — while the identically sized e^(−1000000)
+        // printed 0…, and boundedProduct's own KDoc promises that a product driven far below
+        // one is never refused. Reachable by typing 2 ^ ( 0 − 1 0 0 0 0 0 0 ).
+        val zeros = "0." + "0".repeat(50)
+        assertEquals(zeros, n(2).pow(n(-1000000)).toConstructiveReal().toStringTruncated(50))
+        assertEquals(zeros, frac(1, 2).pow(n(1000000)).toConstructiveReal().toStringTruncated(50))
+        // The large side must still be refused, and by the same estimate.
+        try {
+            n(2).pow(n(1000000))
+            throw AssertionError("expected TooMuchMemoryException")
+        } catch (expected: TooMuchMemoryException) {
+        }
+    }
+
+    @Test
+    fun `zero raised to an irrational power is zero rather than a bad expression`() {
+        // pow consulted definitelyZero only by accident, through BoundedRational.pow on the
+        // whole-exponent path. A non-rational exponent went straight to powViaExpLn, whose
+        // ln(0) sends InvCR into a most-significant-bit search on a value that is identically
+        // zero — a search that can never decide, so it gave up with a precision overflow and
+        // the display said "Bad expression" for a defined value sitting one keystroke from
+        // the 0^2 that answers 0.
+        assertEquals(UnifiedReal.ZERO, UnifiedReal.ZERO.pow(UnifiedReal.PI))
+        assertEquals(UnifiedReal.ZERO, UnifiedReal.ZERO.pow(frac(1, 3)))
+        assertEquals(UnifiedReal.ZERO, UnifiedReal.ZERO.pow(n(2)))
+        // 0^0 is 1, matching BoundedRational.pow rather than contradicting it.
+        assertEquals(UnifiedReal.ONE, UnifiedReal.ZERO.pow(UnifiedReal.ZERO))
+        // A negative exponent is a reciprocal of zero, and must be reported as one — it
+        // threw a precision overflow before, i.e. the wrong error as well as a late one.
+        try {
+            UnifiedReal.ZERO.pow(-UnifiedReal.PI)
+            throw AssertionError("expected DivideByZeroException")
+        } catch (expected: DivideByZeroException) {
+        }
     }
 
     @Test

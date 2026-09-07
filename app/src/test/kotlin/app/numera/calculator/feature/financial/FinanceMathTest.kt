@@ -35,6 +35,27 @@ class FinanceMathTest {
         assertEquals(0, BigDecimal.ZERO.compareTo(loan.schedule.last().balance))
     }
 
+    /**
+     * The same invariant with a principal the field will actually accept.
+     *
+     * `sanitiseAmount` allows three decimal places, and every balance after the first is
+     * rounded to the cent, so an unrounded opening balance broke the telescoping sum on line
+     * one and nowhere else: the column came to a figure half a cent away from the principal,
+     * with no line to blame it on. The principal is rounded once on the way in instead.
+     */
+    @Test
+    fun `the principal column still sums exactly when the principal is a fraction of a cent`() {
+        val typed = bd("1000.005")
+        val loan = FinanceMath.loan(typed, bd("7.25"), 24)
+        val summed = loan.schedule.fold(BigDecimal.ZERO) { acc, line -> acc.add(line.principal) }
+        assertEquals(0, FinanceMath.money(typed).compareTo(summed))
+        assertEquals(0, BigDecimal.ZERO.compareTo(loan.schedule.last().balance))
+        // And the headline figures agree with the schedule they were derived from.
+        val paid = loan.schedule.fold(BigDecimal.ZERO) { acc, line -> acc.add(line.payment) }
+        assertEquals(0, paid.compareTo(loan.totalPaid))
+        assertEquals(0, paid.subtract(FinanceMath.money(typed)).compareTo(loan.totalInterest))
+    }
+
     @Test
     fun `interest plus principal equals the payment on every line`() {
         val loan = FinanceMath.loan(bd("250000"), bd("6.25"), 60)
@@ -150,6 +171,51 @@ class FinanceMathTest {
         val result = FinanceMath.successiveDiscount(bd("250"), listOf(bd("15")))
         assertEquals(bd("212.50"), result.finalPrice)
         assertEquals(bd("37.50"), result.saved)
+    }
+
+    /**
+     * A discount over 100% is refused rather than composed.
+     *
+     * `(100 − percent)/100` goes negative above 100, and the arithmetic then carries on
+     * politely: one such discount returns a negative final price and a saving larger than the
+     * price, and two of them multiply the two negative factors back into a plausible positive
+     * price — 150% off 100 twice reads as 25.00 — all rendered in the same card as a real
+     * answer.
+     */
+    @Test
+    fun `a discount outside nought to a hundred percent is refused`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            FinanceMath.successiveDiscount(bd("100"), listOf(bd("150")))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            FinanceMath.successiveDiscount(bd("100"), listOf(bd("150"), bd("150")))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            FinanceMath.successiveDiscount(bd("100"), listOf(bd("-10")))
+        }
+        // The ends themselves are ordinary discounts.
+        assertEquals(bd("0.00"), FinanceMath.successiveDiscount(bd("100"), listOf(bd("100"))).finalPrice)
+        assertEquals(bd("100.00"), FinanceMath.successiveDiscount(bd("100"), listOf(bd("0"))).finalPrice)
+    }
+
+    /**
+     * The three figures on the interest card have to add up to each other.
+     *
+     * The balance is rounded to the cent and the principal was not, so subtracting one from
+     * the other reported an interest that disagreed with the balance printed beside it by a
+     * fraction of a cent. Rounding the principal once on the way in is what makes the
+     * decomposition exact.
+     */
+    @Test
+    fun `balance is principal plus contributions plus interest, exactly`() {
+        val principal = bd("1000.005")
+        val growth = FinanceMath.compoundGrowth(
+            principal, bd("5"), bd("10"), FinanceMath.Compounding.MONTHLY, bd("100.005"),
+        )!!
+        val recomposed = FinanceMath.money(principal)
+            .add(growth.contributed)
+            .add(growth.interest)
+        assertEquals(0, growth.balance.compareTo(recomposed))
     }
 
     @Test

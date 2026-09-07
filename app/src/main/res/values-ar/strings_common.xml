@@ -22,10 +22,11 @@
     <string name="angle_degrees">درجات</string>
     <string name="angle_radians">راديان</string>
     <string name="about_version">الإصدار %1$s</string>
-    <string name="about_attribution">الحساب الدقيق مشتق من تطبيق ExactCalculator في مشروع أندرويد مفتوح المصدر، المرخّص بموجب رخصة أباتشي 2.0، ومن الخوارزميات المنشورة لمكتبة الأعداد الحقيقية البنائية لهانز-ي. بوم. لا يتضمن التطبيق أي شيفرة من طرف ثالث، ولا تغادر أي بيانات جهازك.</string>
+    <string name="about_attribution">الحساب الدقيق مشتق من تطبيق ExactCalculator في مشروع أندرويد مفتوح المصدر، المرخّص بموجب رخصة أباتشي 2.0، ومن الخوارزميات المنشورة لمكتبة الأعداد الحقيقية البنائية لهانز-ي. بوم. وباستثناء AndroidX ومكتبة Kotlin القياسية وkotlinx-coroutines، وجميعها بموجب رخصة أباتشي 2.0، لا يتضمن التطبيق أي شيفرة من طرف ثالث، ولا تغادر أي بيانات جهازك.</string>
     <string name="about_license_show">عرض رخصة أباتشي 2.0</string>
     <string name="about_license_hide">إخفاء رخصة أباتشي 2.0</string>
     <string name="about_license_loading">جارٍ تحميل الرخصة…</string>
+    <string name="about_asset_error">تعذّر تحميل هذا النص.</string>
     <string name="shortcut_converter_short">تحويل</string>
     <string name="shortcut_converter_long">فتح محوّل الوحدات</string>
     <string name="shortcut_programmer_short">المبرمج</string>
@@ -34,4 +35,5 @@
     <string name="shortcut_graphing_long">فتح الآلة الحاسبة البيانية</string>
     <string name="about_privacy_show">سياسة الخصوصية</string>
     <string name="about_privacy_hide">إخفاء سياسة الخصوصية</string>
+    <string name="about_privacy_loading">جارٍ تحميل سياسة الخصوصية…</string>
 </resources>

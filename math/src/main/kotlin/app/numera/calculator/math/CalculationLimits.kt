@@ -30,7 +30,14 @@ class AbortedException : CalculationException("aborted")
  */
 class PrecisionOverflowException : CalculationException("precision overflow")
 
-/** The result would need more bits than [CalculationLimits.MAX_BITS] to represent. */
+/**
+ * The result is larger than the operation that produced it is allowed to build.
+ *
+ * There is no single ceiling, because the routes to a large number are different cost
+ * shapes rather than different sizes: see [CalculationLimits.MAX_EXP_BITS],
+ * [CalculationLimits.MAX_PRODUCT_BITS], [CalculationLimits.MAX_RATIONAL_BITS] and
+ * [CalculationLimits.MAX_EXP_ARGUMENT_BITS].
+ */
 class TooMuchMemoryException : CalculationException("requires too much memory")
 
 /** Division by a value proven to be exactly zero. */
@@ -55,22 +62,39 @@ object CalculationLimits {
      */
     const val MAX_RATIONAL_BITS: Int = 10_000
 
-    /** Hard ceiling on any single integer the engine will materialise (~30 million digits). */
-    const val MAX_BITS: Long = 100_000_000L
-
     /**
      * Ceiling on the width of a value reached through the exponential, in bits.
      *
-     * Far below [MAX_BITS] because the two are different cost shapes, not different sizes.
-     * An integer power is produced by repeated squaring, which is close to linear in the
-     * width of its result; `e^x` is produced by a Taylor series whose *iteration count*
-     * grows with the precision asked of it, so each of those iterations multiplies numbers
-     * as wide as the whole answer. At [MAX_BITS] that is tens of millions of multiplications
-     * on fourteen-million-bit integers — not slow, unreachable. `e^(10^7)` is only 14
-     * million bits and is already past the point of no return, which is why it needs its
-     * own bound rather than the general one.
+     * Far below what an integer power is allowed, because the two are different cost
+     * shapes rather than different sizes. An integer power is produced by repeated
+     * squaring, which is close to linear in the width of its result; `e^x` is produced by
+     * a Taylor series whose *iteration count* grows with the precision asked of it, so each
+     * of those iterations multiplies numbers as wide as the whole answer. `e^(10^7)` is
+     * only 14 million bits and is already past the point of no return — tens of millions of
+     * multiplications on fourteen-million-bit integers is not slow, it is unreachable.
      */
     const val MAX_EXP_BITS: Long = 1_000_000L
+
+    /**
+     * Ceiling on `log2` of the *magnitude* of an exponential's argument.
+     *
+     * A separate bound from [MAX_EXP_BITS], and symmetric in sign where that one is not,
+     * because it bounds a different thing: not how wide `e^x` is, but how deep the
+     * procedure for producing it goes. [ConstructiveReal.exp] reduces its argument by
+     * halving until `|x|` is under about 1/512, so it leaves behind a multiplication tree
+     * `log2(|x|) + 10` levels deep whatever the sign of `x`, and approximating that tree
+     * costs the same depth again in stack frames. The stage that expands it is the
+     * *formatter*, where a `StackOverflowError` is an `Error`: it escapes `runInterruptible`,
+     * `withTimeoutOrNull` and every catch in the view model, and ends the process rather
+     * than the expression. `e^(0−10^600)` is ten keypresses.
+     *
+     * Three hundred is far looser than [MAX_EXP_BITS] already permits on the positive side
+     * (an exponent past ~693,147 is refused for its width, which is only 20 bits of
+     * magnitude), so in practice it bounds the negative side — where the *value* is
+     * perfectly representable as `0…` and only the procedure is not. It leaves roughly a
+     * fivefold margin against the 1 MB stack a non-main Android thread is given.
+     */
+    const val MAX_EXP_ARGUMENT_BITS: Int = 300
 
     /**
      * Ceiling on the width of a value reached by ordinary multiplication, in bits.
@@ -109,16 +133,14 @@ object CalculationLimits {
         if (Thread.currentThread().isInterrupted) throw AbortedException()
     }
 
-    /** Refuses a computation whose result is already known to be too large to hold. */
-    fun checkBits(bits: Long) {
-        if (bits > MAX_BITS) throw TooMuchMemoryException()
-    }
-
     /**
-     * [checkBits] against [limit], for a size estimate too large to hold in a `Long`.
+     * Refuses a computation whose result is already known to be too large to hold.
      *
-     * The estimate for `e^(10^100000)` has thirty thousand digits of its own. Narrowing it
-     * to a `Long` first would wrap and let through exactly the case the check exists for.
+     * The estimate is a [BigInteger] rather than a `Long` because the estimate for
+     * `e^(10^100000)` has thirty thousand digits of its own; narrowing it first would wrap
+     * and let through exactly the case the check exists for. There is deliberately no
+     * overload that defaults [limit]: which ceiling applies depends on how the value is
+     * going to be produced, so the caller has to name it.
      */
     fun checkBits(bits: BigInteger, limit: Long) {
         if (bits > BigInteger.valueOf(limit)) throw TooMuchMemoryException()

@@ -34,8 +34,8 @@
 
     <!-- These two are labels rather than symbols, and some languages do abbreviate them
          differently, so they are translatable. -->
-    <string name="mode_deg">DEG</string>
-    <string name="mode_rad">RAD</string>
+    <string name="mode_deg" translatable="false">DEG</string>
+    <string name="mode_rad" translatable="false">RAD</string>
     <string name="key_clear">AC</string>
 
     <!-- Spoken descriptions. TalkBack must say "divided by", never "÷". -->
@@ -72,7 +72,6 @@
     <string name="desc_more_options">more options</string>
     <string name="desc_more_digits">read more digits</string>
     <string name="desc_computing">calculating</string>
-    <string name="desc_formula">formula</string>
     <string name="desc_digit">digit %1$s</string>
 
     <!-- Errors. Wording follows AOSP's calculator so the app reads as a first-party one. -->
@@ -84,4 +83,5 @@
     <string name="error_timeout">Calculation takes too long</string>
 
     <string name="action_copy">Copy</string>
+    <string name="action_paste">Paste</string>
 </resources>

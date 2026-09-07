@@ -19,6 +19,7 @@
     <string name="converter_from">Da</string>
     <string name="converter_to">A</string>
     <string name="converter_swap">Scambia le unità</string>
+    <string name="converter_change_unit">Cambia unità: %1$s</string>
     <string name="converter_search">Cerca unità</string>
     <string name="converter_common">Conversioni comuni</string>
     <string name="unit_bit">bit</string>

@@ -24,6 +24,9 @@ androidx-material-icons-extended = { group = "androidx.compose.material", name =
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+# No kotlin-android alias on purpose. AGP 9 supplies Kotlin to an Android module itself and
+# applying org.jetbrains.kotlin.android as well is a hard error; a catalog entry for it is an
+# invitation to hit that. The `kotlin` version ref below is still live — kotlin-jvm and
+# kotlin-compose both use it.
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

@@ -65,6 +65,30 @@ class GraphMathTest {
     }
 
     @Test
+    fun `a pinch that runs into the zoom limit keeps the axes on one scale`() {
+        // The window "Square the axes" leaves on a tall phone: wider in y than in x. Clamping
+        // the two spans independently let the height carry on shrinking after the width had
+        // stopped at MIN_SPAN, so a plot that was round at the start of the pinch came out
+        // visibly squashed, with nothing on the screen to say the axes were no longer square.
+        var v = Viewport(-10.0, 10.0, -26.0, 26.0)
+        val ratio = v.width / v.height
+        repeat(100) { v = v.zoom(4.0, 4.0, 0.0, 0.0) }
+        assertTrue("width collapsed to ${v.width}", v.width >= Viewport.MIN_SPAN)
+        assertTrue("height collapsed to ${v.height}", v.height >= Viewport.MIN_SPAN)
+        assertEquals(ratio, v.width / v.height, 1e-9)
+    }
+
+    @Test
+    fun `squaring the axes cannot put a span outside the zoom limits`() {
+        // Pressing the button at a zoom limit wrote a height the clamps exist to forbid, and
+        // every later gesture then started from a window they had already rejected.
+        val tight = Viewport(-Viewport.MIN_SPAN / 2, Viewport.MIN_SPAN / 2, -1.0, 1.0)
+        assertEquals(Viewport.MIN_SPAN, tight.squared(2000f, 500f).height, 0.0)
+        val wide = Viewport(-Viewport.MAX_SPAN / 2, Viewport.MAX_SPAN / 2, -1.0, 1.0)
+        assertEquals(Viewport.MAX_SPAN, wide.squared(500f, 2000f).height, 1e-3)
+    }
+
+    @Test
     fun `tick steps are always one two or five times a power of ten`() {
         for (span in listOf(1.0, 3.7, 20.0, 0.004, 12345.0)) {
             val step = AxisTicks.step(span)
@@ -146,13 +170,63 @@ class GraphMathTest {
     }
 
     @Test
-    fun `x squared meets x plus two at minus one and two`() {
-        val meetings = RootFinder.intersections(
-            { x -> x * x }, { x -> x + 2.0 }, viewport, 400,
-        ).sorted()
-        assertEquals(2, meetings.size)
-        assertEquals(-1.0, meetings[0], 1e-6)
-        assertEquals(2.0, meetings[1], 1e-6)
+    fun `a root sitting on the last sampled column is reported`() {
+        // The scan used to stop one column short, and the sign-change test cannot stand in
+        // for the missing zero test: with y1 exactly zero, `y0 > 0 != y1 > 0` is only true
+        // when y0 is *positive*, so a curve arriving at zero from below at the right edge
+        // produced no bracket at all. In the reset window the last sample is exactly 10.0 at
+        // every column count the app can be laid out at, so this was deterministic: the
+        // parabola visibly crossed the axis at both edges and the readout named one root.
+        for (columns in listOf(900, 1016, 1080, 1440)) {
+            val parabola = { x: Double -> x * x - 100.0 }
+            val both = RootFinder.roots(
+                parabola, GraphSampler.sample(parabola, viewport, columns),
+            ).sorted()
+            assertEquals("at $columns columns", 2, both.size)
+            assertEquals(-10.0, both[0], 1e-9)
+            assertEquals(10.0, both[1], 1e-9)
+
+            // The mirrored function was already right, which is what made the asymmetry easy
+            // to miss, and a straight line crossing at the edge was silently rootless.
+            val line = { x: Double -> x - 10.0 }
+            val edge = RootFinder.roots(line, GraphSampler.sample(line, viewport, columns))
+            assertEquals("at $columns columns", listOf(10.0), edge)
+        }
+    }
+
+    @Test
+    fun `a zero at both ends of one bracket is reported once, not twice`() {
+        // The zero at the right end of a bracket is left to the column that owns it. Refining
+        // the bracket as well would report the same crossing twice — once bisected to within
+        // an ulp of the column and once exactly on it — which prints as one number listed
+        // twice, the readout equivalent of an off-by-one.
+        val f = { x: Double -> 100.0 - x * x }
+        val roots = RootFinder.roots(f, GraphSampler.sample(f, viewport, 1080)).sorted()
+        assertEquals(listOf(-10.0, 10.0), roots)
+    }
+
+    @Test
+    fun `a crossing between two adjacent doubles is a root, not a rejected bracket`() {
+        // Bisection cannot narrow a bracket that is already two adjacent doubles wide, so the
+        // residual it reports is simply the value at one of the two bracketing samples.
+        // Demanding that the residual have *fallen* by half then threw away a perfectly real
+        // root: here the two endpoints are equal and opposite, so the ratio is exactly one
+        // half and the test failed on the boundary.
+        val k = Math.nextUp(1e12)
+        val f = { x: Double -> x * x - k }
+        val low = 1e6
+        val high = Math.nextUp(low)
+        val adjacent = Samples(doubleArrayOf(low, high), doubleArrayOf(f(low), f(high)))
+        val direct = RootFinder.roots(f, adjacent)
+        assertEquals(1, direct.size)
+        assertEquals(low, direct[0], Math.ulp(low))
+
+        // And by the route the app actually takes there: MIN_SPAN is 1e-9, which is far under
+        // one ulp of 1e6, so every bracket in that window arrives already collapsed.
+        val deep = Viewport(low - 5e-10, low + 5e-10, -1.0, 1.0)
+        val zoomed = RootFinder.roots(f, GraphSampler.sample(f, deep, 900))
+        assertEquals(1, zoomed.size)
+        assertEquals(low, zoomed[0], Math.ulp(low))
     }
 
     @Test
@@ -232,6 +306,12 @@ class GraphMathTest {
         // The bracket is then narrower than any absolute convergence tolerance. Stopping
         // bisection at one would return the untouched midpoint, whose value has not fallen
         // at all, and the crossing check would throw a perfectly real root away.
+        //
+        // Note what this case does *not* cover: a sample lands on the root exactly, so it
+        // leaves through the exact-zero path without ever reaching the guard that fires when
+        // a bracket cannot be halved. `a crossing between two adjacent doubles` above is the
+        // case that exercises that guard, and a real root was being discarded there for as
+        // long as this test was the only deep-zoom one.
         val f = { x: Double -> x - 1.0 }
         val tight = Viewport(1.0 - 5e-10, 1.0 + 5e-10, -1e-9, 1e-9)
         val roots = RootFinder.roots(f, GraphSampler.sample(f, tight, 1080))

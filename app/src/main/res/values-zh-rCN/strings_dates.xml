@@ -7,9 +7,6 @@
     <string name="dates_start">开始日期</string>
     <string name="dates_end">结束日期</string>
     <string name="dates_birth">出生日期</string>
-    <string name="dates_total_days">%1$d 天</string>
-    <string name="dates_breakdown">%1$d 年 %2$d 个月 %3$d 天</string>
-    <string name="dates_weeks">%1$d 周零 %2$d 天</string>
     <string name="dates_years">年</string>
     <string name="dates_months">月</string>
     <string name="dates_weeks_field">周</string>
@@ -17,10 +14,31 @@
     <string name="dates_add">相加</string>
     <string name="dates_subtract">相减</string>
     <string name="dates_clamp_note">按月或按年计算时，会截止到较短月份的最后一天。</string>
-    <string name="dates_business_result">%1$d 个工作日</string>
     <string name="dates_exclude_weekend">不含周六和周日</string>
-    <string name="dates_age_result">%1$d 岁 %2$d 个月 %3$d 天</string>
-    <string name="dates_age_total">已生活 %1$d 天</string>
-    <string name="dates_next_birthday">下次生日 %1$s（还有 %2$d 天）</string>
     <string name="dates_out_of_range">这些数值超出了本计算器可使用的范围。</string>
+    <plurals name="dates_age_years_part">
+        <item quantity="other">%1$d 岁</item>
+    </plurals>
+    <plurals name="dates_days_part">
+        <item quantity="other">%1$d 天</item>
+    </plurals>
+    <plurals name="dates_months_part">
+        <item quantity="other">%1$d 个月</item>
+    </plurals>
+    <plurals name="dates_weeks_part">
+        <item quantity="other">%1$d 周</item>
+    </plurals>
+    <plurals name="dates_years_part">
+        <item quantity="other">%1$d 年</item>
+    </plurals>
+    <plurals name="dates_age_total">
+        <item quantity="other">已生活 %1$d 天</item>
+    </plurals>
+    <plurals name="dates_business_result">
+        <item quantity="other">%1$d 个工作日</item>
+    </plurals>
+    <string name="dates_age_result">%1$s %2$s %3$s</string>
+    <string name="dates_breakdown">%1$s %2$s %3$s</string>
+    <string name="dates_next_birthday">下次生日 %1$s（还有 %2$s）</string>
+    <string name="dates_weeks">%1$s零 %2$s</string>
 </resources>

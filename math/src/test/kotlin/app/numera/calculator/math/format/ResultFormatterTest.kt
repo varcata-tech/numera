@@ -172,6 +172,47 @@ class ResultFormatterTest {
         assertTrue("got $plain", plain.startsWith("1745."))
     }
 
+    @Test
+    fun `formatPlain rounds its last digit the way the result line does`() {
+        // This is what Copy puts on the clipboard, so it is the same number the user can
+        // see — and it used to be produced by truncating an approximation that is only good
+        // to one unit in the last place. That decides the final digit by luck: it disagreed
+        // with the correctly rounded line about half the time, and could land one *above*
+        // the true expansion, printing a digit belonging to no rendering of the value.
+        // e to seventeen places is 2.71828182845904523|5360…, so it rounds up.
+        val plain = ResultFormatter.formatPlain(UnifiedReal.E, 17)
+        assertEquals("2.71828182845904524", plain)
+        assertEquals(
+            digitsOf(ResultFormatter.formatWithDigits(UnifiedReal.E, 17, Locale.ROOT)),
+            digitsOf(plain),
+        )
+    }
+
+    // ------------------------------------------------------------ locale pairing
+
+    @Test
+    fun `isExactlyDisplayable answers in the locale it is handed`() {
+        // It is called on the same value as formatShort and decides whether the result line
+        // offers more digits, and it measures the *grouped* width — which is locale
+        // dependent, since grouping is not universally by threes. Reading a different locale
+        // than the line was rendered in reports that nothing was dropped on a line that
+        // shows an ellipsis, and scrolling for the missing digits then refuses to move.
+        val quarter = rational(BigInteger.ONE, BigInteger.valueOf(4L))
+        val seventh = rational(BigInteger.ONE, BigInteger.valueOf(7L))
+        for (locale in listOf(Locale.ROOT, Locale.GERMANY, Locale.forLanguageTag("ar-EG"))) {
+            val exact = ResultFormatter.formatShort(quarter, budget, locale)
+            assertTrue("got $exact", ResultFormatter.isExactlyDisplayable(quarter, budget, locale))
+            assertFalse("got $exact", exact.contains('…'))
+
+            val truncated = ResultFormatter.formatShort(seventh, budget, locale)
+            assertFalse(
+                "got $truncated",
+                ResultFormatter.isExactlyDisplayable(seventh, budget, locale),
+            )
+            assertTrue("got $truncated", truncated.contains('…'))
+        }
+    }
+
     // ------------------------------------------------------------ totality
 
     @Test

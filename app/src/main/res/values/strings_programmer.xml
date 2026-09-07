@@ -13,6 +13,10 @@
     <string name="op_shr" translatable="false">&gt;&gt;</string>
     <string name="op_rol" translatable="false">RoL</string>
     <string name="op_ror" translatable="false">RoR</string>
+    <!-- MOD is read as an operator symbol on this pad, like AND and XOR, and is written the
+         same way in every locale's programming documentation. -->
+    <string name="op_mod" translatable="false">MOD</string>
+    <string name="op_neg" translatable="false">±</string>
 
     <string name="prog_signed">Signed</string>
     <string name="prog_unsigned">Unsigned</string>
@@ -23,4 +27,12 @@
     <string name="desc_key_unavailable">not available in this base</string>
     <string name="desc_op_shl">shift left</string>
     <string name="desc_op_shr">shift right</string>
+    <string name="desc_op_mod">modulo</string>
+    <string name="desc_op_neg">change sign</string>
+    <string name="desc_op_and">bitwise and</string>
+    <string name="desc_op_or">bitwise or</string>
+    <string name="desc_op_xor">bitwise exclusive or</string>
+    <string name="desc_op_not">bitwise not</string>
+    <string name="desc_op_rol">rotate left</string>
+    <string name="desc_op_ror">rotate right</string>
 </resources>

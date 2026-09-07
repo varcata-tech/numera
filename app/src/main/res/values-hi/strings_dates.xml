@@ -7,9 +7,6 @@
     <string name="dates_start">प्रारंभ तिथि</string>
     <string name="dates_end">समाप्ति तिथि</string>
     <string name="dates_birth">जन्म तिथि</string>
-    <string name="dates_total_days">%1$d दिन</string>
-    <string name="dates_breakdown">%1$d वर्ष, %2$d माह, %3$d दिन</string>
-    <string name="dates_weeks">%1$d सप्ताह और %2$d दिन</string>
     <string name="dates_years">वर्ष</string>
     <string name="dates_months">माह</string>
     <string name="dates_weeks_field">सप्ताह</string>
@@ -17,10 +14,38 @@
     <string name="dates_add">जोड़ें</string>
     <string name="dates_subtract">घटाएँ</string>
     <string name="dates_clamp_note">माह और वर्ष के चरण छोटे महीने के अंतिम दिन तक सीमित हो जाते हैं।</string>
-    <string name="dates_business_result">%1$d कार्यदिवस</string>
     <string name="dates_exclude_weekend">शनिवार और रविवार शामिल नहीं</string>
-    <string name="dates_age_result">%1$d वर्ष, %2$d माह, %3$d दिन</string>
-    <string name="dates_age_total">%1$d दिन जिए</string>
-    <string name="dates_next_birthday">अगला जन्मदिन %1$s (%2$d दिन)</string>
     <string name="dates_out_of_range">ये मान उस सीमा से बाहर हैं जिसका उपयोग यह कैलकुलेटर कर सकता है।</string>
+    <plurals name="dates_age_years_part">
+        <item quantity="one">%1$d वर्ष</item>
+        <item quantity="other">%1$d वर्ष</item>
+    </plurals>
+    <plurals name="dates_days_part">
+        <item quantity="one">%1$d दिन</item>
+        <item quantity="other">%1$d दिन</item>
+    </plurals>
+    <plurals name="dates_months_part">
+        <item quantity="one">%1$d माह</item>
+        <item quantity="other">%1$d माह</item>
+    </plurals>
+    <plurals name="dates_weeks_part">
+        <item quantity="one">%1$d सप्ताह</item>
+        <item quantity="other">%1$d सप्ताह</item>
+    </plurals>
+    <plurals name="dates_years_part">
+        <item quantity="one">%1$d वर्ष</item>
+        <item quantity="other">%1$d वर्ष</item>
+    </plurals>
+    <plurals name="dates_age_total">
+        <item quantity="one">%1$d दिन जिए</item>
+        <item quantity="other">%1$d दिन जिए</item>
+    </plurals>
+    <plurals name="dates_business_result">
+        <item quantity="one">%1$d कार्यदिवस</item>
+        <item quantity="other">%1$d कार्यदिवस</item>
+    </plurals>
+    <string name="dates_age_result">%1$s, %2$s, %3$s</string>
+    <string name="dates_breakdown">%1$s, %2$s, %3$s</string>
+    <string name="dates_next_birthday">अगला जन्मदिन %1$s (%2$s)</string>
+    <string name="dates_weeks">%1$s और %2$s</string>
 </resources>

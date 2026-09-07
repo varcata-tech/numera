@@ -13,9 +13,16 @@
 <resources>
 
     <!-- Type scale. See calculatorTypography(). -->
-    <!-- The committed result. Large enough that a short answer fills the display band. -->
+    <!-- Sizes Typography.displayLarge, which no composable currently uses: the committed
+         result is drawn at displayMedium, not here. Editing this to resize the answer changes
+         nothing on screen, which is why values-land/dimens.xml overrides _medium and _small
+         and pointedly not this one. Left in place because displayLarge is a standard Material
+         role that a future component could pick up by default, and an unsized one would then
+         be 57sp of Material baseline rather than part of this scale. -->
     <dimen name="calc_text_display_large">60dp</dimen>
-    <!-- The live result preview, and the default for ScrollableValueText. -->
+    <!-- The committed result, the live result preview, and the default for
+         ScrollableValueText. Large enough that a short answer fills the display band. This is
+         the one to change to resize the answer. -->
     <dimen name="calc_text_display_medium">56dp</dimen>
     <!-- The formula being typed, deliberately smaller than its own result. -->
     <dimen name="calc_text_display_small">42dp</dimen>
@@ -28,7 +35,12 @@
     <dimen name="calc_text_headline_medium">18dp</dimen>
 
     <!-- Keypad metrics. -->
-    <!-- Matches the Material minimum touch target; CalcButton enforces it regardless. -->
+    <!-- The Material minimum touch target, recorded here as the number the UI is supposed to
+         hold to. Nothing reads it: CalcButton hardcodes defaultMinSize(48.dp, 48.dp), which
+         is correct — a touch target must not shrink because a locale bucket overrode a dimen
+         — but it does mean the file header's promise that a values-<lang> or values-sw600dp
+         bucket can retune the keypad does not extend to this value. Change the two together
+         or not at all. -->
     <dimen name="calc_key_min_size">48dp</dimen>
     <!-- Half of the shortest key edge on a 4-column keypad, which reads as a full pill. -->
     <dimen name="calc_key_corner">28dp</dimen>
@@ -36,6 +48,8 @@
 
     <!-- Screen metrics. -->
     <dimen name="calc_screen_padding">16dp</dimen>
+    <!-- Unused by any composable today; the display band takes its height from the weight it
+         is given in the column. Kept as the documented floor a redesign has to respect. -->
     <dimen name="calc_display_min_height">120dp</dimen>
 
 </resources>

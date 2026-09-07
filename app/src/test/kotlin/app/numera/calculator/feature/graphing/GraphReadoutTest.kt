@@ -67,6 +67,29 @@ class GraphReadoutTest {
     }
 
     @Test
+    fun `a value that rounds to zero never keeps its sign`() {
+        // Java's Formatter prints "-0.0000" for anything in (-5e-5, 0), and the trim above
+        // reduces that to "-0". Bisection converges on a tiny *negative* double rather than
+        // exactly zero whenever the sample grid does not straddle the origin symmetrically —
+        // the root of y = x comes back as about -3e-63 at a large fraction of device widths —
+        // so the roots readout of the simplest function the app can plot read "Roots of x:
+        // -0". Nobody writes that, and on an app that sells exactness it reads as a bug.
+        assertEquals("0", (-3.4079528204635604e-63).pretty(Locale.US, defaultSpan))
+        assertEquals("0", (-0.0).pretty(Locale.US, defaultSpan))
+        assertEquals("0", (-1e-9).pretty(Locale.US, defaultSpan))
+        // A locale with its own digits goes through the same path.
+        val arabic: Locale = Locale.forLanguageTag("ar-EG")
+        assertEquals(String.format(arabic, "%.0f", 0.0), (-3.4e-63).pretty(arabic, defaultSpan))
+        // Only values that really do round away lose their sign: a negative coordinate the
+        // reader can see must keep it.
+        assertEquals("-0.001", (-0.001).pretty(Locale.US, defaultSpan))
+        assertEquals("-2", (-2.0).pretty(Locale.US, defaultSpan))
+        // And a deep zoom, where four decimals are not what is asked for, still shows the
+        // small negative rather than flattening it to zero.
+        assertEquals("-0.000000001", (-1e-9).pretty(Locale.US, 1e-8))
+    }
+
+    @Test
     fun `a deep zoom still tells two neighbouring coordinates apart`() {
         // The count of decimals follows the span. Fixed at four places both of these print as
         // a flat "1", and two distinct roots read as one number.

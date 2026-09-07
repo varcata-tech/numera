@@ -27,18 +27,26 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -71,7 +79,16 @@ fun ConverterScreen(onBack: () -> Unit) {
     val viewModel: ConverterViewModel = viewModel(factory = converterViewModelFactory(settings))
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    var picking: Boolean? by remember { mutableStateOf(null) }
+    // rememberSaveable, not remember: a rotation — or the activity recreation that a per-app
+    // language switch causes — would otherwise close the picker out from under the user.
+    var picking: Boolean? by rememberSaveable { mutableStateOf<Boolean?>(null) }
+
+    // The view model outlives that same recreation, so the locale it renders answers in has to
+    // be pushed to it from here, where LocalConfiguration is observable. Read from
+    // Locale.getDefault() inside the view model it went stale, and the keypad's Arabic-Indic
+    // digits ended up sitting under an answer still written in the previous locale's digits.
+    val locale: Locale = LocalConfiguration.current.locales[0]
+    LaunchedEffect(viewModel, locale) { viewModel.onLocaleChanged(locale) }
 
     ModeScaffold(title = stringResource(R.string.title_converter), onBack = onBack) { padding ->
         Column(
@@ -173,10 +190,27 @@ private fun ValueRow(
     onPickUnit: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
+    val unitName: String = stringResource(UnitNames.nameRes(unit.id))
+    // Re-pin the active field to its caret end whenever the text grows, exactly as the
+    // calculator's own display does. Left at zero the scroll shows the *start* of the string,
+    // so every digit typed past the field's width was entered blind — the user could not see
+    // what they were typing, and could not even retype a figure the app had just shown them.
+    // Keyed on maxValue too: on the frame the text changes, maxValue still holds the previous
+    // width and scrolling to it lands short of the new end.
+    LaunchedEffect(active, value, scrollState.maxValue) {
+        // Only the field being typed into. The computed field is a finished number, and its
+        // most significant digits — the start — are the ones worth showing.
+        if (active) scrollState.scrollTo(scrollState.maxValue)
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onActivate)
+            .clickable(role = Role.Button, onClick = onActivate)
+            // Merged so TalkBack reads the row as one control — "From, 12.5, Centimetre" —
+            // rather than stopping on the label, the value and the unit name in turn. The
+            // unit button below stays separately focusable because it merges in its own
+            // right, which is what keeps "change the unit" reachable.
+            .semantics(mergeDescendants = true) { }
             .background(
                 color = if (active) {
                     MaterialTheme.colorScheme.surfaceContainerHigh
@@ -193,8 +227,15 @@ private fun ValueRow(
         ) {
             Text(text = label, style = MaterialTheme.typography.labelMedium)
             Box(modifier = Modifier.weight(1f))
+            val changeUnit: String = stringResource(R.string.converter_change_unit, unitName)
             Row(
-                modifier = Modifier.clickable(onClick = onPickUnit),
+                modifier = Modifier
+                    .clickable(role = Role.Button, onClick = onPickUnit)
+                    // The only visual cue that this opens a picker is the "▾" glyph, which
+                    // spoken is nothing at all — and the symbol beside it is read letter by
+                    // letter ("c m"). Both are replaced by the unit's spoken name and what
+                    // tapping does.
+                    .semantics(mergeDescendants = true) { contentDescription = changeUnit },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -204,18 +245,23 @@ private fun ValueRow(
                 Text(text = "  ▾", style = MaterialTheme.typography.titleMedium)
             }
         }
+        // Pinned to LTR for the same reason the calculator's display is: this field accepts
+        // operators, so it can hold `2+3`, and bidi reordering in an RTL locale moves the
+        // operator out from between its operands and shows the user `3+2`.
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineMedium,
+                maxLines = 1,
+                softWrap = false,
+                textAlign = TextAlign.End,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(scrollState),
+            )
+        }
         Text(
-            text = value,
-            style = MaterialTheme.typography.headlineMedium,
-            maxLines = 1,
-            softWrap = false,
-            textAlign = TextAlign.End,
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(scrollState),
-        )
-        Text(
-            text = stringResource(UnitNames.nameRes(unit.id)),
+            text = unitName,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -266,7 +312,9 @@ private fun CommonConversions(entries: List<Pair<UnitDef, String>>) {
                 }
             }
             for ((unit, text) in entries) {
-                Column {
+                // Merged: three separate TalkBack stops per column turned a four-unit strip
+                // into twelve, and the number arrived before the unit that gives it meaning.
+                Column(modifier = Modifier.semantics(mergeDescendants = true) { }) {
                     Text(text = text, style = MaterialTheme.typography.bodyMedium)
                     Text(
                         text = stringResource(UnitNames.symbolRes(unit.id)),
@@ -305,7 +353,9 @@ private fun UnitPickerSheet(
     onDismiss: () -> Unit,
     onPick: (UnitDef) -> Unit,
 ) {
-    var query by remember { mutableStateOf("") }
+    // rememberSaveable: a rotation with the sheet open otherwise throws away a partly typed
+    // search along with the list it had narrowed to.
+    var query by rememberSaveable { mutableStateOf("") }
     ModalBottomSheet(onDismissRequest = onDismiss) {
         OutlinedTextField(
             value = query,
@@ -339,7 +389,10 @@ private fun UnitPickerSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onPick(unit) }
+                        .clickable(role = Role.Button) { onPick(unit) }
+                        // One stop per row, not one for the name and another for the symbol,
+                        // in a list that is sixty rows long in the length category.
+                        .semantics(mergeDescendants = true) { }
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

@@ -92,6 +92,12 @@ object FinanceMath {
      *    the cent, those roundings do not cancel, and a schedule whose principal column
      *    does not sum to the principal is simply wrong. Hoping the errors cancel is not a
      *    strategy; making the last payment settle the remaining balance is.
+     * 3. The **principal is rounded once, here**, and every figure below is derived from the
+     *    rounded amount. The schedule telescopes — each balance is the previous one less that
+     *    line's principal, rounded — so an opening balance carrying a third decimal place
+     *    breaks the identity on the very first line and nowhere else: the column then sums to
+     *    the *rounded* principal while the caller compares against theirs, and the two
+     *    disagree by up to half a cent with no line to blame it on.
      */
     fun loan(principal: BigDecimal, annualRatePercent: BigDecimal, months: Int): Loan {
         require(months in 1..MAX_LOAN_MONTHS) {
@@ -99,20 +105,21 @@ object FinanceMath {
         }
         require(principal.signum() > 0) { "principal must be positive" }
 
+        val borrowed = money(principal)
         val monthlyRate = annualRatePercent.divide(HUNDRED, MATH).divide(BigDecimal(12), MATH)
 
         val rawInstalment = if (monthlyRate.signum() == 0) {
-            principal.divide(BigDecimal(months), MATH)
+            borrowed.divide(BigDecimal(months), MATH)
         } else {
             val growth = BigDecimal.ONE.add(monthlyRate).pow(months, MATH)
-            principal.multiply(monthlyRate, MATH)
+            borrowed.multiply(monthlyRate, MATH)
                 .multiply(growth, MATH)
                 .divide(growth.subtract(BigDecimal.ONE), MATH)
         }
         val instalment = money(rawInstalment)
 
         val schedule = ArrayList<Instalment>(months)
-        var balance = principal
+        var balance = borrowed
         var totalPaid = BigDecimal.ZERO
 
         for (n in 1..months) {
@@ -136,7 +143,7 @@ object FinanceMath {
         return Loan(
             instalment = instalment,
             totalPaid = money(totalPaid),
-            totalInterest = money(totalPaid.subtract(principal)),
+            totalInterest = money(totalPaid.subtract(borrowed)),
             schedule = schedule,
         )
     }
@@ -194,16 +201,20 @@ object FinanceMath {
         }
         if (years.signum() < 0) return null
         val rate = annualRatePercent.divide(HUNDRED, MATH)
+        // Rounded once, for the same reason as in [loan]: [balance] is a rounded figure, so
+        // subtracting an unrounded principal from it reports an interest that is out by a
+        // fraction of a cent and does not agree with the balance shown beside it.
+        val invested = money(principal)
 
         if (compounding == Compounding.CONTINUOUS) {
             val exponent = rate.multiply(years, MATH)
             val magnitude = exponent.toDouble()
             if (!magnitude.isFinite() || magnitude > MAX_GROWTH_EXPONENT) return null
-            val balance = money(principal.multiply(exp(exponent, MATH), MATH))
+            val balance = money(invested.multiply(exp(exponent, MATH), MATH))
             return Growth(
                 balance = balance,
                 contributed = BigDecimal.ZERO,
-                interest = money(balance.subtract(principal)),
+                interest = money(balance.subtract(invested)),
             )
         }
 
@@ -218,7 +229,7 @@ object FinanceMath {
         if (!exponent.isFinite() || exponent > MAX_GROWTH_EXPONENT) return null
 
         val growth = base.pow(periods, MATH)
-        val fromPrincipal = principal.multiply(growth, MATH)
+        val fromPrincipal = invested.multiply(growth, MATH)
         val contributed = contributionPerPeriod.multiply(BigDecimal(periods), MATH)
         val fromContributions = if (contributionPerPeriod.signum() == 0) {
             BigDecimal.ZERO
@@ -230,10 +241,15 @@ object FinanceMath {
                 .divide(periodRate, MATH)
         }
         val balance = money(fromPrincipal.add(fromContributions))
+        // Every figure returned is rounded, and the interest is derived from the rounded
+        // ones: principal + contributions + interest then adds up to the balance shown
+        // beside them exactly, instead of missing it by the fraction of a cent that the
+        // unrounded intermediates carry.
+        val paidIn = money(contributed)
         return Growth(
             balance = balance,
-            contributed = money(contributed),
-            interest = money(balance.subtract(principal).subtract(contributed)),
+            contributed = paidIn,
+            interest = money(balance.subtract(invested).subtract(paidIn)),
         )
     }
 
@@ -359,8 +375,20 @@ object FinanceMath {
      * Successive discounts do not add: 20% then 10% leaves 72% of the price, a 28% discount,
      * not 30%. This is the single most common piece of shop arithmetic people get wrong, so
      * the function takes a list and composes them properly rather than summing.
+     *
+     * A percentage outside 0..100 is refused rather than composed. Above 100 the factor
+     * `(100 − percent)/100` goes negative, and the arithmetic goes on politely: one such
+     * discount returns a *negative* final price and a saving larger than the price, and two
+     * of them multiply the two negative factors back into a plausible positive price. Both
+     * are presented in exactly the same card as a real answer. Callers guard the field before
+     * calling, the way the tip tab guards its headcount.
      */
     fun successiveDiscount(price: BigDecimal, percentages: List<BigDecimal>): Discount {
+        for (percent in percentages) {
+            require(percent.signum() >= 0 && percent <= HUNDRED) {
+                "a discount must be between 0% and 100%, not $percent"
+            }
+        }
         var remaining = price
         for (percent in percentages) {
             val keep = HUNDRED.subtract(percent).divide(HUNDRED, MATH)

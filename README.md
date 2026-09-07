@@ -16,9 +16,14 @@ cd /Users/gurpreetsingh/dev/numera
 
 ./gradlew :math:test :units:test :app:testDebugUnitTest   # the whole unit-test suite
 ./gradlew :app:assembleDebug
-./gradlew :app:assembleRelease                            # see "Signing" and "Localisation"
+./gradlew :app:bundleRelease                              # the release artifact — see "Signing"
 ./gradlew :app:lintDebug
 ```
+
+**What ships is the AAB from `bundleRelease`, never an APK.** Play accepts only a bundle for a
+new app, and `docs/play-listing.md` is written around that. `assembleRelease` still exists and
+is still signed, but it is for putting a release build on a phone by hand — a release APK left
+in `app/build/outputs/apk/release/` is exactly the stale file someone later uploads by mistake.
 
 Always use `./gradlew`, never the system `gradle` — the latter runs on a JDK that AGP rejects.
 
@@ -52,12 +57,15 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
 No `archivesName` is configured, so `app-debug.apk` is the literal name AGP writes;
-`assembleRelease` likewise writes `app/build/outputs/apk/release/app-release.apk` and
-`bundleRelease` writes `app/build/outputs/bundle/release/app-release.aab`.
+`assembleRelease` likewise writes `app/build/outputs/apk/release/app-release.apk`, and
+`bundleRelease` writes `app/build/outputs/bundle/release/app-release.aab` — the second of
+those is the one that goes to Play.
 
 Or copy the APK across and tap it — the file manager needs "install unknown apps" enabled.
-The app appears as **Numera** (`app_name`, which is `translatable="false"` so the launcher
-label is the same in every locale).
+The app appears as **Numera Calculator** — `app_name`, which *is* translated: every locale
+keeps the brand and localises the noun, so a German home screen reads "Numera Rechner" and a
+Japanese one "Numera 電卓". The Play listing name is longer (`Numera: Exact Calculator`) and
+is set in the Console, not here; `docs/play-listing.md` records why the two differ.
 
 ## Signing (Play App Signing)
 
@@ -117,7 +125,7 @@ These demonstrate what the exact engine buys, and each one is wrong on an ordina
 | Drag down on the display | History opens; drag sideways scrolls the formula instead |
 | Tap a history row, then `×3 =` | Exact — inserts the calculation, not its decimal |
 | Long-press the result → Copy, paste back, `×3 =` | Exactly `1` |
-| Type `sin(2`, force-stop, reopen | The half-typed expression is still there |
+| Type `sin(2`, switch away until Android reclaims the app, reopen | The half-typed expression is still there |
 
 Other modes are reached from the `⋮` menu on the calculator screen.
 
@@ -126,8 +134,9 @@ Other modes are reached from the `⋮` menu on the calculator screen.
 See `NOTICE.md`, which is the authoritative statement and the one to keep the shipped
 `about_attribution` string in step with. The arithmetic engine is a Kotlin reimplementation
 derived from AOSP's ExactCalculator (Apache-2.0) and from the published algorithms of
-Hans-J. Boehm's constructive reals library. No third-party code is bundled and the app has
-no runtime dependencies beyond androidx.
+Hans-J. Boehm's constructive reals library. Nothing is bundled beyond androidx, the Kotlin
+standard library and kotlinx-coroutines — all Apache-2.0, all general-purpose, and none of
+them an SDK for anything. There is no analytics, advertising or crash-reporting code.
 
 ## Privacy
 

@@ -12,7 +12,12 @@
     <string name="desc_graph_canvas">グラフ</string>
     <string name="graph_list_separator">", "</string>
     <string name="graph_roots_of">%1$s の零点: %2$s</string>
-    <string name="graph_roots_of_truncated">%2$s の零点のうち最初の %1$d 個: %3$s</string>
     <string name="graph_trace_offscreen">x = %1$s, y = %2$s（画面外）</string>
     <string name="graph_clear_trace">トレースを消去</string>
+    <string name="graph_angle_unit">x はラジアン</string>
+    <string name="graph_sentence_separator">"。"</string>
+    <string name="graph_trace_centre">表示範囲の中央をトレース</string>
+    <plurals name="graph_roots_of_truncated">
+        <item quantity="other">%2$s の零点のうち最初の %1$d 個: %3$s</item>
+    </plurals>
 </resources>

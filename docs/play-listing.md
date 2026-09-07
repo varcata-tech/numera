@@ -14,6 +14,13 @@ true as the app changes.
 Numera: Exact Calculator
 ```
 
+Three names are in play and the difference is deliberate, so do not "tidy" one into another:
+the **store listing** is `Numera: Exact Calculator`, because a listing has to say what the app
+is to someone who has never heard of it; the **launcher label** (`app_name`) is
+`Numera Calculator`, translated per locale, because a home screen needs the brand *and* the
+common noun; the **project name** is Numera. Changing the launcher label means editing
+`res/values/strings.xml` and all eleven `res/values-<locale>/strings.xml`.
+
 **Short description** (80 char limit — this is 69)
 
 ```
@@ -54,7 +61,8 @@ BUILT TO RESPECT YOU
   or your files — so Numera is incapable of sending anything anywhere. This is enforced by
   Android, not by our promises.
 • No ads. No tracking. No analytics. No accounts.
-• No third-party code beyond Google's own AndroidX libraries.
+• No third-party code beyond general-purpose Apache-2.0 libraries: Google's AndroidX, the
+  Kotlin standard library and kotlinx-coroutines. No SDK of any other kind.
 • Your calculation history stays on your device and is deliberately excluded from cloud
   backup.
 
@@ -62,7 +70,8 @@ THOUGHTFUL DETAILS
 • History that stores the calculation, not its answer — tap an old entry and continue from
   the exact value, not a rounded decimal
 • Copy a result and paste it back with no loss of precision
-• Your half-typed expression survives being interrupted
+• Come back to a half-typed expression exactly where you left it, even after Android has
+  reclaimed the app in the background
 • Material You theming, a true-black OLED mode, and per-app language on Android 13+
 • Full TalkBack support, including reading extra digits of a long result
 • Twelve languages, with locale-correct digits, grouping and decimal separators
@@ -72,8 +81,22 @@ Numera is free, and it always will be. There is nothing to buy and nothing to su
 
 **Category:** Tools
 **Tags:** Calculator, Unit converter, Productivity
-**Contact email:** *(your address — required and shown publicly)*
-**Privacy policy URL:** `https://<user>.github.io/numera/privacy-policy`
+**Contact email:** `goravsinghc.gc@gmail.com`
+
+Play shows this address publicly on the listing. It is the same address the privacy policy
+gives, and that is not an accident — a reviewer who finds two different contact addresses
+treats the policy as boilerplate. If it is ever swapped for a dedicated alias, change it in
+all four places at once: here, `docs/privacy-policy.md`, `docs/index.md` and
+`app/src/main/assets/privacy-policy.txt`.
+
+**Privacy policy URL:** `https://gsingh1629.github.io/numera/privacy-policy/`
+
+Built from `docs/privacy-policy.md`, whose front matter pins that exact permalink, and served
+under the `baseurl` set in `docs/_config.yml`. Play **fetches and validates this URL during
+review**, so open it in a private window and confirm it returns the styled policy page — not a
+404, and not the raw Markdown source — before pasting it into the Console. Both halves of the
+URL are derived from the GitHub account name: if the repository is not `gsingh1629/numera`,
+`docs/_config.yml`, this line and the two contact sections are all wrong together.
 
 ---
 
@@ -144,10 +167,17 @@ to users as well as to a reviewer.
 ## Release checklist
 
 - [ ] Create the developer account, pay the one-off $25, complete identity verification.
-- [ ] Publish `docs/` to GitHub Pages; confirm the privacy-policy URL loads publicly.
+- [ ] Publish `docs/` to GitHub Pages (Settings → Pages → branch `main`, folder `/docs`);
+      confirm `https://gsingh1629.github.io/numera/privacy-policy/` loads publicly, styled,
+      in a browser with no session for the repository.
 - [ ] Create the app in the Console; enrol in **Play App Signing**.
 - [ ] Upload `app/build/outputs/bundle/release/app-release.aab` — **the bundle, not the
       APK**. No `archivesName` is configured, so that is the literal filename AGP writes.
+      **Nothing in `dist/` is uploadable.** That directory is gitignored scratch space and its
+      contents are whatever was last built by hand, which is not necessarily this commit; a
+      friendlier filename there has already been mistaken for the artifact once. Upload only
+      out of `app/build/outputs/`, and only after `bundleRelease` has run on the commit you
+      are shipping.
 - [ ] Complete: store listing, Data Safety, content rating, target audience, app content.
 - [ ] Add screenshots: at least 2 phone screenshots, plus a 512×512 icon and a 1024×500
       feature graphic.
@@ -179,6 +209,17 @@ bundletool dump manifest --bundle=app/build/outputs/bundle/release/app-release.a
 # Without bundletool installed, build the APK as well and use aapt2 on the real path:
 #   ./gradlew :app:assembleRelease
 #   aapt2 dump permissions app/build/outputs/apk/release/app-release.apk
+
+# Confirm no language splits. app/build.gradle.kts sets bundle { language { enableSplit =
+# false } } so all twelve locales ride in the base APK; if that block is ever lost, Play
+# installs only the splits matching the device's system languages while
+# res/xml/locales_config.xml keeps offering all twelve to the per-app language picker, and
+# picking an uninstalled one silently renders the app in English.
+bundletool build-apks --bundle=app/build/outputs/bundle/release/app-release.aab \
+  --output=/tmp/numera.apks --overwrite
+unzip -l /tmp/numera.apks | grep split_config
+
+# Expect ABI and density splits only. A single split_config.<lang>.apk line is the regression.
 ```
 
 Bump `versionCode` in `app/build.gradle.kts` for every upload — Play rejects a repeat.

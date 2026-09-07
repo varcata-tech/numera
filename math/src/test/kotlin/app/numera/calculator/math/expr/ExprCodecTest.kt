@@ -194,6 +194,25 @@ class ExprCodecTest {
     }
 
     @Test
+    fun `a number token too long for one length byte is framed, not wrapped`() {
+        // CalculatorExpr.MAX_LITERAL_LENGTH is 255 because the compact frame states its
+        // length in a single byte, but that ceiling is held by the four places that build a
+        // Token.Number rather than by the type, whose constructor is public. Written into
+        // that byte, a 300-character token would state a length of 44 and decode as a
+        // different, shorter number — with the blob still perfectly well formed, so nothing
+        // downstream would notice a value quietly changing.
+        val long = "9".repeat(300)
+        val source = CalculatorExpr(listOf(Token.Number(long)))
+        assertEquals(source.tokens, roundTrip(source).tokens)
+
+        // And the wider length field must not have opened a way to read past the array.
+        val blob = ExprCodec.encode(source)
+        for (length in 1 until blob.size) {
+            ExprCodec.decode(blob.copyOf(length))
+        }
+    }
+
+    @Test
     fun `key tags are unique and stable`() {
         // Encoding one key at a time exposes its tag byte, so a duplicated or shifted tag
         // shows up here rather than in a user's history months later.

@@ -19,6 +19,7 @@
     <string name="converter_from">从</string>
     <string name="converter_to">到</string>
     <string name="converter_swap">交换单位</string>
+    <string name="converter_change_unit">更改单位：%1$s</string>
     <string name="converter_search">搜索单位</string>
     <string name="converter_common">常用换算</string>
     <string name="unit_bit">比特</string>

@@ -7,9 +7,6 @@
     <string name="dates_start">시작일</string>
     <string name="dates_end">종료일</string>
     <string name="dates_birth">생년월일</string>
-    <string name="dates_total_days">%1$d일</string>
-    <string name="dates_breakdown">%1$d년 %2$d개월 %3$d일</string>
-    <string name="dates_weeks">%1$d주 %2$d일</string>
     <string name="dates_years">년</string>
     <string name="dates_months">개월</string>
     <string name="dates_weeks_field">주</string>
@@ -17,10 +14,31 @@
     <string name="dates_add">더하기</string>
     <string name="dates_subtract">빼기</string>
     <string name="dates_clamp_note">월·연 단위 이동은 더 짧은 달의 마지막 날로 조정됩니다.</string>
-    <string name="dates_business_result">%1$d 영업일</string>
     <string name="dates_exclude_weekend">토요일과 일요일 제외</string>
-    <string name="dates_age_result">%1$d세 %2$d개월 %3$d일</string>
-    <string name="dates_age_total">%1$d일 살았습니다</string>
-    <string name="dates_next_birthday">다음 생일 %1$s (%2$d일 후)</string>
     <string name="dates_out_of_range">이 값은 이 계산기가 사용할 수 있는 범위를 벗어납니다.</string>
+    <plurals name="dates_age_years_part">
+        <item quantity="other">%1$d세</item>
+    </plurals>
+    <plurals name="dates_days_part">
+        <item quantity="other">%1$d일</item>
+    </plurals>
+    <plurals name="dates_months_part">
+        <item quantity="other">%1$d개월</item>
+    </plurals>
+    <plurals name="dates_weeks_part">
+        <item quantity="other">%1$d주</item>
+    </plurals>
+    <plurals name="dates_years_part">
+        <item quantity="other">%1$d년</item>
+    </plurals>
+    <plurals name="dates_age_total">
+        <item quantity="other">%1$d일 살았습니다</item>
+    </plurals>
+    <plurals name="dates_business_result">
+        <item quantity="other">%1$d 영업일</item>
+    </plurals>
+    <string name="dates_age_result">%1$s %2$s %3$s</string>
+    <string name="dates_breakdown">%1$s %2$s %3$s</string>
+    <string name="dates_next_birthday">다음 생일 %1$s (%2$s 후)</string>
+    <string name="dates_weeks">%1$s %2$s</string>
 </resources>

@@ -7,9 +7,6 @@
     <string name="dates_start">Fecha de inicio</string>
     <string name="dates_end">Fecha de fin</string>
     <string name="dates_birth">Fecha de nacimiento</string>
-    <string name="dates_total_days">%1$d días</string>
-    <string name="dates_breakdown">%1$d años, %2$d meses, %3$d días</string>
-    <string name="dates_weeks">%1$d semanas y %2$d días</string>
     <string name="dates_years">Años</string>
     <string name="dates_months">Meses</string>
     <string name="dates_weeks_field">Semanas</string>
@@ -17,10 +14,38 @@
     <string name="dates_add">Sumar</string>
     <string name="dates_subtract">Restar</string>
     <string name="dates_clamp_note">Los saltos de mes y año se ajustan al final de un mes más corto.</string>
-    <string name="dates_business_result">%1$d días laborables</string>
     <string name="dates_exclude_weekend">Excluye sábado y domingo</string>
-    <string name="dates_age_result">%1$d años, %2$d meses, %3$d días</string>
-    <string name="dates_age_total">%1$d días vividos</string>
-    <string name="dates_next_birthday">Próximo cumpleaños el %1$s (%2$d días)</string>
     <string name="dates_out_of_range">Esos valores están fuera del rango que esta calculadora puede usar.</string>
+    <plurals name="dates_age_years_part">
+        <item quantity="one">%1$d año</item>
+        <item quantity="other">%1$d años</item>
+    </plurals>
+    <plurals name="dates_days_part">
+        <item quantity="one">%1$d día</item>
+        <item quantity="other">%1$d días</item>
+    </plurals>
+    <plurals name="dates_months_part">
+        <item quantity="one">%1$d mes</item>
+        <item quantity="other">%1$d meses</item>
+    </plurals>
+    <plurals name="dates_weeks_part">
+        <item quantity="one">%1$d semana</item>
+        <item quantity="other">%1$d semanas</item>
+    </plurals>
+    <plurals name="dates_years_part">
+        <item quantity="one">%1$d año</item>
+        <item quantity="other">%1$d años</item>
+    </plurals>
+    <plurals name="dates_age_total">
+        <item quantity="one">%1$d día vivido</item>
+        <item quantity="other">%1$d días vividos</item>
+    </plurals>
+    <plurals name="dates_business_result">
+        <item quantity="one">%1$d día laborable</item>
+        <item quantity="other">%1$d días laborables</item>
+    </plurals>
+    <string name="dates_age_result">%1$s, %2$s, %3$s</string>
+    <string name="dates_breakdown">%1$s, %2$s, %3$s</string>
+    <string name="dates_next_birthday">Próximo cumpleaños el %1$s (%2$s)</string>
+    <string name="dates_weeks">%1$s y %2$s</string>
 </resources>

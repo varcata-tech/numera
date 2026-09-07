@@ -19,6 +19,7 @@
     <string name="converter_from">변환 전</string>
     <string name="converter_to">변환 후</string>
     <string name="converter_swap">단위 바꾸기</string>
+    <string name="converter_change_unit">단위 변경: %1$s</string>
     <string name="converter_search">단위 검색</string>
     <string name="converter_common">자주 쓰는 변환</string>
     <string name="unit_bit">비트</string>

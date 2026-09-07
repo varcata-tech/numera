@@ -6,7 +6,7 @@
     <string name="fin_tab_discount">خصم</string>
     <string name="fin_tab_tax">ضريبة</string>
     <string name="fin_principal">أصل المبلغ</string>
-    <string name="fin_rate">النسبة السنوية %</string>
+    <string name="fin_rate" formatted="false">النسبة السنوية %</string>
     <string name="fin_months">المدة (بالأشهر)</string>
     <string name="fin_years">سنوات</string>
     <string name="fin_instalment">القسط الشهري</string>
@@ -18,22 +18,21 @@
     <string name="fin_contribution">المساهمة لكل فترة</string>
     <string name="fin_final_balance">الرصيد النهائي</string>
     <string name="fin_bill">الفاتورة</string>
-    <string name="fin_tip_percent">الإكرامية %</string>
+    <string name="fin_tip_percent" formatted="false">الإكرامية %</string>
     <string name="fin_people">عدد الأشخاص</string>
     <string name="fin_round_up">تقريب الإجمالي للأعلى</string>
     <string name="fin_tip_amount">الإكرامية</string>
     <string name="fin_total">الإجمالي</string>
     <string name="fin_per_person">لكل شخص</string>
-    <string name="fin_extra_cents">%1$d يدفعون وحدة إضافية</string>
     <string name="fin_price">السعر</string>
-    <string name="fin_discount_1">الخصم الأول %</string>
-    <string name="fin_discount_2">الخصم الثاني %</string>
+    <string name="fin_discount_1" formatted="false">الخصم الأول %</string>
+    <string name="fin_discount_2" formatted="false">الخصم الثاني %</string>
     <string name="fin_final_price">السعر النهائي</string>
     <string name="fin_saved">وفّرت</string>
     <string name="fin_effective">الخصم الفعلي</string>
     <string name="fin_successive_note" formatted="false">الخصومات المتتالية تتراكب: 20% ثم 10% تعني خصمًا قدره 28%، لا 30%.</string>
     <string name="fin_amount">المبلغ</string>
-    <string name="fin_tax_rate">نسبة الضريبة %</string>
+    <string name="fin_tax_rate" formatted="false">نسبة الضريبة %</string>
     <string name="fin_add_tax">إضافة الضريبة</string>
     <string name="fin_remove_tax">استخراج الضريبة</string>
     <string name="fin_net">الصافي</string>
@@ -49,4 +48,12 @@
     <string name="fin_invalid_input">أدخل رقمًا صالحًا في كل حقل.</string>
     <string name="fin_out_of_range">هذه القيم خارج النطاق الذي يمكن لهذه الآلة الحاسبة حسابه.</string>
     <string name="fin_contribution_continuous">التركيب المستمر ليس له فترة، لذا لا تُدرج الإيداعات الدورية.</string>
+    <plurals name="fin_extra_cents">
+        <item quantity="zero">لا أحد يدفع وحدة إضافية</item>
+        <item quantity="one">شخص واحد يدفع وحدة إضافية</item>
+        <item quantity="two">شخصان يدفعان وحدة إضافية</item>
+        <item quantity="few">%1$d أشخاص يدفعون وحدة إضافية</item>
+        <item quantity="many">%1$d شخصًا يدفعون وحدة إضافية</item>
+        <item quantity="other">%1$d يدفعون وحدة إضافية</item>
+    </plurals>
 </resources>

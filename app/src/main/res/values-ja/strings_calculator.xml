@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="mode_deg">DEG</string>
-    <string name="mode_rad">RAD</string>
     <string name="key_clear">AC</string>
     <string name="desc_op_add">たす</string>
     <string name="desc_op_sub">ひく</string>
@@ -36,7 +34,6 @@
     <string name="desc_more_options">その他のオプション</string>
     <string name="desc_more_digits">続きの桁を読む</string>
     <string name="desc_computing">計算中</string>
-    <string name="desc_formula">式</string>
     <string name="desc_digit">数字 %1$s</string>
     <string name="error_syntax">式が正しくありません</string>
     <string name="error_divide_by_zero">0 では割れません</string>
@@ -45,4 +42,5 @@
     <string name="error_aborted">キャンセルしました</string>
     <string name="error_timeout">計算に時間がかかりすぎています</string>
     <string name="action_copy">コピー</string>
+    <string name="action_paste">貼り付け</string>
 </resources>

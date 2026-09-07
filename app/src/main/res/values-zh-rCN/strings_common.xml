@@ -22,10 +22,11 @@
     <string name="angle_degrees">角度</string>
     <string name="angle_radians">弧度</string>
     <string name="about_version">版本 %1$s</string>
-    <string name="about_attribution">精确算术衍生自 Android 开源项目的 ExactCalculator（采用 Apache 2.0 许可证），以及 Hans-J. Boehm 的构造性实数库中公开发表的算法。应用不含任何第三方代码，也没有任何数据离开设备。</string>
+    <string name="about_attribution">精确算术衍生自 Android 开源项目的 ExactCalculator（采用 Apache 2.0 许可证），以及 Hans-J. Boehm 的构造性实数库中公开发表的算法。除 AndroidX、Kotlin 标准库和 kotlinx-coroutines（均采用 Apache 2.0 许可证）外，应用不含任何第三方代码，也没有任何数据离开设备。</string>
     <string name="about_license_show">显示 Apache 2.0 许可证</string>
     <string name="about_license_hide">隐藏 Apache 2.0 许可证</string>
     <string name="about_license_loading">正在加载许可证…</string>
+    <string name="about_asset_error">无法加载此文本。</string>
     <string name="shortcut_converter_short">换算</string>
     <string name="shortcut_converter_long">打开单位换算</string>
     <string name="shortcut_programmer_short">程序员</string>
@@ -34,4 +35,5 @@
     <string name="shortcut_graphing_long">打开图形计算器</string>
     <string name="about_privacy_show">隐私政策</string>
     <string name="about_privacy_hide">隐藏隐私政策</string>
+    <string name="about_privacy_loading">正在加载隐私政策…</string>
 </resources>

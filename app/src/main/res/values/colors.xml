@@ -1,17 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   The Compose palette lives in ui/theme/Color.kt and is the source of truth for everything
-  the user sees. These four exist only for the pre-Compose window: the XML theme paints the
-  window background before the first Compose frame, and a mismatch there is what produces
-  the white flash on launch that a preloaded calculator must not have.
+  the user sees. The two window-background colours exist only for the pre-Compose window: the
+  XML theme paints the window background before the first Compose frame, and a mismatch there
+  is what produces the white flash on launch that a preloaded calculator must not have.
 
   Keep them in step with CalculatorLightColors.surface and CalculatorDarkColors.surface.
+
+  The third, #000000 entry is not reachable from XML: the starting window is chosen by the
+  system night setting and cannot read the app's own ThemeMode, which lives in
+  SharedPreferences and is not loaded yet. MainActivity.applyLaunchAppearance() repaints the
+  window with it once the preference is available, so it must stay in step with
+  CalculatorBlackColors and with values-night/themes.xml.
+
+  A calc_transparent alias used to live here and was referenced by nothing — both themes use
+  @android:color/transparent directly, which is the framework constant and cannot drift out
+  of step with it. Removed rather than left as a second name for the same value.
 -->
 <resources>
     <color name="calc_window_background_light">#FAFCFF</color>
     <color name="calc_window_background_dark">#111416</color>
     <color name="calc_window_background_black">#000000</color>
-    <color name="calc_transparent">#00000000</color>
 
     <!-- The launcher tile. Matches the light theme's primary so the icon and the app agree. -->
     <color name="ic_launcher_background">#00629E</color>

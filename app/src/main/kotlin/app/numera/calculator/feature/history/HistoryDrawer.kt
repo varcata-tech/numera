@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.numera.calculator.R
 import app.numera.calculator.data.HistoryEntry
+import app.numera.calculator.math.AngleMode
 
 /**
  * The list of past calculations, pulled down over the keypad.
@@ -114,6 +115,7 @@ fun HistoryDrawer(
                         HistoryRow(
                             formula = entry.formula,
                             result = entry.result,
+                            angleMode = entry.angleMode,
                             onClick = { onSelect(entry) },
                             onLongClick = { onCopy(entry) },
                         )
@@ -152,13 +154,24 @@ fun HistoryDrawer(
 private fun HistoryRow(
     formula: String,
     result: String,
+    angleMode: AngleMode,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    // The answer is named as well as the formula. An explicit contentDescription on a
-    // merged node replaces the text of everything inside it, so describing the row by its
-    // formula alone means a screen-reader user is read the sum and never told the answer.
-    val description = stringResource(R.string.desc_history_entry, formula, result)
+    // Radians only, matching the display's own badge: degrees is the default and the unit
+    // nearly every row is in, so marking those too would be noise on every line. Unmarked
+    // therefore reads as degrees, which is what makes the marked row legible.
+    val radians = angleMode == AngleMode.RADIANS
+    // The answer is named as well as the formula, and the unit with them. An explicit
+    // contentDescription on a merged node replaces the text of everything inside it, so
+    // describing the row by its formula alone means a screen-reader user is read the sum and
+    // never told the answer — and without the unit, `sin(30` is read out with an answer that
+    // does not belong to the unit the app is in now.
+    val description = if (radians) {
+        stringResource(R.string.desc_history_entry_radians, formula, result)
+    } else {
+        stringResource(R.string.desc_history_entry, formula, result)
+    }
     val copyLabel = stringResource(R.string.action_copy)
     Column(
         modifier = Modifier
@@ -168,7 +181,12 @@ private fun HistoryRow(
             // and the gesture instead fell through to the ordinary tap on finger-up.
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 20.dp, vertical = 10.dp)
-            .semantics {
+            // mergeDescendants, because the contentDescription below is written on the
+            // assumption of a merged node. Without it the two Texts stay separately
+            // focusable, so a screen-reader user lands on the raw formula and then on the
+            // raw answer, and the description that names both — and carries the copy action
+            // — is a third stop rather than the row itself.
+            .semantics(mergeDescendants = true) {
                 contentDescription = description
                 // A long press is unavailable to a switch user and to TalkBack, so copy has
                 // to be reachable as an action as well as a gesture.
@@ -181,12 +199,25 @@ private fun HistoryRow(
             },
         horizontalAlignment = Alignment.End,
     ) {
-        Text(
-            text = formula,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (radians) {
+                // The one thing on the row that a switch to the other unit would change.
+                // Without it two rows reading `sin(30` sit above two different answers with
+                // nothing to say which is which.
+                Text(
+                    text = stringResource(R.string.mode_rad),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+            }
+            Text(
+                text = formula,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
         Text(
             text = result,
             style = MaterialTheme.typography.headlineSmall,

@@ -44,11 +44,28 @@
     <string name="angle_radians">Radians</string>
 
     <!-- Settings: about -->
+    <!-- about_attribution must say the same thing in all twelve locales, and NOTICE.md is
+         what it must not exceed. Two sentences it used to carry are deliberately gone.
+
+         It named Google Calculator ("Behaviour is modelled on Google Calculator; no Google
+         code, resources or branding are used"). Play's impersonation policy covers in-app
+         elements suggesting a relationship to another app, and that line does so even while
+         denying it — and worse, the denial existed only in English. MissingTranslation cannot
+         see a *divergent* translation, only an absent one, so eleven locales shipped the
+         claim's protective half missing without any check firing. The derivation that
+         actually carries a licence obligation is AOSP's ExactCalculator, which is named.
+
+         It also said "No third-party code is bundled", which is untrue: the APK carries the
+         Kotlin standard library and kotlinx-coroutines beside AndroidX. They are named now.
+         Keep this string, NOTICE.md, PRIVACY.md, README.md, docs/privacy-policy.md and
+         assets/privacy-policy.txt saying one thing; a reviewer who finds two versions of a
+         privacy claim stops believing either. -->
     <string name="about_version">Version %1$s</string>
-    <string name="about_attribution">Exact arithmetic derived from the Android Open Source Project\'s ExactCalculator, under the Apache License 2.0, and from the published algorithms of Hans-J. Boehm\'s constructive reals library. Behaviour is modelled on Google Calculator; no Google code, resources or branding are used. No third-party code is bundled and nothing leaves the device.</string>
+    <string name="about_attribution">Exact arithmetic derived from the Android Open Source Project\'s ExactCalculator, under the Apache License 2.0, and from the published algorithms of Hans-J. Boehm\'s constructive reals library. Beyond AndroidX, the Kotlin standard library and kotlinx-coroutines — all Apache License 2.0 — no third-party code is bundled, and nothing leaves the device.</string>
     <string name="about_license_show">Show Apache License 2.0</string>
     <string name="about_license_hide">Hide Apache License 2.0</string>
     <string name="about_license_loading">Loading licence…</string>
+    <string name="about_asset_error">This text could not be loaded.</string>
 
     <!-- Launcher shortcuts. The short label appears under the icon and is clipped hard by
          every launcher, so it must survive at roughly ten characters. -->
@@ -61,4 +78,5 @@
 
     <string name="about_privacy_show">Privacy policy</string>
     <string name="about_privacy_hide">Hide privacy policy</string>
+    <string name="about_privacy_loading">Loading privacy policy…</string>
 </resources>

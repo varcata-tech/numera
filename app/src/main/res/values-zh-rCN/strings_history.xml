@@ -10,4 +10,5 @@
     <string name="desc_history_open">打开历史记录</string>
     <string name="desc_history_close">关闭历史记录</string>
     <string name="desc_history_entry">%1$s 等于 %2$s，点按以插入</string>
+    <string name="desc_history_entry_radians">%1$s 以弧度计等于 %2$s，点按以插入</string>
 </resources>

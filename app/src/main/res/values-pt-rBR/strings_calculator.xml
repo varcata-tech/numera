@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="mode_deg">GRAU</string>
-    <string name="mode_rad">RAD</string>
     <string name="key_clear">AC</string>
     <string name="desc_op_add">mais</string>
     <string name="desc_op_sub">menos</string>
@@ -36,7 +34,6 @@
     <string name="desc_more_options">mais opções</string>
     <string name="desc_more_digits">ler mais dígitos</string>
     <string name="desc_computing">calculando</string>
-    <string name="desc_formula">fórmula</string>
     <string name="desc_digit">dígito %1$s</string>
     <string name="error_syntax">Expressão inválida</string>
     <string name="error_divide_by_zero">Não é possível dividir por 0</string>
@@ -45,4 +42,5 @@
     <string name="error_aborted">Cancelado</string>
     <string name="error_timeout">O cálculo está demorando muito</string>
     <string name="action_copy">Copiar</string>
+    <string name="action_paste">Colar</string>
 </resources>

@@ -17,10 +17,22 @@ sealed interface Factor {
     data object One : Factor
 
     /**
-     * `√radicand`, where [radicand] is a square-free integer greater than 1.
+     * `√radicand`, where [radicand] is an integer greater than 1, square-free wherever the
+     * engine is able to establish it.
      *
-     * Square-freeness is an invariant, not a convenience: it is what makes `√8` and `2√2`
-     * the same object, and therefore what lets `√2 + √8` collapse to `3√2`.
+     * Square-freeness is not a convenience: it is what makes `√8` and `2√2` the same
+     * object, and therefore what lets `√2 + √8` collapse to `3√2`, since [UnifiedReal.plus]
+     * decides like terms with `==`. `UnifiedReal.sqrtOfInteger` establishes it three ways —
+     * trial division to ten thousand, testing whether the remainder is itself a perfect
+     * square, and testing whether the part of the remainder built only from primes past
+     * that bound is one.
+     *
+     * What survives all three is a radicand of the form `p²q` in which *both* `p` and `q`
+     * need a prime above ten thousand, so above about 10^12. The value is still right —
+     * every other operation treats the radicand as an opaque positive integer — but two
+     * such terms that are equal can no longer be *shown* to be, so their difference renders
+     * as `0…` rather than as an exact `0`. Do not build new exactness logic on the
+     * invariant without closing that case first; closing it means factoring.
      */
     data class Sqrt(val radicand: BigInteger) : Factor
 

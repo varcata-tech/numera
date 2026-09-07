@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="mode_deg">GRAD</string>
-    <string name="mode_rad">RAD</string>
     <string name="key_clear">AC</string>
     <string name="desc_op_add">plus</string>
     <string name="desc_op_sub">minus</string>
@@ -36,7 +34,6 @@
     <string name="desc_more_options">weitere Optionen</string>
     <string name="desc_more_digits">weitere Ziffern vorlesen</string>
     <string name="desc_computing">wird berechnet</string>
-    <string name="desc_formula">Formel</string>
     <string name="desc_digit">Ziffer %1$s</string>
     <string name="error_syntax">Ungültiger Ausdruck</string>
     <string name="error_divide_by_zero">Division durch 0 nicht möglich</string>
@@ -45,4 +42,5 @@
     <string name="error_aborted">Abgebrochen</string>
     <string name="error_timeout">Berechnung dauert zu lange</string>
     <string name="action_copy">Kopieren</string>
+    <string name="action_paste">Einfügen</string>
 </resources>

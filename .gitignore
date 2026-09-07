@@ -7,3 +7,11 @@ keystore.properties
 *.iml
 .DS_Store
 .kotlin/
+
+# Hand-built release artifacts. Two reasons, not one. `git add -A` from the root would
+# otherwise commit several megabytes of *signed* binary into history, which is the same
+# material keystore.jks and keystore.properties are excluded to keep out. And the contents
+# are whatever was last built by hand rather than whatever HEAD produces, so a friendly
+# filename here is a stale build one drag-and-drop away from the Play Console. The artifact
+# to upload is always app/build/outputs/bundle/release/app-release.aab.
+dist/

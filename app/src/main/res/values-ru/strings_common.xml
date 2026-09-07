@@ -22,10 +22,11 @@
     <string name="angle_degrees">Градусы</string>
     <string name="angle_radians">Радианы</string>
     <string name="about_version">Версия %1$s</string>
-    <string name="about_attribution">Точная арифметика основана на ExactCalculator из Android Open Source Project, распространяемом по лицензии Apache 2.0, и на опубликованных алгоритмах библиотеки конструктивных вещественных чисел Ханса-Й. Бёма. Сторонний код не включён, и никакие данные не покидают устройство.</string>
+    <string name="about_attribution">Точная арифметика основана на ExactCalculator из Android Open Source Project, распространяемом по лицензии Apache 2.0, и на опубликованных алгоритмах библиотеки конструктивных вещественных чисел Ханса-Й. Бёма. Кроме AndroidX, стандартной библиотеки Kotlin и kotlinx-coroutines — все они распространяются по лицензии Apache 2.0, — сторонний код не включён, и никакие данные не покидают устройство.</string>
     <string name="about_license_show">Показать лицензию Apache 2.0</string>
     <string name="about_license_hide">Скрыть лицензию Apache 2.0</string>
     <string name="about_license_loading">Загрузка лицензии…</string>
+    <string name="about_asset_error">Не удалось загрузить этот текст.</string>
     <string name="shortcut_converter_short">Конвертер</string>
     <string name="shortcut_converter_long">Открыть конвертер величин</string>
     <string name="shortcut_programmer_short">Программист</string>
@@ -34,4 +35,5 @@
     <string name="shortcut_graphing_long">Открыть графический калькулятор</string>
     <string name="about_privacy_show">Политика конфиденциальности</string>
     <string name="about_privacy_hide">Скрыть политику конфиденциальности</string>
+    <string name="about_privacy_loading">Загрузка политики конфиденциальности…</string>
 </resources>

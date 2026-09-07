@@ -19,6 +19,7 @@
     <string name="converter_from">De</string>
     <string name="converter_to">Para</string>
     <string name="converter_swap">Trocar unidades</string>
+    <string name="converter_change_unit">Alterar unidade: %1$s</string>
     <string name="converter_search">Pesquisar unidades</string>
     <string name="converter_common">Conversões comuns</string>
     <string name="unit_bit">bit</string>

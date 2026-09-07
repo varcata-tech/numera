@@ -28,6 +28,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
@@ -106,6 +108,11 @@ private val MinimumLabelSize = 11.sp
  * @param onClick invoked on release.
  * @param modifier applied to the key's outer box; use it to size and weight the key.
  * @param style selects the colour pair.
+ * @param enabled false for a key that is present but cannot be pressed — the programmer
+ *   pad's A-F while the base is decimal, say. Pass it rather than swallowing the tap inside
+ *   [onClick]: a key that keeps its click handler is announced as activatable, and
+ *   double-tapping it then produces no state change and no feedback at all, so a TalkBack
+ *   user cannot tell whether the gesture missed, the app is busy, or the key does nothing.
  * @param onLongClick optional secondary action; null leaves long press unhandled.
  */
 @OptIn(ExperimentalFoundationApi::class)
@@ -116,6 +123,7 @@ fun CalcButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     style: KeyStyle = KeyStyle.DIGIT,
+    enabled: Boolean = true,
     onLongClick: (() -> Unit)? = null,
 ) {
     val keyColors: KeyColors = style.colors()
@@ -139,16 +147,12 @@ fun CalcButton(
     // SemanticsPropertyReceiver's own property, not to this parameter.
     val description: String = contentDescription
 
-    Box(
-        modifier = modifier
-            // Only bites when the caller leaves an axis unconstrained (a wrap-content key in
-            // a dialog or a preview). Under the weight+fillMaxHeight the keypads pass, both
-            // constraint minimums are already non-zero and this is a no-op — see the KDoc.
-            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-            // Clipped before the ripple is attached so the ripple is bounded by the key's
-            // own rounded shape instead of bleeding into the neighbouring keys.
-            .clip(shape)
-            .background(color = keyColors.container, shape = shape)
+    // combinedClickable is what merges the label into this node, so the description replaces
+    // it rather than being read alongside it. The disabled branch has no clickable to do
+    // that, hence the explicit mergeDescendants — without it TalkBack stops on the box and
+    // then again on the label, reading an unavailable key twice.
+    val interaction: Modifier = if (enabled) {
+        Modifier
             .combinedClickable(
                 interactionSource = interactionSource,
                 indication = ripple(color = keyColors.content),
@@ -161,7 +165,26 @@ fun CalcButton(
                 },
                 onClick = onClick,
             )
-            .semantics { this.contentDescription = description },
+            .semantics { this.contentDescription = description }
+    } else {
+        Modifier.semantics(mergeDescendants = true) {
+            this.contentDescription = description
+            this.role = Role.Button
+            disabled()
+        }
+    }
+
+    Box(
+        modifier = modifier
+            // Only bites when the caller leaves an axis unconstrained (a wrap-content key in
+            // a dialog or a preview). Under the weight+fillMaxHeight the keypads pass, both
+            // constraint minimums are already non-zero and this is a no-op — see the KDoc.
+            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+            // Clipped before the ripple is attached so the ripple is bounded by the key's
+            // own rounded shape instead of bleeding into the neighbouring keys.
+            .clip(shape)
+            .background(color = keyColors.container, shape = shape)
+            .then(interaction),
         contentAlignment = Alignment.Center,
     ) {
         AutoShrinkingLabel(

@@ -42,9 +42,14 @@ private val TightLineHeight = LineHeightStyle(
  * bucket) can override `calc_text_*` and change the whole scale without touching Kotlin.
  *
  * Roles are repurposed for a calculator, where the numbers are the interface:
- *  - `displayLarge`  the committed result
- *  - `displayMedium` the live result preview — the default of [ScrollableValueText]
+ *  - `displayMedium` the committed result, the live result preview, and the default of
+ *    [ScrollableValueText] — resizing the answer means `calc_text_display_medium`
  *  - `displaySmall`  the formula being typed
+ *  - `displayLarge`  sized here but used by nothing. It is kept because it is a standard
+ *    Material role a future component could pick up by default, and an unsized one would
+ *    land at the 57sp baseline instead of on this scale. Do not read the list above as
+ *    saying the answer is drawn with it: it is not, and `values-land/dimens.xml` overrides
+ *    `_medium` and `_small` for exactly that reason
  *  - `headlineLarge` a digit or operator key label
  *  - `headlineMedium` a secondary/function key label
  * Everything else keeps the Material 3 baseline, which is correct for the settings and

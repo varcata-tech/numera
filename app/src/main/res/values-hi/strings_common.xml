@@ -22,10 +22,11 @@
     <string name="angle_degrees">डिग्री</string>
     <string name="angle_radians">रेडियन</string>
     <string name="about_version">संस्करण %1$s</string>
-    <string name="about_attribution">सटीक अंकगणित एंड्रॉइड ओपन सोर्स प्रोजेक्ट के ExactCalculator से लिया गया है, जो अपाचे लाइसेंस 2.0 के अंतर्गत है, और हैंस-जे. बोम की कंस्ट्रक्टिव रियल्स लाइब्रेरी के प्रकाशित एल्गोरिदम से। कोई तृतीय-पक्ष कोड शामिल नहीं है और कोई भी डेटा डिवाइस से बाहर नहीं जाता।</string>
+    <string name="about_attribution">सटीक अंकगणित एंड्रॉइड ओपन सोर्स प्रोजेक्ट के ExactCalculator से लिया गया है, जो अपाचे लाइसेंस 2.0 के अंतर्गत है, और हैंस-जे. बोम की कंस्ट्रक्टिव रियल्स लाइब्रेरी के प्रकाशित एल्गोरिदम से। AndroidX, Kotlin मानक लाइब्रेरी और kotlinx-coroutines के अलावा — ये सभी अपाचे लाइसेंस 2.0 के अंतर्गत हैं — कोई तृतीय-पक्ष कोड शामिल नहीं है और कोई भी डेटा डिवाइस से बाहर नहीं जाता।</string>
     <string name="about_license_show">अपाचे लाइसेंस 2.0 दिखाएं</string>
     <string name="about_license_hide">अपाचे लाइसेंस 2.0 छिपाएं</string>
     <string name="about_license_loading">लाइसेंस लोड हो रहा है…</string>
+    <string name="about_asset_error">यह पाठ लोड नहीं किया जा सका।</string>
     <string name="shortcut_converter_short">बदलें</string>
     <string name="shortcut_converter_long">इकाई कनवर्टर खोलें</string>
     <string name="shortcut_programmer_short">प्रोग्रामर</string>
@@ -34,4 +35,5 @@
     <string name="shortcut_graphing_long">ग्राफ़िंग कैलकुलेटर खोलें</string>
     <string name="about_privacy_show">गोपनीयता नीति</string>
     <string name="about_privacy_hide">गोपनीयता नीति छिपाएं</string>
+    <string name="about_privacy_loading">गोपनीयता नीति लोड हो रही है…</string>
 </resources>

@@ -7,9 +7,6 @@
     <string name="dates_start">Дата начала</string>
     <string name="dates_end">Дата окончания</string>
     <string name="dates_birth">Дата рождения</string>
-    <string name="dates_total_days">%1$d дн.</string>
-    <string name="dates_breakdown">%1$d г. %2$d мес. %3$d дн.</string>
-    <string name="dates_weeks">%1$d нед. и %2$d дн.</string>
     <string name="dates_years">Годы</string>
     <string name="dates_months">Месяцы</string>
     <string name="dates_weeks_field">Недели</string>
@@ -17,10 +14,52 @@
     <string name="dates_add">Прибавить</string>
     <string name="dates_subtract">Вычесть</string>
     <string name="dates_clamp_note">Шаги в месяцах и годах ограничиваются последним днём более короткого месяца.</string>
-    <string name="dates_business_result">%1$d рабочих дн.</string>
     <string name="dates_exclude_weekend">Без субботы и воскресенья</string>
-    <string name="dates_age_result">%1$d г. %2$d мес. %3$d дн.</string>
-    <string name="dates_age_total">прожито %1$d дн.</string>
-    <string name="dates_next_birthday">Следующий день рождения %1$s (через %2$d дн.)</string>
     <string name="dates_out_of_range">Эти значения выходят за пределы допустимого диапазона.</string>
+    <plurals name="dates_age_years_part">
+        <item quantity="one">%1$d г.</item>
+        <item quantity="few">%1$d г.</item>
+        <item quantity="many">%1$d г.</item>
+        <item quantity="other">%1$d г.</item>
+    </plurals>
+    <plurals name="dates_days_part">
+        <item quantity="one">%1$d дн.</item>
+        <item quantity="few">%1$d дн.</item>
+        <item quantity="many">%1$d дн.</item>
+        <item quantity="other">%1$d дн.</item>
+    </plurals>
+    <plurals name="dates_months_part">
+        <item quantity="one">%1$d мес.</item>
+        <item quantity="few">%1$d мес.</item>
+        <item quantity="many">%1$d мес.</item>
+        <item quantity="other">%1$d мес.</item>
+    </plurals>
+    <plurals name="dates_weeks_part">
+        <item quantity="one">%1$d нед.</item>
+        <item quantity="few">%1$d нед.</item>
+        <item quantity="many">%1$d нед.</item>
+        <item quantity="other">%1$d нед.</item>
+    </plurals>
+    <plurals name="dates_years_part">
+        <item quantity="one">%1$d г.</item>
+        <item quantity="few">%1$d г.</item>
+        <item quantity="many">%1$d г.</item>
+        <item quantity="other">%1$d г.</item>
+    </plurals>
+    <plurals name="dates_age_total">
+        <item quantity="one">прожит %1$d день</item>
+        <item quantity="few">прожито %1$d дня</item>
+        <item quantity="many">прожито %1$d дней</item>
+        <item quantity="other">прожито %1$d дня</item>
+    </plurals>
+    <plurals name="dates_business_result">
+        <item quantity="one">%1$d рабочий день</item>
+        <item quantity="few">%1$d рабочих дня</item>
+        <item quantity="many">%1$d рабочих дней</item>
+        <item quantity="other">%1$d рабочих дня</item>
+    </plurals>
+    <string name="dates_age_result">%1$s %2$s %3$s</string>
+    <string name="dates_breakdown">%1$s %2$s %3$s</string>
+    <string name="dates_next_birthday">Следующий день рождения %1$s (через %2$s)</string>
+    <string name="dates_weeks">%1$s и %2$s</string>
 </resources>

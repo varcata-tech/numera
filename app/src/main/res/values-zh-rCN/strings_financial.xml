@@ -6,7 +6,7 @@
     <string name="fin_tab_discount">折扣</string>
     <string name="fin_tab_tax">税</string>
     <string name="fin_principal">本金</string>
-    <string name="fin_rate">年利率 %</string>
+    <string name="fin_rate" formatted="false">年利率 %</string>
     <string name="fin_months">期限（月）</string>
     <string name="fin_years">年数</string>
     <string name="fin_instalment">每月还款额</string>
@@ -18,22 +18,21 @@
     <string name="fin_contribution">每期投入</string>
     <string name="fin_final_balance">最终余额</string>
     <string name="fin_bill">账单</string>
-    <string name="fin_tip_percent">小费 %</string>
+    <string name="fin_tip_percent" formatted="false">小费 %</string>
     <string name="fin_people">人数</string>
     <string name="fin_round_up">将总额向上取整</string>
     <string name="fin_tip_amount">小费</string>
     <string name="fin_total">合计</string>
     <string name="fin_per_person">每人</string>
-    <string name="fin_extra_cents">%1$d 人多付一个单位</string>
     <string name="fin_price">价格</string>
-    <string name="fin_discount_1">第一次折扣 %</string>
-    <string name="fin_discount_2">第二次折扣 %</string>
+    <string name="fin_discount_1" formatted="false">第一次折扣 %</string>
+    <string name="fin_discount_2" formatted="false">第二次折扣 %</string>
     <string name="fin_final_price">最终价格</string>
     <string name="fin_saved">节省</string>
     <string name="fin_effective">实际折扣</string>
     <string name="fin_successive_note" formatted="false">连续折扣是相乘的：先 20% 再 10% 等于 28%，而不是 30%。</string>
     <string name="fin_amount">金额</string>
-    <string name="fin_tax_rate">税率 %</string>
+    <string name="fin_tax_rate" formatted="false">税率 %</string>
     <string name="fin_add_tax">加税</string>
     <string name="fin_remove_tax">去税</string>
     <string name="fin_net">不含税</string>
@@ -49,4 +48,7 @@
     <string name="fin_invalid_input">请在每个字段中输入有效数字。</string>
     <string name="fin_out_of_range">这些数值超出了本计算器可计算的范围。</string>
     <string name="fin_contribution_continuous">连续复利没有计息周期，因此不计入定期投入。</string>
+    <plurals name="fin_extra_cents">
+        <item quantity="other">%1$d 人多付一个单位</item>
+    </plurals>
 </resources>

@@ -7,9 +7,6 @@
     <string name="dates_start">تاريخ البدء</string>
     <string name="dates_end">تاريخ الانتهاء</string>
     <string name="dates_birth">تاريخ الميلاد</string>
-    <string name="dates_total_days">%1$d يوم</string>
-    <string name="dates_breakdown">%1$d سنة و%2$d شهر و%3$d يوم</string>
-    <string name="dates_weeks">%1$d أسبوع و%2$d يوم</string>
     <string name="dates_years">سنوات</string>
     <string name="dates_months">أشهر</string>
     <string name="dates_weeks_field">أسابيع</string>
@@ -17,10 +14,66 @@
     <string name="dates_add">إضافة</string>
     <string name="dates_subtract">طرح</string>
     <string name="dates_clamp_note">خطوات الأشهر والسنوات تُقصر إلى آخر يوم في الشهر الأقصر.</string>
-    <string name="dates_business_result">%1$d يوم عمل</string>
     <string name="dates_exclude_weekend">لا يشمل السبت والأحد</string>
-    <string name="dates_age_result">%1$d سنة و%2$d شهر و%3$d يوم</string>
-    <string name="dates_age_total">%1$d يوم عشتها</string>
-    <string name="dates_next_birthday">عيد الميلاد القادم %1$s (بعد %2$d يوم)</string>
     <string name="dates_out_of_range">هذه القيم خارج النطاق الذي يمكن لهذه الآلة الحاسبة استخدامه.</string>
+    <plurals name="dates_age_years_part">
+        <item quantity="zero">لا سنوات</item>
+        <item quantity="one">سنة واحدة</item>
+        <item quantity="two">سنتان</item>
+        <item quantity="few">%1$d سنوات</item>
+        <item quantity="many">%1$d سنة</item>
+        <item quantity="other">%1$d سنة</item>
+    </plurals>
+    <plurals name="dates_days_part">
+        <item quantity="zero">لا أيام</item>
+        <item quantity="one">يوم واحد</item>
+        <item quantity="two">يومان</item>
+        <item quantity="few">%1$d أيام</item>
+        <item quantity="many">%1$d يومًا</item>
+        <item quantity="other">%1$d يوم</item>
+    </plurals>
+    <plurals name="dates_months_part">
+        <item quantity="zero">لا أشهر</item>
+        <item quantity="one">شهر واحد</item>
+        <item quantity="two">شهران</item>
+        <item quantity="few">%1$d أشهر</item>
+        <item quantity="many">%1$d شهرًا</item>
+        <item quantity="other">%1$d شهر</item>
+    </plurals>
+    <plurals name="dates_weeks_part">
+        <item quantity="zero">لا أسابيع</item>
+        <item quantity="one">أسبوع واحد</item>
+        <item quantity="two">أسبوعان</item>
+        <item quantity="few">%1$d أسابيع</item>
+        <item quantity="many">%1$d أسبوعًا</item>
+        <item quantity="other">%1$d أسبوع</item>
+    </plurals>
+    <plurals name="dates_years_part">
+        <item quantity="zero">لا سنوات</item>
+        <item quantity="one">سنة واحدة</item>
+        <item quantity="two">سنتان</item>
+        <item quantity="few">%1$d سنوات</item>
+        <item quantity="many">%1$d سنة</item>
+        <item quantity="other">%1$d سنة</item>
+    </plurals>
+    <plurals name="dates_age_total">
+        <item quantity="zero">لا أيام</item>
+        <item quantity="one">عاش يومًا واحدًا</item>
+        <item quantity="two">عاش يومين</item>
+        <item quantity="few">عاش %1$d أيام</item>
+        <item quantity="many">عاش %1$d يومًا</item>
+        <item quantity="other">عاش %1$d يوم</item>
+    </plurals>
+    <plurals name="dates_business_result">
+        <item quantity="zero">لا أيام عمل</item>
+        <item quantity="one">يوم عمل واحد</item>
+        <item quantity="two">يوما عمل</item>
+        <item quantity="few">%1$d أيام عمل</item>
+        <item quantity="many">%1$d يوم عمل</item>
+        <item quantity="other">%1$d يوم عمل</item>
+    </plurals>
+    <string name="dates_age_result">%1$s و%2$s و%3$s</string>
+    <string name="dates_breakdown">%1$s و%2$s و%3$s</string>
+    <string name="dates_next_birthday">عيد الميلاد القادم %1$s (بعد %2$s)</string>
+    <string name="dates_weeks">%1$s و%2$s</string>
 </resources>

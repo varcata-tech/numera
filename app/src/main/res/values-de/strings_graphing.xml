@@ -12,7 +12,13 @@
     <string name="desc_graph_canvas">Diagramm</string>
     <string name="graph_list_separator">"; "</string>
     <string name="graph_roots_of">Nullstellen von %1$s: %2$s</string>
-    <string name="graph_roots_of_truncated">Erste %1$d Nullstellen von %2$s: %3$s</string>
     <string name="graph_trace_offscreen">x = %1$s, y = %2$s (außerhalb des Ausschnitts)</string>
     <string name="graph_clear_trace">Fadenkreuz entfernen</string>
+    <string name="graph_angle_unit">x im Bogenmaß</string>
+    <string name="graph_sentence_separator">". "</string>
+    <string name="graph_trace_centre">Mitte des Ausschnitts abtasten</string>
+    <plurals name="graph_roots_of_truncated">
+        <item quantity="one">Erste %1$d Nullstelle von %2$s: %3$s</item>
+        <item quantity="other">Erste %1$d Nullstellen von %2$s: %3$s</item>
+    </plurals>
 </resources>

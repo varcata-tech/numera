@@ -6,7 +6,7 @@
     <string name="fin_tab_discount">Rabatt</string>
     <string name="fin_tab_tax">Steuer</string>
     <string name="fin_principal">Kreditbetrag</string>
-    <string name="fin_rate">Jahreszins %</string>
+    <string name="fin_rate" formatted="false">Jahreszins %</string>
     <string name="fin_months">Laufzeit (Monate)</string>
     <string name="fin_years">Jahre</string>
     <string name="fin_instalment">Monatliche Rate</string>
@@ -18,22 +18,21 @@
     <string name="fin_contribution">Einzahlung pro Periode</string>
     <string name="fin_final_balance">Endguthaben</string>
     <string name="fin_bill">Rechnung</string>
-    <string name="fin_tip_percent">Trinkgeld %</string>
+    <string name="fin_tip_percent" formatted="false">Trinkgeld %</string>
     <string name="fin_people">Personen</string>
     <string name="fin_round_up">Gesamtbetrag aufrunden</string>
     <string name="fin_tip_amount">Trinkgeld</string>
     <string name="fin_total">Gesamt</string>
     <string name="fin_per_person">Pro Person</string>
-    <string name="fin_extra_cents">%1$d zahlen eine Einheit mehr</string>
     <string name="fin_price">Preis</string>
-    <string name="fin_discount_1">Erster Rabatt %</string>
-    <string name="fin_discount_2">Zweiter Rabatt %</string>
+    <string name="fin_discount_1" formatted="false">Erster Rabatt %</string>
+    <string name="fin_discount_2" formatted="false">Zweiter Rabatt %</string>
     <string name="fin_final_price">Endpreis</string>
     <string name="fin_saved">Sie sparen</string>
     <string name="fin_effective">Effektiver Rabatt</string>
     <string name="fin_successive_note" formatted="false">Aufeinanderfolgende Rabatte multiplizieren sich: 20% und dann 10% ergeben 28%, nicht 30%.</string>
     <string name="fin_amount">Betrag</string>
-    <string name="fin_tax_rate">Steuersatz %</string>
+    <string name="fin_tax_rate" formatted="false">Steuersatz %</string>
     <string name="fin_add_tax">Steuer hinzufügen</string>
     <string name="fin_remove_tax">Steuer herausrechnen</string>
     <string name="fin_net">Netto</string>
@@ -49,4 +48,8 @@
     <string name="fin_invalid_input">Geben Sie in jedes Feld eine gültige Zahl ein.</string>
     <string name="fin_out_of_range">Diese Werte liegen außerhalb des Bereichs, den dieser Rechner berechnen kann.</string>
     <string name="fin_contribution_continuous">Stetige Verzinsung hat keine Periode, daher werden Einzahlungen nicht berücksichtigt.</string>
+    <plurals name="fin_extra_cents">
+        <item quantity="one">%1$d zahlt eine Einheit mehr</item>
+        <item quantity="other">%1$d zahlen eine Einheit mehr</item>
+    </plurals>
 </resources>

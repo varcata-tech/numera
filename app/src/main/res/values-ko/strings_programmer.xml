@@ -9,4 +9,12 @@
     <string name="desc_key_unavailable">이 진법에서는 사용할 수 없음</string>
     <string name="desc_op_shl">왼쪽 시프트</string>
     <string name="desc_op_shr">오른쪽 시프트</string>
+    <string name="desc_op_mod">나머지</string>
+    <string name="desc_op_neg">부호 변경</string>
+    <string name="desc_op_and">비트 논리곱</string>
+    <string name="desc_op_or">비트 논리합</string>
+    <string name="desc_op_xor">비트 배타적 논리합</string>
+    <string name="desc_op_not">비트 부정</string>
+    <string name="desc_op_rol">왼쪽 회전</string>
+    <string name="desc_op_ror">오른쪽 회전</string>
 </resources>

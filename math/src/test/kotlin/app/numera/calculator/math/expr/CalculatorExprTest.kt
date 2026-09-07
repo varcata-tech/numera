@@ -5,6 +5,7 @@ import app.numera.calculator.math.BoundedRational
 import app.numera.calculator.math.UnifiedReal
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -275,5 +276,69 @@ class CalculatorExprTest {
         assertNull(CalculatorExpr.seedFromDecimal("1e5"))
         assertNull(CalculatorExpr.seedFromDecimal("nan"))
         assertNull(CalculatorExpr.seedFromDecimal("--5"))
+    }
+
+    // ------------------------------------------------------------ backspace
+
+    /**
+     * Every state backspace passes through, with the two things that must hold at each one.
+     *
+     * A number token that [CalculatorExpr.isNumberLiteral] refuses is not merely odd: it is
+     * an expression [ExprCodec] cannot write back, and `CalculatorViewModel.persist` runs on
+     * every edit — so the state is saved as a blob that decodes to `null`, and the whole
+     * expression is gone at the next process death with nothing on screen to warn of it.
+     */
+    private fun assertPeelsCleanly(source: CalculatorExpr): List<String> {
+        val seen = mutableListOf<String>()
+        var current = source
+        while (!current.isEmpty()) {
+            for (token in current.tokens) {
+                if (token is Token.Number) {
+                    assertTrue(
+                        "not a literal: \"${token.text}\"",
+                        CalculatorExpr.isNumberLiteral(token.text),
+                    )
+                }
+            }
+            val restored = ExprCodec.decode(ExprCodec.encode(current))
+            assertNotNull("the codec refused \"${current.display()}\"", restored)
+            assertEquals(current.tokens, restored!!.tokens)
+            seen += current.display()
+            val next = current.deleteLastToken()
+            assertNotEquals("backspace made no progress", current, next)
+            current = next
+        }
+        return seen
+    }
+
+    @Test
+    fun `backspacing a pasted exponent takes the E with the digit that introduced it`() {
+        // The keypad has no E key and appendPoint refuses a point inside one, so a literal
+        // like this only ever arrives by paste — and peeling it one character at a time
+        // passed through "6.02E+" and then "6.02E", neither of which is a number. Both are
+        // unsaveable, and the display looks entirely ordinary while they are on screen.
+        val pasted = CalculatorExpr.fromText("6.02E+23")
+        assertNotNull(pasted)
+        assertEquals(
+            listOf("6.02E+23", "6.02E+2", "6.02", "6.0", "6.", "6"),
+            assertPeelsCleanly(pasted!!),
+        )
+    }
+
+    @Test
+    fun `backspacing a pasted leading point removes the point with the digit`() {
+        // The same failure one character wide: ".5" backspaced left a bare "." as the token
+        // text, which is not a number either.
+        val pasted = CalculatorExpr.fromText(".5")
+        assertNotNull(pasted)
+        assertEquals(listOf(".5"), assertPeelsCleanly(pasted!!))
+    }
+
+    @Test
+    fun `an ordinary typed number still loses exactly one digit per press`() {
+        // The exponent rule must not cost the common case a keystroke.
+        val typed = listOf(KeyId.D1, KeyId.D2, KeyId.POINT, KeyId.D5)
+            .fold(CalculatorExpr()) { acc, key -> acc.append(key) }
+        assertEquals(listOf("12.5", "12.", "12", "1"), assertPeelsCleanly(typed))
     }
 }

@@ -12,7 +12,13 @@
     <string name="desc_graph_canvas">Gráfica</string>
     <string name="graph_list_separator">"; "</string>
     <string name="graph_roots_of">Raíces de %1$s: %2$s</string>
-    <string name="graph_roots_of_truncated">Primeras %1$d raíces de %2$s: %3$s</string>
     <string name="graph_trace_offscreen">x = %1$s, y = %2$s (fuera de la vista)</string>
     <string name="graph_clear_trace">Quitar el cursor</string>
+    <string name="graph_angle_unit">x en radianes</string>
+    <string name="graph_sentence_separator">". "</string>
+    <string name="graph_trace_centre">Marcar el centro de la vista</string>
+    <plurals name="graph_roots_of_truncated">
+        <item quantity="one">Primera %1$d raíz de %2$s: %3$s</item>
+        <item quantity="other">Primeras %1$d raíces de %2$s: %3$s</item>
+    </plurals>
 </resources>

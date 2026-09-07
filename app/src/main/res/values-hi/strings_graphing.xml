@@ -12,7 +12,13 @@
     <string name="desc_graph_canvas">ग्राफ़</string>
     <string name="graph_list_separator">", "</string>
     <string name="graph_roots_of">%1$s के मूल: %2$s</string>
-    <string name="graph_roots_of_truncated">%2$s के पहले %1$d मूल: %3$s</string>
     <string name="graph_trace_offscreen">x = %1$s, y = %2$s (स्क्रीन से बाहर)</string>
     <string name="graph_clear_trace">ट्रेस हटाएँ</string>
+    <string name="graph_angle_unit">x रेडियन में</string>
+    <string name="graph_sentence_separator">". "</string>
+    <string name="graph_trace_centre">दृश्य के केंद्र को ट्रेस करें</string>
+    <plurals name="graph_roots_of_truncated">
+        <item quantity="one">%2$s के पहले %1$d मूल: %3$s</item>
+        <item quantity="other">%2$s के पहले %1$d मूल: %3$s</item>
+    </plurals>
 </resources>

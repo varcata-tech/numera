@@ -19,6 +19,7 @@
     <string name="converter_from">Из</string>
     <string name="converter_to">В</string>
     <string name="converter_swap">Поменять единицы</string>
+    <string name="converter_change_unit">Изменить единицу: %1$s</string>
     <string name="converter_search">Поиск единиц</string>
     <string name="converter_common">Частые пересчёты</string>
     <string name="unit_bit">бит</string>

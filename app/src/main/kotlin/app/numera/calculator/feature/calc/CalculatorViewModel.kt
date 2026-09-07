@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.numera.calculator.R
+import app.numera.calculator.data.HistoryEntry
 import app.numera.calculator.data.HistoryStore
 import app.numera.calculator.math.AbortedException
 import app.numera.calculator.math.AngleMode
@@ -95,6 +96,22 @@ class CalculatorViewModel(
     private var digitsShown: Int = 0
     private var digitsText: String = ""
 
+    /**
+     * The locale every number on screen is rendered in.
+     *
+     * Kept current by [onLocaleChanged], which the composable calls because it — unlike this
+     * class — can observe `LocalConfiguration`. The view model is retained across the
+     * configuration change an in-app language switch causes, so a locale captured once and
+     * left alone would keep rendering the previous locale's digits under a keypad that had
+     * already recomposed into the new one: two numbering systems on one screen.
+     *
+     * The initial value is only a seed for the frame in which the view model is constructed,
+     * which is before the composable can supply the real one. It is not left to stand: every
+     * reader captures this on the main thread, [onLocaleChanged] fires from the screen's
+     * first composition, and it re-renders both lines when the two disagree.
+     */
+    private var locale: Locale = Locale.getDefault()
+
     private var previewJob: Job? = null
     private var evaluateJob: Job? = null
     private var digitsJob: Job? = null
@@ -147,6 +164,10 @@ class CalculatorViewModel(
         val source: CalculatorExpr? = savedState.get<String>(KEY_RESULT_EXPR)
             ?.let(ExprCodec::decodeFromString)
             ?.takeIf { !it.isEmpty() }
+        // How far the user had scrolled the answer. Restoring the value without it brought
+        // back a twenty-character rendering of a result the user had already expanded to
+        // several hundred digits, and the only way back was to scroll the whole way again.
+        val expanded: Int = savedState.get<Int>(KEY_DIGITS) ?: 0
 
         _state.value = CalculatorUiState(
             formula = expr.display(),
@@ -171,7 +192,13 @@ class CalculatorViewModel(
                 when (outcome) {
                     null -> showError(R.string.error_timeout, stamp)
                     is EvalResult.Failure -> showError(outcome.error.messageRes(), stamp)
-                    is EvalResult.Success -> showResult(source, outcome.value, stamp, record = false)
+                    is EvalResult.Success -> {
+                        showResult(source, outcome.value, angle, stamp, record = false)
+                        // Re-expanded only once the short rendering is on screen, so the
+                        // answer appears at the same moment it would have without the
+                        // expansion rather than after it.
+                        if (stamp == epoch && expanded > 0) requestDigits(expanded)
+                    }
                 }
             }
         } else if (!expr.isEmpty()) {
@@ -198,6 +225,33 @@ class CalculatorViewModel(
         savedState[KEY_EXPR] = ExprCodec.encodeToString(expr)
         savedState[KEY_RESULT_EXPR] = resultSource?.let(ExprCodec::encodeToString)
         savedState[KEY_INVERSE] = _state.value.inverse
+        // The count, not the digits. Re-deriving them costs one evaluation the restore path
+        // is already paying for, while the text itself can run to thousands of characters
+        // through a Binder transaction whose size limit kills the process.
+        savedState[KEY_DIGITS] = digitsShown
+    }
+
+    /**
+     * Adopts the locale the screen is being drawn in.
+     *
+     * Called from the composable, which is where `LocalConfiguration` can be observed. The
+     * number on screen is re-rendered rather than left alone: it was produced in the previous
+     * locale's digits, and after an in-app language change it would sit above a keypad
+     * writing its digits in the new one.
+     *
+     * Both lines are refreshed, not just the answer. [reformatResult] returns immediately
+     * unless the screen is in [DisplayMode.RESULT], so routing the preview through it alone
+     * left the *preview* stale for the one case that reaches this with a preview showing:
+     * [restore] calls [schedulePreview] synchronously while the view model is being
+     * constructed, which is before the composable has ever run and therefore before this has
+     * been told what locale to use. A half-typed expression brought back after process death
+     * then kept the seed locale's digits under a keypad drawing the new one's, with no
+     * further edit able to fix it because the preview is only ever re-rendered by an edit.
+     */
+    fun onLocaleChanged(newLocale: Locale) {
+        if (locale == newLocale) return
+        locale = newLocale
+        if (_state.value.mode == DisplayMode.RESULT) reformatResult() else schedulePreview()
     }
 
     // ------------------------------------------------------------------ key handling
@@ -323,7 +377,7 @@ class CalculatorViewModel(
             when (outcome) {
                 null -> showError(R.string.error_timeout, stamp)
                 is EvalResult.Failure -> showError(outcome.error.messageRes(), stamp)
-                is EvalResult.Success -> showResult(snapshot, outcome.value, stamp)
+                is EvalResult.Success -> showResult(snapshot, outcome.value, mode, stamp)
             }
         }
     }
@@ -337,16 +391,23 @@ class CalculatorViewModel(
      * with no way out, and without the catch the `AbortedException` raised the moment the
      * user presses another key escapes the launch and kills the process.
      *
+     * @param angleMode the unit [value] was computed in, recorded with the history row. The
+     *   *current* setting is not a substitute: it can already have changed by the time this
+     *   runs, and a row labelled with the wrong unit is worse than one with none.
      * @param stamp the [epoch] this evaluation was started in. An outcome from an earlier
      *   epoch belongs to an expression the user has since edited away and is discarded.
      */
     private suspend fun showResult(
         source: CalculatorExpr,
         value: UnifiedReal,
+        angleMode: AngleMode,
         stamp: Long,
         record: Boolean = true,
     ) {
         if (stamp != epoch) return
+        // Captured on the main thread, where it is written, and read from the worker below —
+        // a plain field read across threads has no visibility guarantee at all.
+        val target: Locale = locale
         // The failure's own error string, or null when it has none of its own; see
         // [formattingErrorRes].
         var failure: Int? = null
@@ -355,7 +416,7 @@ class CalculatorViewModel(
                 withTimeoutOrNull(FORMAT_TIMEOUT_MS) {
                     runInterruptible {
                         ShortResult(
-                            text = ResultFormatter.formatShort(value, SHORT_BUDGET, Locale.getDefault()),
+                            text = ResultFormatter.formatShort(value, SHORT_BUDGET, target),
                             // Asked here rather than from the `_state.update` lambda below.
                             // It walks the value's exact decimal — a power-of-ten BigInteger
                             // of up to ten thousand digits — and `update` re-runs its lambda
@@ -394,6 +455,9 @@ class CalculatorViewModel(
                 mode = DisplayMode.RESULT,
                 hasMoreDigits = !rendered.exact,
                 computing = false,
+                // A wholly new answer, not an extension of the one on screen; see
+                // [CalculatorUiState.resultGeneration].
+                resultGeneration = it.resultGeneration + 1,
             )
         }
         persist()
@@ -402,7 +466,7 @@ class CalculatorViewModel(
             // opens a database, may trim the table and re-reads it, none of which belongs
             // between the key press and the number; and as a sibling rather than a child it
             // still completes if the user's next keystroke cancels this evaluation.
-            viewModelScope.launch { history.insert(source, rendered.text) }
+            viewModelScope.launch { history.insert(source, rendered.text, angleMode) }
         }
     }
 
@@ -432,6 +496,7 @@ class CalculatorViewModel(
                 mode = DisplayMode.ERROR,
                 hasMoreDigits = false,
                 computing = false,
+                resultGeneration = it.resultGeneration + 1,
             )
         }
         persist()
@@ -479,6 +544,41 @@ class CalculatorViewModel(
     }
 
     /**
+     * What the clipboard should carry for a stored calculation.
+     *
+     * The row's cached answer is a *display* string: localised digits, grouping separators
+     * and, when the value does not terminate, a trailing ellipsis inside a twenty-character
+     * budget. Copying that is the precise loss [clipboardPayload] exists to avoid — copying
+     * the history row for `1÷3` handed other applications `0.33333333333333333333…`, and in
+     * an Arabic locale handed them digits no tokenizer will read back, this app's own paste
+     * handler included. So the calculation is evaluated again, in the unit it was originally
+     * evaluated in, and copied as a plain decimal.
+     *
+     * The cached string is the fallback, because a row whose re-evaluation times out is
+     * still better copied imperfectly than not at all.
+     */
+    suspend fun historyPayload(entry: HistoryEntry): ClipboardPayload {
+        val encoded = ExprCodec.encodeToString(entry.expression)
+        val text: String? = withContext(Dispatchers.Default) {
+            withTimeoutOrNull(FORMAT_TIMEOUT_MS) {
+                runInterruptible {
+                    try {
+                        val outcome = ExprEvaluator.evaluate(entry.expression, entry.angleMode)
+                        val value = (outcome as? EvalResult.Success)?.value
+                        value?.let { ResultFormatter.formatPlain(it, COPY_DIGITS) }
+                    } catch (e: ArithmeticException) {
+                        // Aborted, out of precision, or out of BigInteger's range. A menu tap
+                        // is not allowed to end the process; the cached rendering stands in.
+                        null
+                    }
+                }
+            }
+        }
+        val copied: String = if (text.isNullOrEmpty()) entry.result else text
+        return ClipboardPayload(copied, encoded)
+    }
+
+    /**
      * Extends the displayed result, called as the user scrolls it sideways.
      *
      * The growth is geometric on purpose: reaching two thousand digits costs on the order
@@ -486,11 +586,23 @@ class CalculatorViewModel(
      * refined rather than recalculated because the engine caches its best approximation.
      */
     fun onRequestMoreDigits() {
+        requestDigits(nextDigitTarget(digitsShown))
+    }
+
+    /**
+     * Expands the displayed result to [target] decimal places.
+     *
+     * Separate from [onRequestMoreDigits] because the restore path asks for a specific count
+     * — the one the user had scrolled to before the process died — rather than for the next
+     * step of the doubling.
+     */
+    private fun requestDigits(target: Int) {
         val value = lastValue ?: return
         if (!_state.value.hasMoreDigits) return
-        val target = nextDigitTarget(digitsShown)
         if (target <= digitsShown) return
         val stamp = epoch
+        // Captured here, on the main thread, and read from the worker below; see [showResult].
+        val renderLocale: Locale = locale
 
         digitsJob?.cancel()
         digitsJob = viewModelScope.launch {
@@ -505,7 +617,7 @@ class CalculatorViewModel(
                         // throwing one let the AbortedException raised by the user's *next*
                         // key press — the ordinary way to interrupt a long scroll — escape
                         // this launch as an uncaught exception.
-                        ResultFormatter.formatWithDigitsOrNull(value, request.digits, Locale.getDefault())
+                        ResultFormatter.formatWithDigitsOrNull(value, request.digits, renderLocale)
                     }
                 }
             }
@@ -522,7 +634,49 @@ class CalculatorViewModel(
             // without this, fifty digits of one seventh are indistinguishable from an answer
             // that simply stops there.
             digitsText = if (request.truncated) text + ELLIPSIS else text
+            // No generation bump: this is the same answer with more of it showing, and the
+            // result line must keep the scroll position the user reached to ask for it.
             _state.update { it.copy(result = digitsText, hasMoreDigits = request.truncated) }
+            persist()
+        }
+    }
+
+    /**
+     * Re-renders the answer on screen after the display locale has changed.
+     *
+     * Nothing about the value changes, so the epoch is deliberately left alone: this is not a
+     * new calculation and must not cancel one. The expansion the user had scrolled to is
+     * reproduced at its current length rather than reset, because dropping back to twenty
+     * characters would look like the language switch had lost their digits.
+     */
+    private fun reformatResult() {
+        val value = lastValue ?: return
+        if (_state.value.mode != DisplayMode.RESULT) return
+        val shown = digitsShown
+        val renderLocale: Locale = locale
+        val stamp = epoch
+
+        digitsJob?.cancel()
+        digitsJob = viewModelScope.launch {
+            val text: String? = withContext(Dispatchers.Default) {
+                withTimeoutOrNull(FORMAT_TIMEOUT_MS) {
+                    runInterruptible {
+                        if (shown <= 0) {
+                            ResultFormatter.formatShortOrNull(value, SHORT_BUDGET, renderLocale)
+                        } else {
+                            val request = digitRequest(value.digitsRequired(), shown)
+                            ResultFormatter.formatWithDigitsOrNull(value, request.digits, renderLocale)
+                                ?.let { if (request.truncated) it + ELLIPSIS else it }
+                        }
+                    }
+                }
+            }
+            // The previous rendering stays: it is the same number, in digits the user could
+            // read a moment ago. Blanking the line would be the worse failure.
+            if (text == null) return@launch
+            if (stamp != epoch || lastValue !== value) return@launch
+            if (shown > 0) digitsText = text
+            _state.update { it.copy(result = text) }
         }
     }
 
@@ -583,6 +737,8 @@ class CalculatorViewModel(
         }
         val mode = _state.value.angleMode
         val stamp = epoch
+        // Captured here, on the main thread, and read from the worker below; see [showResult].
+        val target: Locale = locale
 
         previewJob = viewModelScope.launch {
             val outcome = withContext(Dispatchers.Default) {
@@ -603,7 +759,7 @@ class CalculatorViewModel(
                             ResultFormatter.formatShortOrNull(
                                 success.value,
                                 PREVIEW_BUDGET,
-                                Locale.getDefault(),
+                                target,
                             )
                         }
                     }
@@ -706,6 +862,7 @@ class CalculatorViewModel(
         const val KEY_EXPR = "expr"
         const val KEY_RESULT_EXPR = "resultExpr"
         const val KEY_INVERSE = "inverse"
+        const val KEY_DIGITS = "digitsShown"
     }
 }
 

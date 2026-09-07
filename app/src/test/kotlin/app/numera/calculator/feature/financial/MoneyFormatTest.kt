@@ -18,7 +18,7 @@ class MoneyFormatTest {
     @Test
     fun `a pasted amount is cut to a length the schedule can format`() {
         val pasted = "9".repeat(5_000)
-        val kept = sanitiseAmount(pasted, decimal = true)
+        val kept = sanitiseAmount(pasted, decimal = true, decimalSeparator = '.')
         assertEquals(MAX_AMOUNT_LENGTH, kept.length)
         // Cut, not rejected: the field keeps the leading digits rather than emptying itself
         // under the user, which would read as the paste having failed.
@@ -27,16 +27,16 @@ class MoneyFormatTest {
 
     @Test
     fun `an amount a person could type is left alone`() {
-        assertEquals("1000000", sanitiseAmount("1000000", decimal = true))
-        assertEquals("8.5", sanitiseAmount("8.5", decimal = true))
+        assertEquals("1000000", sanitiseAmount("1000000", decimal = true, decimalSeparator = '.'))
+        assertEquals("8.5", sanitiseAmount("8.5", decimal = true, decimalSeparator = '.'))
     }
 
     @Test
     fun `a second decimal point is refused and a count field takes none at all`() {
         // "1.2.3" parses as nothing, and blanks the result card rather than saying why.
-        assertEquals("1.23", sanitiseAmount("1.2.3", decimal = true))
-        assertEquals("123", sanitiseAmount("1.2.3", decimal = false))
-        assertEquals("240", sanitiseAmount("2 4 0 months", decimal = false))
+        assertEquals("1.23", sanitiseAmount("1.2.3", decimal = true, decimalSeparator = '.'))
+        assertEquals("123", sanitiseAmount("1.2.3", decimal = false, decimalSeparator = '.'))
+        assertEquals("240", sanitiseAmount("2 4 0 months", decimal = false, decimalSeparator = '.'))
     }
 
     @Test
@@ -53,5 +53,40 @@ class MoneyFormatTest {
         // 28% must not become 2800%: NumberFormat's percent instance scales by 100 itself.
         assertEquals("28.00%", formatPercent(BigDecimal("28.00"), Locale.US))
         assertEquals("0.00%", formatPercent(BigDecimal.ZERO, Locale.US))
+    }
+
+    @Test
+    fun `a decimal comma is a decimal point in the locales that use one`() {
+        // Observed on the emulator in de-DE: KeyboardType.Decimal offers a comma, the filter
+        // dropped it, and an 8,5% rate silently became 85% on the loan card.
+        assertEquals("8,5", sanitiseAmount("8,5", decimal = true, decimalSeparator = ','))
+        assertEquals(BigDecimal("8.5"), parseAmount("8,5", ','))
+    }
+
+    @Test
+    fun `a figure the screen printed can be typed back into it`() {
+        // formatAmount writes "1.234,56" in de; the field has to survive being handed that
+        // back, or the app disagrees with its own output.
+        val printed = formatAmount(BigDecimal("1234.56"), Locale.GERMANY)
+        assertEquals("1.234,56", printed)
+        val kept = sanitiseAmount(printed, decimal = true, decimalSeparator = ',')
+        // The grouping '.' goes, the decimal ',' stays — not a mangled "1,23456".
+        assertEquals("1234,56", kept)
+        assertEquals(BigDecimal("1234.56"), parseAmount(kept, ','))
+    }
+
+    @Test
+    fun `a non-ASCII digit set parses to the same number`() {
+        // Arabic-Indic digits reach the field from the ar keyboard, and BigDecimal takes
+        // exactly one spelling.
+        assertEquals(BigDecimal("8.5"), parseAmount("\u0668\u066b\u0665", '\u066b'))
+    }
+
+    @Test
+    fun `a field that is only a separator is not yet a number`() {
+        // Passed through on the way to "0,5"; must read as incomplete, never as an error.
+        assertEquals(null, parseAmount(",", ','))
+        assertEquals(null, parseAmount("", ','))
+        assertEquals(null, parseAmount("12x", ','))
     }
 }

@@ -16,7 +16,11 @@ linked from the Play listing. This file is the engineering summary and must not 
   app. It grants nothing to anyone and carries no privacy implication. **Do not strip it with
   `tools:node="remove"`** — androidx relies on it, and the wording here is deliberately the
   claim that survives `aapt2 dump permissions` on the uploaded artifact.
-- **No analytics, no ads, no crash SDK, no third-party libraries.** AndroidX only.
+- **No analytics, no ads, no crash SDK, no networking library.** What the APK carries is
+  AndroidX, the Kotlin standard library and kotlinx-coroutines — general-purpose Apache-2.0
+  libraries, all three, and nothing else. "AndroidX only" was the shipped wording until an
+  `unzip -l` on the release APK turned up `META-INF/kotlinx_coroutines_core.version`;
+  `NOTICE.md` now lists the three by name and is the file to keep this in step with.
 - **No accounts, no identifiers.** Nothing distinguishes one install from another.
 
 ## What is stored on the device

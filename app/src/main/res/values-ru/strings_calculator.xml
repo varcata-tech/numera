@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="mode_deg">ГРАД</string>
-    <string name="mode_rad">РАД</string>
     <string name="key_clear">AC</string>
     <string name="desc_op_add">плюс</string>
     <string name="desc_op_sub">минус</string>
@@ -36,7 +34,6 @@
     <string name="desc_more_options">другие параметры</string>
     <string name="desc_more_digits">прочитать больше цифр</string>
     <string name="desc_computing">идёт вычисление</string>
-    <string name="desc_formula">выражение</string>
     <string name="desc_digit">цифра %1$s</string>
     <string name="error_syntax">Неверное выражение</string>
     <string name="error_divide_by_zero">Нельзя делить на 0</string>
@@ -45,4 +42,5 @@
     <string name="error_aborted">Отменено</string>
     <string name="error_timeout">Вычисление занимает слишком много времени</string>
     <string name="action_copy">Копировать</string>
+    <string name="action_paste">Вставить</string>
 </resources>

@@ -27,10 +27,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.SaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -62,6 +65,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun DateTimeScreen(onBack: () -> Unit) {
     var tab: Int by rememberSaveable { mutableStateOf(0) }
+    val tabState: SaveableStateHolder = rememberSaveableStateHolder()
     val titles = listOf(
         R.string.dates_tab_difference,
         R.string.dates_tab_add,
@@ -87,11 +91,18 @@ fun DateTimeScreen(onBack: () -> Unit) {
                     )
                 }
             }
-            when (tab) {
-                0 -> DifferenceTab()
-                1 -> AddSubtractTab()
-                2 -> BusinessDaysTab()
-                else -> AgeTab()
+            // Keyed by tab, for the reason CalculatorApp keys the mode `when` by route.
+            // rememberSaveable only hands its value to the registry while it is still in
+            // composition, and a tab that stops matching this `when` is simply forgotten —
+            // so without a holder, picking two dates and glancing at the age tab reset them
+            // both to today, which is exactly what this file's KDoc promises does not happen.
+            tabState.SaveableStateProvider(tab) {
+                when (tab) {
+                    0 -> DifferenceTab()
+                    1 -> AddSubtractTab()
+                    2 -> BusinessDaysTab()
+                    else -> AgeTab()
+                }
             }
         }
     }
@@ -111,19 +122,22 @@ private fun DifferenceTab() {
     val difference = DateMath.difference(start, end)
     ResultCard {
         Text(
-            text = stringResource(R.string.dates_total_days, difference.totalDays),
+            text = countOf(R.plurals.dates_days_part, difference.totalDays),
             style = MaterialTheme.typography.headlineSmall,
         )
         Text(
             stringResource(
                 R.string.dates_breakdown,
-                difference.years, difference.months, difference.days,
+                countOf(R.plurals.dates_years_part, difference.years),
+                countOf(R.plurals.dates_months_part, difference.months),
+                countOf(R.plurals.dates_days_part, difference.days),
             ),
         )
         Text(
             stringResource(
                 R.string.dates_weeks,
-                difference.totalWeeks, difference.remainingDaysAfterWeeks,
+                countOf(R.plurals.dates_weeks_part, difference.totalWeeks),
+                countOf(R.plurals.dates_days_part, difference.remainingDaysAfterWeeks),
             ),
         )
     }
@@ -205,8 +219,8 @@ private fun BusinessDaysTab() {
     DateField(stringResource(R.string.dates_end), end) { endDay = it.toEpochDay() }
     ResultCard {
         Text(
-            text = stringResource(
-                R.string.dates_business_result,
+            text = countOf(
+                R.plurals.dates_business_result,
                 DateMath.businessDays(start, end),
             ),
             style = MaterialTheme.typography.headlineSmall,
@@ -249,19 +263,27 @@ private fun AgeTab() {
     val age = DateMath.age(birth, today)
     ResultCard {
         Text(
-            text = stringResource(R.string.dates_age_result, age.years, age.months, age.days),
+            text = stringResource(
+                R.string.dates_age_result,
+                countOf(R.plurals.dates_age_years_part, age.years),
+                countOf(R.plurals.dates_months_part, age.months),
+                countOf(R.plurals.dates_days_part, age.days),
+            ),
             style = MaterialTheme.typography.headlineSmall,
         )
-        Text(stringResource(R.string.dates_age_total, age.totalDays))
+        Text(countOf(R.plurals.dates_age_total, age.totalDays))
         Text(
             stringResource(
                 R.string.dates_next_birthday,
                 age.nextBirthday.formatted(),
-                age.daysUntilNextBirthday,
+                countOf(R.plurals.dates_days_part, age.daysUntilNextBirthday),
             ),
         )
     }
 }
+
+/** The years the date pickers offer. See [DateField] for why it is bounded at all. */
+private val PICKER_YEARS: IntRange = 1800..2200
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -273,6 +295,13 @@ private fun DateField(label: String, value: LocalDate, onChange: (LocalDate) -> 
     if (showing) {
         val state = rememberDatePickerState(
             initialSelectedDateMillis = value.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli(),
+            // Material3 defaults this to 1900..2100, which quietly makes the age tab unable
+            // to take a birth date belonging to anyone born in the nineteenth century, and
+            // the difference tab unable to reach a date past 2100 — with nothing on screen
+            // saying so, because the years are simply not in the list. Widened rather than
+            // removed: the picker renders one row per year, so an unbounded range would be
+            // an unbounded grid.
+            yearRange = PICKER_YEARS,
         )
         DatePickerDialog(
             onDismissRequest = { showing = false },
@@ -365,8 +394,9 @@ private fun ResultCard(content: @Composable () -> Unit) {
  * The locale has to be passed in. `ofLocalizedDate` alone reads `Locale.getDefault()`, which
  * under a per-app language is not the locale the rest of the screen is using — so the fields
  * printed "25/08/2026" in Latin digits directly above a result reading "٣٠ يوم" in
- * Arabic-Indic, two numbering systems in one card. It is the same trap the `NonObservableLocale`
- * lint check exists for, reached without ever naming `Locale.getDefault()`.
+ * Arabic-Indic, two numbering systems in one card. It is the same trap as reading the default
+ * locale directly, reached without ever naming `Locale.getDefault()` — and nothing but review
+ * catches it, since this build has no lint module.
  */
 @Composable
 private fun LocalDate.formatted(): String {
@@ -381,4 +411,43 @@ private fun LocalDate.formatted(): String {
             // one card, in the one place the app shows both.
             .withDecimalStyle(DecimalStyle.of(locale)),
     )
+}
+
+/**
+ * A counted phrase: the quantity chosen by the locale's own rules, and interpolated.
+ *
+ * The count is passed twice on purpose — once to pick the form, once to fill `%1$d` — and
+ * getting that wrong is silent, so it is written here once rather than at nine call sites.
+ * Android needs a real `<plurals>` for this: "1 days" is merely untidy in English, but the
+ * same shortcut prints "Первые 1 корней" in Russian and drops Arabic's dual entirely.
+ */
+@Composable
+private fun countOf(pluralRes: Int, count: Int): String =
+    pluralStringResource(pluralRes, count, count)
+
+/**
+ * The same, for the day and week counts, which are [Long].
+ *
+ * `pluralStringResource` selects on an `Int`, and `LocalDate` spans ±999,999,999 years — so
+ * a bare `toInt()` on the difference between two far-apart dates wraps, and the wrapped
+ * value picks the form. The printed number always comes from the original [count]; only the
+ * *selector* is narrowed, by [pluralCount], which keeps the category intact.
+ */
+@Composable
+private fun countOf(pluralRes: Int, count: Long): String =
+    pluralStringResource(pluralRes, pluralCount(count), count)
+
+/**
+ * Narrows a [Long] to a selector that lands in the same plural category it started in.
+ *
+ * Every rule in the twelve shipped locales reads either the value itself when it is 0, 1 or
+ * 2, or else the value modulo 10 and 100 — Russian's one/few/many and Arabic's few/many both
+ * work that way. Adding 100 leaves both remainders untouched while guaranteeing the result
+ * is past the 0/1/2 special cases, so an out-of-range count keeps the wording it would have
+ * had. The sign is dropped because the categories are defined on the magnitude; a backwards
+ * date range still prints its own negative total through the format argument.
+ */
+private fun pluralCount(count: Long): Int {
+    val magnitude = if (count < 0L) -count else count
+    return if (magnitude <= Int.MAX_VALUE) magnitude.toInt() else (magnitude % 100L + 100L).toInt()
 }

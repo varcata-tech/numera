@@ -9,4 +9,12 @@
     <string name="desc_key_unavailable">indisponible dans cette base</string>
     <string name="desc_op_shl">décalage à gauche</string>
     <string name="desc_op_shr">décalage à droite</string>
+    <string name="desc_op_mod">modulo</string>
+    <string name="desc_op_neg">changer de signe</string>
+    <string name="desc_op_and">et binaire</string>
+    <string name="desc_op_or">ou binaire</string>
+    <string name="desc_op_xor">ou exclusif binaire</string>
+    <string name="desc_op_not">non binaire</string>
+    <string name="desc_op_rol">rotation à gauche</string>
+    <string name="desc_op_ror">rotation à droite</string>
 </resources>

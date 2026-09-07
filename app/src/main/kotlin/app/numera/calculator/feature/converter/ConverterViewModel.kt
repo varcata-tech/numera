@@ -71,6 +71,9 @@ data class ConverterUiState(
  * [SavedStateHandle]. A ViewModel survives rotation on its own, so without it the loss shows
  * up only after the system has reclaimed a backgrounded app — the screen comes back on
  * Length, metre → foot, having thrown away the unit pair the user had chosen.
+ *
+ * The screen must call [onLocaleChanged] — `ConverterScreen` does it from a `LaunchedEffect`
+ * keyed on `LocalConfiguration`. Nothing is converted until it has, on purpose: see [locale].
  */
 class ConverterViewModel(
     private val settings: SettingsStore,
@@ -89,6 +92,22 @@ class ConverterViewModel(
     private var computed: UnifiedReal? = null
 
     private var conversionJob: Job? = null
+
+    /**
+     * The locale every converted number is rendered in.
+     *
+     * Owned by the screen, not read here from `Locale.getDefault()`. A view model outlives the
+     * configuration change that a per-app language switch causes, so a locale captured once at
+     * construction stays behind: the keypad below recomposes into Arabic-Indic digits while
+     * the answer above it keeps the previous locale's digits and grouping, and one screen ends
+     * up showing two numbering systems. [onLocaleChanged] is how the composable — which reads
+     * `LocalConfiguration` and therefore does recompose — keeps this current.
+     *
+     * Null until that first call, and [recompute] deliberately does nothing while it is:
+     * seeding it from `Locale.getDefault()` would reintroduce the same stale read for the one
+     * frame before the screen composes, and the restore path runs in exactly that frame.
+     */
+    private var locale: Locale? = null
 
     private val _state = MutableStateFlow(ConverterUiState())
     val state: StateFlow<ConverterUiState> = _state.asStateFlow()
@@ -149,6 +168,19 @@ class ConverterViewModel(
         val encoded: String? =
             if (input.exact == null) ExprCodec.encodeToString(input.expr) else null
         savedState[KEY_EXPR] = encoded
+    }
+
+    /**
+     * Adopts the locale the screen is currently drawn in, re-rendering what is on it.
+     *
+     * Re-running the conversion rather than only storing the locale is the point: the computed
+     * field and the sibling strip exist on screen as *strings*, and after a language switch
+     * those strings are the only part of the screen still spelling numbers the old way.
+     */
+    fun onLocaleChanged(current: Locale) {
+        if (locale == current) return
+        locale = current
+        if (!input.isEmpty()) recompute()
     }
 
     fun onSelectDimension(dimension: Dimension) {
@@ -333,6 +365,15 @@ class ConverterViewModel(
             return
         }
         val angleMode: AngleMode = settings.angleMode.value
+        // Captured here rather than read from the field inside the worker: `locale` is written
+        // from the main thread by onLocaleChanged, and a job that read it mid-flight could
+        // render the sibling strip in one locale and the answer above it in another — the
+        // very split this plumbing exists to close.
+        //
+        // Still null before the screen's first composition, which is when restore() calls in.
+        // There is nothing on screen to render into yet, and onLocaleChanged runs this again
+        // the moment it knows which locale to render in.
+        val renderIn: Locale = locale ?: return
 
         conversionJob = viewModelScope.launch {
             val converted: Conversion = try {
@@ -348,12 +389,13 @@ class ConverterViewModel(
                             val result = UnitConverter.convert(amount, fromUnit, toUnit)
                             Conversion(
                                 value = result,
-                                text = format(result),
+                                text = format(result, renderIn),
                                 siblings = siblingsOf(
                                     amount,
                                     fromUnit,
                                     toUnit,
                                     snapshot.dimension,
+                                    renderIn,
                                 ),
                             )
                         } catch (e: AbortedException) {
@@ -422,6 +464,7 @@ class ConverterViewModel(
         from: UnitDef,
         to: UnitDef,
         dimension: Dimension,
+        renderIn: Locale,
     ): List<Pair<UnitDef, String>> =
         UnitCatalog.popularOf(dimension)
             .asSequence()
@@ -429,7 +472,7 @@ class ConverterViewModel(
             .take(COMMON_COUNT)
             .mapNotNull { unit ->
                 try {
-                    unit to format(UnitConverter.convert(amount, from, unit))
+                    unit to format(UnitConverter.convert(amount, from, unit), renderIn)
                 } catch (e: AbortedException) {
                     // As above: an abort is a cancellation, not a unit that cannot be shown.
                     throw e
@@ -441,8 +484,8 @@ class ConverterViewModel(
             }
             .toList()
 
-    private fun format(value: UnifiedReal): String =
-        ResultFormatter.formatShort(value, VALUE_BUDGET, Locale.getDefault())
+    private fun format(value: UnifiedReal, renderIn: Locale): String =
+        ResultFormatter.formatShort(value, VALUE_BUDGET, renderIn)
 
     private companion object {
         const val VALUE_BUDGET = 18

@@ -22,10 +22,11 @@
     <string name="angle_degrees">度</string>
     <string name="angle_radians">ラジアン</string>
     <string name="about_version">バージョン %1$s</string>
-    <string name="about_attribution">厳密計算は Android オープンソース プロジェクトの ExactCalculator（Apache License 2.0）と、Hans-J. Boehm 氏の構成的実数ライブラリで公開されているアルゴリズムに由来します。サードパーティのコードは含まれず、データが端末外に出ることはありません。</string>
+    <string name="about_attribution">厳密計算は Android オープンソース プロジェクトの ExactCalculator（Apache License 2.0）と、Hans-J. Boehm 氏の構成的実数ライブラリで公開されているアルゴリズムに由来します。AndroidX、Kotlin 標準ライブラリ、kotlinx-coroutines（いずれも Apache License 2.0）以外にサードパーティのコードは含まれず、データが端末外に出ることはありません。</string>
     <string name="about_license_show">Apache License 2.0 を表示</string>
     <string name="about_license_hide">Apache License 2.0 を隠す</string>
     <string name="about_license_loading">ライセンスを読み込み中…</string>
+    <string name="about_asset_error">このテキストを読み込めませんでした。</string>
     <string name="shortcut_converter_short">換算</string>
     <string name="shortcut_converter_long">単位換算を開く</string>
     <string name="shortcut_programmer_short">プログラマー</string>
@@ -34,4 +35,5 @@
     <string name="shortcut_graphing_long">グラフ電卓を開く</string>
     <string name="about_privacy_show">プライバシー ポリシー</string>
     <string name="about_privacy_hide">プライバシー ポリシーを隠す</string>
+    <string name="about_privacy_loading">プライバシー ポリシーを読み込み中…</string>
 </resources>

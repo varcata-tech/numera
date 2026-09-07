@@ -19,6 +19,7 @@
     <string name="converter_from">De</string>
     <string name="converter_to">Vers</string>
     <string name="converter_swap">Inverser les unités</string>
+    <string name="converter_change_unit">Changer d\'unité : %1$s</string>
     <string name="converter_search">Rechercher une unité</string>
     <string name="converter_common">Conversions courantes</string>
     <string name="unit_bit">bit</string>

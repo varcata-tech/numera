@@ -96,6 +96,44 @@ class PastedTextTest {
     }
 
     @Test
+    fun `lower-case scientific notation is read as an exponent, not as Euler's number`() {
+        // The tokeniser only promotes an upper-case E, so `1e5` was tokenising as 1, e, 5 —
+        // an implicit product — and answering 13.59 with nothing on screen to say so. The
+        // keypad cannot produce the character `e` at all, so this rule only ever applies to
+        // text that came from somewhere else, which is where `1e5` comes from.
+        assertEquals("1E5", parsePastedText("1e5", english)?.display())
+        assertEquals("2.5E-3", parsePastedText("2.5e-3", english)?.display())
+        assertEquals("6.02E23", parsePastedText("6.02e23", english)?.display())
+    }
+
+    @Test
+    fun `a bare e is still Euler's number`() {
+        // `2e` is an ordinary 2 × e off the keypad's own constant key, and a paste must not
+        // quietly turn it into a truncated exponent.
+        assertEquals("2e", parsePastedText("2e", english)?.display())
+        assertEquals("2×e", parsePastedText("2×e", english)?.display())
+    }
+
+    @Test
+    fun `an x standing between two values is the multiplication sign`() {
+        // "1920 x 1080" is how a product is written in a note. The tokeniser maps x to the
+        // graphing variable, which this calculator cannot evaluate at all, so the paste used
+        // to display, preview blank, and then answer "Bad expression" for ever.
+        assertEquals("2×3", parsePastedText("2 x 3", english)?.display())
+        assertEquals("1920×1080", parsePastedText("1920 x 1080", english)?.display())
+        assertEquals("2×3", parsePastedText("2X3", english)?.display())
+    }
+
+    @Test
+    fun `an expression that still holds the variable is refused rather than shown`() {
+        // Nothing on the keypad can delete the token, and equals can only ever report a
+        // syntax error, so accepting it would strand the user.
+        assertNull(parsePastedText("x", english))
+        assertNull(parsePastedText("2+x", english))
+        assertNull(parsePastedText("x+1", english))
+    }
+
+    @Test
     fun `text that is not an expression is still refused`() {
         assertNull(parsePastedText("hello", english))
         assertNull(parsePastedText("", english))

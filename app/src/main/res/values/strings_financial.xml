@@ -6,7 +6,7 @@
     <string name="fin_tab_discount">Discount</string>
     <string name="fin_tab_tax">Tax</string>
     <string name="fin_principal">Principal</string>
-    <string name="fin_rate">Annual rate %</string>
+    <string name="fin_rate" formatted="false">Annual rate %</string>
     <string name="fin_months">Term (months)</string>
     <string name="fin_years">Years</string>
     <string name="fin_instalment">Monthly instalment</string>
@@ -18,16 +18,15 @@
     <string name="fin_contribution">Contribution per period</string>
     <string name="fin_final_balance">Final balance</string>
     <string name="fin_bill">Bill</string>
-    <string name="fin_tip_percent">Tip %</string>
+    <string name="fin_tip_percent" formatted="false">Tip %</string>
     <string name="fin_people">People</string>
     <string name="fin_round_up">Round the total up</string>
     <string name="fin_tip_amount">Tip</string>
     <string name="fin_total">Total</string>
     <string name="fin_per_person">Per person</string>
-    <string name="fin_extra_cents">%1$d pay one unit more</string>
     <string name="fin_price">Price</string>
-    <string name="fin_discount_1">First discount %</string>
-    <string name="fin_discount_2">Second discount %</string>
+    <string name="fin_discount_1" formatted="false">First discount %</string>
+    <string name="fin_discount_2" formatted="false">Second discount %</string>
     <string name="fin_final_price">Final price</string>
     <string name="fin_saved">You save</string>
     <string name="fin_effective">Effective discount</string>
@@ -36,10 +35,20 @@
          locales, and the day someone gives this string an argument String.format throws
          UnknownFormatConversionException on " t" instead of printing the sentence. The
          signs must stay literal: this is retrieved with no arguments, so escaping them as
-         %% would put "%%" on screen rather than "%". -->
+         %% would put "%%" on screen rather than "%".
+
+         The same attribute is on fin_rate, fin_tip_percent, fin_discount_1, fin_discount_2
+         and fin_tax_rate, in all twelve locales, for the same reason. They each end in a
+         single literal "%", which aapt tolerates silently — one non-positional specifier is
+         not the "multiple substitutions" case it warns about — so they went years without
+         it while the string with four signs was documented. That asymmetry is the trap: a
+         label that ends in a bare % and is later handed a value ("Annual rate 7.5 %") dies
+         in composition with UnknownFormatConversionException naming a stray character
+         rather than the resource. Any new label ending in a literal % gets the attribute
+         at the moment it is written. -->
     <string name="fin_successive_note" formatted="false">Successive discounts compose: 20% then 10% is 28% off, not 30%.</string>
     <string name="fin_amount">Amount</string>
-    <string name="fin_tax_rate">Tax rate %</string>
+    <string name="fin_tax_rate" formatted="false">Tax rate %</string>
     <string name="fin_add_tax">Add tax</string>
     <string name="fin_remove_tax">Remove tax</string>
     <string name="fin_net">Net</string>
@@ -58,4 +67,8 @@
     <string name="fin_invalid_input">Enter a valid number in every field.</string>
     <string name="fin_out_of_range">These values are outside the range this calculator can compute.</string>
     <string name="fin_contribution_continuous">Continuous compounding has no period, so contributions are not included.</string>
+    <plurals name="fin_extra_cents">
+        <item quantity="one">%1$d pays one unit more</item>
+        <item quantity="other">%1$d pay one unit more</item>
+    </plurals>
 </resources>

@@ -9,4 +9,12 @@
     <string name="desc_key_unavailable">इस आधार में उपलब्ध नहीं</string>
     <string name="desc_op_shl">बाईं ओर शिफ़्ट</string>
     <string name="desc_op_shr">दाईं ओर शिफ़्ट</string>
+    <string name="desc_op_mod">शेषफल</string>
+    <string name="desc_op_neg">चिह्न बदलें</string>
+    <string name="desc_op_and">बिटवाइज़ एंड</string>
+    <string name="desc_op_or">बिटवाइज़ ऑर</string>
+    <string name="desc_op_xor">बिटवाइज़ एक्सक्लूसिव ऑर</string>
+    <string name="desc_op_not">बिटवाइज़ नॉट</string>
+    <string name="desc_op_rol">बाएँ घुमाएँ</string>
+    <string name="desc_op_ror">दाएँ घुमाएँ</string>
 </resources>

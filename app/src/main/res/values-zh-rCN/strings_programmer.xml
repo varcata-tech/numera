@@ -9,4 +9,12 @@
     <string name="desc_key_unavailable">此进制下不可用</string>
     <string name="desc_op_shl">左移</string>
     <string name="desc_op_shr">右移</string>
+    <string name="desc_op_mod">取余</string>
+    <string name="desc_op_neg">变号</string>
+    <string name="desc_op_and">按位与</string>
+    <string name="desc_op_or">按位或</string>
+    <string name="desc_op_xor">按位异或</string>
+    <string name="desc_op_not">按位取反</string>
+    <string name="desc_op_rol">循环左移</string>
+    <string name="desc_op_ror">循环右移</string>
 </resources>

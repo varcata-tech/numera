@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- The launcher label. Deliberately the common noun rather than the brand "Numera", so the
-         app sits under the name people look for on a home screen; the Play listing is still
-         "Numera". Because it is a word and not a brand it is translated: an untranslated
-         "Calculator" under a home-screen full of localised labels reads as a foreign app. -->
-    <string name="app_name">Calculator</string>
+    <!-- The launcher label: brand plus common noun, and translated. "Numera" on its own says
+         nothing to someone scanning a home screen, and the bare noun "Calculator" — what this
+         used to be — loses the app among every other calculator on the device and gives a
+         Play reviewer nothing to match against the listing. Every locale keeps "Numera" and
+         localises the noun; an untranslated label among localised ones reads as a foreign app.
+
+         Three names exist on purpose and none is a mistake to be tidied into another: this
+         launcher label, the store listing name (Numera: Exact Calculator, 30-char limit, set
+         in the Console), and the project name. docs/play-listing.md records the set. -->
+    <string name="app_name">Numera Calculator</string>
 </resources>

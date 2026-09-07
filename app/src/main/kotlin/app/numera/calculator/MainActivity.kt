@@ -2,12 +2,15 @@ package app.numera.calculator
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.numera.calculator.data.HistoryStore
 import app.numera.calculator.data.LocalHistoryStore
@@ -17,7 +20,9 @@ import app.numera.calculator.settings.LocalSettingsStore
 import app.numera.calculator.settings.SettingsStore
 import app.numera.calculator.ui.common.LocalHapticsEnabled
 import app.numera.calculator.ui.theme.CalculatorTheme
+import app.numera.calculator.ui.theme.LaunchAppearance
 import app.numera.calculator.ui.theme.ThemeMode
+import app.numera.calculator.ui.theme.launchAppearanceOf
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -106,6 +111,10 @@ class MainActivity : ComponentActivity() {
         settings = AppStores.settings(this)
         history = AppStores.history(this)
 
+        // Before setContent, and after the store's synchronous read: the theme preference is
+        // already known here, and the first Compose frame is several frames away.
+        applyLaunchAppearance()
+
         // Only on a genuinely fresh start. On a recreation the composition restores the
         // route the user was actually on from its own saved state, and re-reading the
         // launch intent here would throw them back to the shortcut's destination — or to
@@ -143,6 +152,44 @@ class MainActivity : ComponentActivity() {
         // mid-way through the loan calculator back to the plain calculator.
         routeFrom(intent)?.let { requested -> routeRequestChannel.trySend(requested) }
         consumeRoute(intent)
+    }
+
+    /**
+     * Repaints the window and the system bars for the user's stored [ThemeMode].
+     *
+     * The activity window inherits its background and its bar polarity from the `themes.xml`
+     * in `res/values` or `res/values-night`, which the platform selects by the *system* night
+     * setting; it cannot see a per-app theme preference. Someone who forces Light on a phone
+     * therefore launched into a near-black window with light bar icons, which then stepped to
+     * near-white the moment Compose drew — the very flash the XML shim exists to remove,
+     * reappearing for anyone who overrides the theme. BLACK on a light-mode phone is the
+     * mirror image of the same fault.
+     *
+     * This cannot fix the *starting* window, which the system paints from the same attribute
+     * before this process exists. It removes everything after that.
+     */
+    private fun applyLaunchAppearance() {
+        val nightMask: Int = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        val appearance: LaunchAppearance = launchAppearanceOf(
+            themeMode = settings.themeMode.value,
+            systemDark = nightMask == Configuration.UI_MODE_NIGHT_YES,
+        )
+
+        // Must stay equal to the colours the two themes.xml buckets name, and to
+        // CalculatorTheme's own backgrounds, or this trades one step for another.
+        val background: Int = getColor(
+            when (appearance) {
+                LaunchAppearance.LIGHT -> R.color.calc_window_background_light
+                LaunchAppearance.DARK -> R.color.calc_window_background_dark
+                LaunchAppearance.BLACK -> R.color.calc_window_background_black
+            }
+        )
+        window.setBackgroundDrawable(ColorDrawable(background))
+
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = appearance.lightSystemBars
+            isAppearanceLightNavigationBars = appearance.lightSystemBars
+        }
     }
 
     /**

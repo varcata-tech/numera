@@ -7,9 +7,6 @@
     <string name="dates_start">Date de début</string>
     <string name="dates_end">Date de fin</string>
     <string name="dates_birth">Date de naissance</string>
-    <string name="dates_total_days">%1$d jours</string>
-    <string name="dates_breakdown">%1$d ans, %2$d mois, %3$d jours</string>
-    <string name="dates_weeks">%1$d semaines et %2$d jours</string>
     <string name="dates_years">Années</string>
     <string name="dates_months">Mois</string>
     <string name="dates_weeks_field">Semaines</string>
@@ -17,10 +14,38 @@
     <string name="dates_add">Ajouter</string>
     <string name="dates_subtract">Soustraire</string>
     <string name="dates_clamp_note">Les pas en mois et en années sont ramenés à la fin d\'un mois plus court.</string>
-    <string name="dates_business_result">%1$d jours ouvrés</string>
     <string name="dates_exclude_weekend">Hors samedi et dimanche</string>
-    <string name="dates_age_result">%1$d ans, %2$d mois, %3$d jours</string>
-    <string name="dates_age_total">%1$d jours vécus</string>
-    <string name="dates_next_birthday">Prochain anniversaire le %1$s (%2$d jours)</string>
     <string name="dates_out_of_range">Ces valeurs dépassent la plage utilisable par cette calculatrice.</string>
+    <plurals name="dates_age_years_part">
+        <item quantity="one">%1$d an</item>
+        <item quantity="other">%1$d ans</item>
+    </plurals>
+    <plurals name="dates_days_part">
+        <item quantity="one">%1$d jour</item>
+        <item quantity="other">%1$d jours</item>
+    </plurals>
+    <plurals name="dates_months_part">
+        <item quantity="one">%1$d mois</item>
+        <item quantity="other">%1$d mois</item>
+    </plurals>
+    <plurals name="dates_weeks_part">
+        <item quantity="one">%1$d semaine</item>
+        <item quantity="other">%1$d semaines</item>
+    </plurals>
+    <plurals name="dates_years_part">
+        <item quantity="one">%1$d an</item>
+        <item quantity="other">%1$d ans</item>
+    </plurals>
+    <plurals name="dates_age_total">
+        <item quantity="one">%1$d jour vécu</item>
+        <item quantity="other">%1$d jours vécus</item>
+    </plurals>
+    <plurals name="dates_business_result">
+        <item quantity="one">%1$d jour ouvré</item>
+        <item quantity="other">%1$d jours ouvrés</item>
+    </plurals>
+    <string name="dates_age_result">%1$s, %2$s, %3$s</string>
+    <string name="dates_breakdown">%1$s, %2$s, %3$s</string>
+    <string name="dates_next_birthday">Prochain anniversaire le %1$s (%2$s)</string>
+    <string name="dates_weeks">%1$s et %2$s</string>
 </resources>

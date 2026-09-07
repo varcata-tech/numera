@@ -314,4 +314,23 @@ class ExprEvaluatorTest {
         val atZero = f!!(0.0)
         assertTrue("expected NaN or infinity at x=0, got $atZero", !atZero.isFinite())
     }
+
+    @Test
+    fun `a long chain compiles or refuses, and never lets an Error out`() {
+        // The parser bounds its own *recursion* depth, but an additive chain is parsed by a
+        // loop into a left-leaning tree as deep as the term count — so tree depth is bounded
+        // only by MAX_TOKENS, and it is the tree walk in compile(), not the parse, that
+        // descends it. The graph field takes pasted text with no length cap, and the
+        // documented contract is a blank plot rather than a crash: an Error escaping here
+        // would be uncaught on viewModelScope, and on the sample path it would escape from a
+        // Dispatchers.Default worker whose stack is smaller than the one that compiled it.
+        // What depth actually overflows is a property of the running JVM, so this asserts
+        // only that neither outcome is an Error.
+        val chain = pasted("x" + "+1".repeat(2_000))
+        val f = ExprEvaluator.compileToDouble(chain, AngleMode.RADIANS)
+        if (f != null) {
+            val y = f(1.0)
+            assertTrue("expected 2001 or NaN, got $y", y == 2001.0 || y.isNaN())
+        }
+    }
 }

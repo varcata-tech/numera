@@ -1,5 +1,6 @@
 package app.numera.calculator.math
 
+import java.math.BigInteger
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -96,6 +97,53 @@ class ConstructiveRealTest {
     }
 
     @Test
+    fun `the exponential's argument reduction is a loop and still lands on the same value`() {
+        // exp halves its argument until the Taylor series converges and squares the result
+        // back up. Doing that by recursion cost a stack frame per halving while *building*
+        // the chain, and the tree it left behind cost the same depth again when anything
+        // approximated it — log2(|x|) + 10 levels whatever the sign of x. Rewriting it as a
+        // loop removes half of that; what it must not change is the answer. Thirty-seven and
+        // five hundred sit either side of enough halvings to matter.
+        for (x in listOf(-500L, -37L, 37L, 500L)) {
+            val value = ConstructiveReal.valueOf(x).exp()
+            if (x < 0) {
+                // Compared through the reciprocal: e^-500 underflows a double long before
+                // its digits stop being meaningful, so toDouble would compare 0.0 to 0.0.
+                assertClose(Math.exp(-x.toDouble()), value.inverse(), "1/exp($x)")
+            } else {
+                assertClose(Math.exp(x.toDouble()), value, "exp($x)")
+            }
+        }
+        // Round-tripping across the reduction, where a lost or extra halving would show up
+        // as a factor of e^250 rather than as a rounding difference.
+        val product = ConstructiveReal.valueOf(-500).exp() * ConstructiveReal.valueOf(500).exp()
+        assertClose(1.0, product, "e^-500 x e^500")
+        // e is the one value the reduction is easiest to get subtly wrong.
+        assertEquals(E_100, firstDigits(ConstructiveReal.E, 100))
+    }
+
+    @Test
+    fun `an exponential argument too large to reduce is refused rather than overflowing`() {
+        // The bound has to live here, not in UnifiedReal: this is the one place every route
+        // to an exponential passes through — the e^x key on an opaque value, powViaExpLn and
+        // 10^x all arrive with no check of their own. Refusing is the only safe answer,
+        // because the tree is expanded by the *formatter*, where a StackOverflowError is an
+        // Error that escapes runInterruptible and every catch in the app and ends the
+        // process instead of the expression.
+        val huge = ConstructiveReal.valueOf(BigInteger.TWO.pow(2000))
+        try {
+            huge.unaryMinus().exp()
+            throw AssertionError("expected TooMuchMemoryException for a negative argument")
+        } catch (expected: TooMuchMemoryException) {
+        }
+        try {
+            huge.exp()
+            throw AssertionError("expected TooMuchMemoryException for a positive argument")
+        } catch (expected: TooMuchMemoryException) {
+        }
+    }
+
+    @Test
     fun `negative arguments reduce correctly too`() {
         for (x in listOf(-0.25, -1.0, -2.5, -7.0)) {
             val cr = ConstructiveReal.valueOf(BoundedRational.parse(x.toString()))
@@ -168,8 +216,8 @@ class ConstructiveRealTest {
     @Test
     fun `a value that cannot be separated from zero gives up inside the msd budget`() {
         // Not a wrong answer before, but the doubling only stopped where the Int shift
-        // counts overflowed, at 268 million bits — well past MAX_BITS and a hundred times
-        // past the budget the msd search uses for the very same undecidable-zero problem.
+        // counts overflowed, at 268 million bits — a hundred times past the budget the msd
+        // search uses for the very same undecidable-zero problem.
         val undecidableZero = ConstructiveReal.ONE - ConstructiveReal.valueOf(1)
         try {
             undecidableZero.signum()

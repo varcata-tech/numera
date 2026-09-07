@@ -27,21 +27,28 @@ private val LightColors: ColorScheme = CalculatorLightColors
 private val DarkColors: ColorScheme = CalculatorDarkColors
 
 /**
- * Collapses [surface] and its relatives to true black.
+ * Collapses the roles that are drawn *behind* everything else to true black.
  *
  * Applied on top of whichever dark scheme is in play — including a dynamic one — so the
  * OLED preference keeps working when the user has also opted into wallpaper colours.
  *
- * `surfaceContainerHigh` and above are deliberately left alone: they are the digit-key
- * tone, and flattening them too would leave the keypad invisible against the background.
+ * Every container role that something is drawn *on* is deliberately left at the scheme's own
+ * near-black. A key is a `Modifier.background` on a clipped box with no outline and no
+ * elevation (see `CalcButton`), so a container tone equal to the screen behind it does not
+ * read as a dimmer key — it disappears. `surfaceContainer` is the function-key tone, and
+ * flattening it turned all fifteen keys of the scientific pad into floating labels with no
+ * edge and no visible ripple bounds; `surfaceContainerLow` is the history drawer's panel and
+ * the converter's inactive value card, which lost their edges the same way.
+ * `surfaceContainerHigh` and above, the digit-key tone, were already excluded for this reason.
+ *
+ * What remains flattened is the background proper, which is the large majority of the pixels
+ * on screen and the whole point of the preference.
  */
 private fun ColorScheme.onOled(): ColorScheme = copy(
     background = Color.Black,
     surface = Color.Black,
     surfaceDim = Color.Black,
     surfaceContainerLowest = Color.Black,
-    surfaceContainerLow = Color.Black,
-    surfaceContainer = Color.Black,
 )
 
 /**

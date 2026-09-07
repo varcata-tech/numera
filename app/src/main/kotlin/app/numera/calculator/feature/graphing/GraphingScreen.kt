@@ -23,8 +23,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,11 +40,18 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.core.text.BidiFormatter
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.numera.calculator.R
@@ -53,6 +62,7 @@ import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.log10
+import kotlin.math.pow
 
 /**
  * The graphing calculator.
@@ -72,6 +82,19 @@ fun GraphingScreen(onBack: () -> Unit) {
     // formatted in the language the user just left.
     val locale: Locale = LocalConfiguration.current.locales[0]
 
+    // Remembered against the view model rather than written inline at the call. Every pointer
+    // event of a pan writes the viewport, so this composable re-runs at pointer-event rate,
+    // and a bound reference to an unstable type is a fresh object each time it is evaluated —
+    // which would make the canvas and the whole function list below it non-skippable however
+    // carefully their other parameters are hoisted.
+    val onPan: (Float, Float, Float, Float) -> Unit = remember(viewModel) { viewModel::onPan }
+    val onZoom: (Float, Offset, Float, Float) -> Unit = remember(viewModel) { viewModel::onZoom }
+    val onTrace: (Float, Float) -> Unit = remember(viewModel) { viewModel::onTrace }
+    val onResize: (Int, Int) -> Unit = remember(viewModel) { viewModel::onCanvasResized }
+    val onAdd: (String) -> Boolean = remember(viewModel) { viewModel::onAddFunction }
+    val onEdited: () -> Unit = remember(viewModel) { viewModel::onExpressionEdited }
+    val onRemove: (Int) -> Unit = remember(viewModel) { viewModel::onRemoveFunction }
+
     ModeScaffold(title = stringResource(R.string.title_graphing), onBack = onBack) { padding ->
         Column(
             modifier = Modifier
@@ -80,12 +103,15 @@ fun GraphingScreen(onBack: () -> Unit) {
                 .padding(horizontal = 12.dp),
         ) {
             GraphCanvas(
-                state = state,
+                viewport = state.viewport,
+                plots = state.plots,
+                trace = state.trace,
+                columns = state.canvasColumns,
                 locale = locale,
-                onPan = viewModel::onPan,
-                onZoom = viewModel::onZoom,
-                onTrace = viewModel::onTrace,
-                onResize = viewModel::onCanvasResized,
+                onPan = onPan,
+                onZoom = onZoom,
+                onTrace = onTrace,
+                onResize = onResize,
                 modifier = Modifier.fillMaxWidth().weight(1f),
             )
 
@@ -107,9 +133,20 @@ fun GraphingScreen(onBack: () -> Unit) {
                 }
             }
 
-            Readouts(state = state, locale = locale)
+            Readouts(
+                viewport = state.viewport,
+                trace = state.trace,
+                roots = state.roots,
+                locale = locale,
+            )
 
-            FunctionList(state, viewModel)
+            FunctionList(
+                plots = state.plots,
+                lastAddFailed = state.lastAddFailed,
+                onAdd = onAdd,
+                onEdited = onEdited,
+                onRemove = onRemove,
+            )
         }
     }
 }
@@ -125,9 +162,12 @@ fun GraphingScreen(onBack: () -> Unit) {
  * reverse: appearing for the first time would otherwise squash the plot.
  */
 @Composable
-private fun Readouts(state: GraphingUiState, locale: Locale) {
-    val viewport = state.viewport
-    val trace = state.trace
+private fun Readouts(
+    viewport: Viewport,
+    trace: TracePoint?,
+    roots: RootsReadout?,
+    locale: Locale,
+) {
     val traceText: String = if (trace == null) {
         ""
     } else {
@@ -146,18 +186,29 @@ private fun Readouts(state: GraphingUiState, locale: Locale) {
         style = MaterialTheme.typography.titleSmall,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
+        // The crosshair is placed by a gesture on a canvas that has no text of its own, so
+        // without this a screen-reader user moves the trace and is told nothing at all.
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
     )
 
-    val roots = state.roots
-    val subject = state.plots.firstOrNull()?.expressionText
     val separator = stringResource(R.string.graph_list_separator)
-    val rootsText: String = if (roots.isEmpty() || subject == null) {
+    // The expression is Latin notation dropped into prose that may run right to left. Without
+    // an isolate around it the bidi algorithm reorders the readout's "x^2-2" against the
+    // Arabic surrounding it, and the line names a function nobody typed.
+    val bidi: BidiFormatter = remember(locale) { BidiFormatter.getInstance(locale) }
+    val values: List<Double> = roots?.values.orEmpty()
+    val rootsText: String = if (roots == null || values.isEmpty()) {
         stringResource(R.string.graph_no_roots)
     } else {
-        val shown = roots.take(MAX_LISTED_ROOTS)
+        val shown = values.take(MAX_LISTED_ROOTS)
         val list = shown.joinToString(separator) { it.pretty(locale, viewport.width) }
-        if (roots.size > shown.size) {
-            stringResource(R.string.graph_roots_of_truncated, shown.size, subject, list)
+        val subject: String = bidi.unicodeWrap(roots.subject)
+        if (values.size > shown.size) {
+            pluralStringResource(
+                R.plurals.graph_roots_of_truncated,
+                shown.size,
+                shown.size, subject, list,
+            )
         } else {
             stringResource(R.string.graph_roots_of, subject, list)
         }
@@ -177,7 +228,10 @@ private fun Readouts(state: GraphingUiState, locale: Locale) {
 
 @Composable
 private fun GraphCanvas(
-    state: GraphingUiState,
+    viewport: Viewport,
+    plots: List<Plot>,
+    trace: TracePoint?,
+    columns: Int,
     locale: Locale,
     onPan: (Float, Float, Float, Float) -> Unit,
     onZoom: (Float, Offset, Float, Float) -> Unit,
@@ -189,14 +243,23 @@ private fun GraphCanvas(
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val traceColor = MaterialTheme.colorScheme.onSurface
     // A graph is inherently visual, so the description carries the numbers a sighted user
-    // reads off the axes. "Graph" alone tells a screen-reader user nothing at all.
-    val description = stringResource(R.string.desc_graph_canvas) + ". " + stringResource(
-        R.string.graph_summary,
-        state.viewport.minX.pretty(locale, state.viewport.width),
-        state.viewport.maxX.pretty(locale, state.viewport.width),
-        state.viewport.minY.pretty(locale, state.viewport.height),
-        state.viewport.maxY.pretty(locale, state.viewport.height),
-    )
+    // reads off the axes. "Graph" alone tells a screen-reader user nothing at all. The
+    // sentences are joined through a resource rather than a literal ". ": ja and zh end a
+    // sentence with U+3002 and fr puts a space before some marks, and a hardcoded join is
+    // invisible to the MissingTranslation check that would otherwise catch it.
+    val sentence = stringResource(R.string.graph_sentence_separator)
+    val description = listOf(
+        stringResource(R.string.desc_graph_canvas),
+        stringResource(
+            R.string.graph_summary,
+            viewport.minX.pretty(locale, viewport.width),
+            viewport.maxX.pretty(locale, viewport.width),
+            viewport.minY.pretty(locale, viewport.height),
+            viewport.maxY.pretty(locale, viewport.height),
+        ),
+        stringResource(R.string.graph_angle_unit),
+    ).joinToString(sentence)
+    val traceCentre = stringResource(R.string.graph_trace_centre)
 
     Box(modifier = modifier) {
         Canvas(
@@ -207,7 +270,17 @@ private fun GraphCanvas(
                 // invalidate-draw-invalidate loop waiting for the moment the reported value
                 // starts depending on the layout.
                 .onSizeChanged { onResize(it.width, it.height) }
-                .semantics { contentDescription = description }
+                .semantics {
+                    contentDescription = description
+                    // The trace is otherwise reachable only by tapping a pixel column, which
+                    // is no path at all for a screen-reader user: the whole feature, and the
+                    // readout under the canvas, would be unreachable without touch. The
+                    // centre column is the one point on the canvas that can be named.
+                    onClick(label = traceCentre) {
+                        if (columns > 0) onTrace(columns / 2f, columns.toFloat())
+                        columns > 0
+                    }
+                }
                 .pointerInput(Unit) {
                     detectTransformGestures { centroid, panChange, zoomChange, _ ->
                         if (zoomChange != 1f) {
@@ -227,17 +300,16 @@ private fun GraphCanvas(
                     }
                 },
         ) {
-            drawGrid(state, gridColor, axisColor)
-            state.plots.forEachIndexed { index, plot ->
-                drawPlot(plot, state, PLOT_COLORS[index % PLOT_COLORS.size])
+            drawGrid(viewport, gridColor, axisColor)
+            plots.forEachIndexed { index, plot ->
+                drawPlot(plot, viewport, PLOT_COLORS[index % PLOT_COLORS.size])
             }
-            state.trace?.let { drawTrace(it, state.viewport, traceColor) }
+            trace?.let { drawTrace(it, viewport, traceColor) }
         }
     }
 }
 
-private fun DrawScope.drawGrid(state: GraphingUiState, grid: Color, axis: Color) {
-    val viewport = state.viewport
+private fun DrawScope.drawGrid(viewport: Viewport, grid: Color, axis: Color) {
     for (x in AxisTicks.ticks(viewport.minX, viewport.maxX)) {
         val px = viewport.worldToScreenX(x, size.width)
         drawLine(grid, Offset(px, 0f), Offset(px, size.height), strokeWidth = 1f)
@@ -257,9 +329,8 @@ private fun DrawScope.drawGrid(state: GraphingUiState, grid: Color, axis: Color)
     }
 }
 
-private fun DrawScope.drawPlot(plot: Plot, state: GraphingUiState, color: Color) {
+private fun DrawScope.drawPlot(plot: Plot, viewport: Viewport, color: Color) {
     val samples = plot.samples ?: return
-    val viewport = state.viewport
     val path = Path()
     var started = false
     for (i in samples.xs.indices) {
@@ -315,8 +386,23 @@ private fun onCanvasY(py: Float, height: Float): Float =
 private fun Viewport.contains(trace: TracePoint): Boolean =
     trace.x >= minX && trace.x <= maxX && trace.y >= minY && trace.y <= maxY
 
+/**
+ * The expression field and the list of what is plotted.
+ *
+ * Takes the two pieces of state it draws rather than the whole [GraphingUiState], and plain
+ * lambdas rather than the view model. Handed the state object, the text field and this whole
+ * list were re-composed on every pointer event of a pan — nothing here depends on the
+ * viewport, and the view model is an unstable type that no amount of hoisting can make
+ * skippable.
+ */
 @Composable
-private fun FunctionList(state: GraphingUiState, viewModel: GraphingViewModel) {
+private fun FunctionList(
+    plots: List<Plot>,
+    lastAddFailed: Boolean,
+    onAdd: (String) -> Boolean,
+    onEdited: () -> Unit,
+    onRemove: (Int) -> Unit,
+) {
     // Saveable: a half-typed function is exactly what a rotation would otherwise throw away.
     var draft: String by rememberSaveable { mutableStateOf("") }
 
@@ -325,28 +411,37 @@ private fun FunctionList(state: GraphingUiState, viewModel: GraphingViewModel) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        OutlinedTextField(
-            value = draft,
-            onValueChange = {
-                draft = it
-                // The rejection belonged to the text that was submitted, not to the one being
-                // typed now; leaving it up tells the user their correction is wrong too.
-                viewModel.onExpressionEdited()
-            },
-            label = { Text(stringResource(R.string.graph_expression)) },
-            singleLine = true,
-            modifier = Modifier.weight(1f),
-        )
+        // Pinned to LTR exactly as the calculator's display is. The field takes an expression
+        // with operators in it, and under an RTL layout direction the bidi algorithm reorders
+        // "2+3x" as it is drawn, so what the user reads back is not what they typed.
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            OutlinedTextField(
+                value = draft,
+                onValueChange = {
+                    draft = it
+                    // The rejection belonged to the text that was submitted, not to the one
+                    // being typed now; leaving it up tells the user their correction is wrong
+                    // too.
+                    onEdited()
+                },
+                label = { Text(stringResource(R.string.graph_expression)) },
+                // Every plot is drawn against radians whatever the app-wide angle mode says,
+                // because a graph's x axis is a length. Saying so under the field is the
+                // whole of what makes that defensible: sin(30) is 0.5 on the calculator and
+                // -0.988 here, and nothing else on this screen would explain the difference.
+                supportingText = { Text(stringResource(R.string.graph_angle_unit)) },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+        }
         Button(
-            onClick = {
-                if (viewModel.onAddFunction(draft)) draft = ""
-            },
-            enabled = draft.isNotBlank() && state.plots.size < GraphingViewModel.MAX_PLOTS,
+            onClick = { if (onAdd(draft)) draft = "" },
+            enabled = draft.isNotBlank() && plots.size < GraphingViewModel.MAX_PLOTS,
         ) {
             Text(stringResource(R.string.graph_add_function))
         }
     }
-    if (state.lastAddFailed) {
+    if (lastAddFailed) {
         Text(
             text = stringResource(R.string.graph_invalid),
             style = MaterialTheme.typography.bodySmall,
@@ -355,14 +450,19 @@ private fun FunctionList(state: GraphingUiState, viewModel: GraphingViewModel) {
     }
 
     LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 120.dp)) {
-        itemsIndexed(state.plots) { index, plot ->
+        itemsIndexed(plots) { index, plot ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "y = ${plot.expressionText}",
-                    color = PLOT_COLORS[index % PLOT_COLORS.size],
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = { viewModel.onRemoveFunction(index) }) {
+                // The label is notation, not prose — the same reason the keypad's glyphs are
+                // translatable="false" — and it is pinned LTR for the same reason the field
+                // above it is.
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    Text(
+                        text = stringResource(R.string.graph_function_label, plot.expressionText),
+                        color = PLOT_COLORS[index % PLOT_COLORS.size],
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                IconButton(onClick = { onRemove(index) }) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = stringResource(R.string.graph_delete),
@@ -406,7 +506,14 @@ private const val SIGNIFICANT_DIGITS = 15
  */
 internal fun Double.pretty(locale: Locale, span: Double): String {
     val decimals = decimalsFor(span, this)
-    val formatted: String = String.format(locale, "%.${decimals}f", this)
+    // A value that rounds to zero must lose its sign first. Java's Formatter keeps it, so
+    // anything in (-5e-5, 0) prints as "-0.0000" at the default zoom and the trim below turns
+    // that into "-0" — and bisection routinely converges on a root of the order of 1e-63
+    // rather than exactly zero, so the roots line of y = x read "Roots of x: -0" on a large
+    // fraction of device widths. On an app that sells exactness that reads as an arithmetic
+    // bug, and there is no sign to keep: the value being printed is zero.
+    val value: Double = if (abs(this) < 0.5 * 10.0.pow(-decimals)) 0.0 else this
+    val formatted: String = String.format(locale, "%.${decimals}f", value)
     // Trimmed against the locale's own symbols rather than against ASCII. `%f` formats
     // through the locale's DecimalFormatSymbols, so in ar the digits are Arabic-Indic
     // (U+0660 upward) and the separator is U+066B; an ASCII '0' or '.' matches nothing there,

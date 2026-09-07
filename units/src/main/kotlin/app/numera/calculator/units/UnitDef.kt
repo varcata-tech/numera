@@ -21,7 +21,9 @@ enum class Dimension {
  *
  * @property id stable key used for preferences and history; never localised, never shown.
  * @property offset affine term, needed only by temperature: 0 °C is not 0 K.
- * @property inverse set for reciprocal units such as L/100 km, where more is less.
+ * @property inverse set for reciprocal units such as L/100 km, where more is less. Cannot be
+ *   combined with a non-zero [offset]; see the `init` block.
+ * @throws IllegalArgumentException if [inverse] is set together with a non-zero [offset].
  */
 data class UnitDef(
     val id: String,
@@ -29,7 +31,21 @@ data class UnitDef(
     val factor: UnifiedReal,
     val offset: UnifiedReal = UnifiedReal.ZERO,
     val inverse: Boolean = false,
-)
+) {
+
+    init {
+        // An affine reciprocal unit is a shape this constructor would otherwise accept and
+        // UnitConverter would then silently mis-evaluate: both inverse branches compute
+        // `factor / value` and never read `offset`, so every number in such a category comes
+        // out wrong by the affine term. Nothing downstream would notice, because the omission
+        // is symmetric — RoundTripTest only ever asserts a → b → a, and a conversion that
+        // drops the same term in both directions round-trips perfectly while being wrong.
+        // Failing at catalogue construction is the only place the mistake is visible at all.
+        require(!inverse || offset.definitelyZero()) {
+            "$id: an inverse unit cannot carry an offset; UnitConverter would ignore it"
+        }
+    }
+}
 
 /**
  * Converts between two units of the same dimension, via their shared base unit.
@@ -52,6 +68,10 @@ object UnitConverter {
         if (unit.inverse) {
             // L/100km is not a scaled km/L, it is its own reciprocal. Without this branch
             // the whole fuel-economy category is silently, plausibly wrong.
+            //
+            // `offset` is deliberately not read here: no reciprocal unit is affine, and
+            // UnitDef's init block refuses the combination rather than letting this branch
+            // drop a term the caller believed it had set.
             unit.factor / value
         } else {
             value * unit.factor + unit.offset

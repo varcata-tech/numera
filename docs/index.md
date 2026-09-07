@@ -10,7 +10,7 @@ Most calculators answer `1 ÷ 3 × 3` with `0.9999999999999998`. Numera answers 
 computes with exact rational numbers and constructive reals rather than floating-point
 approximations.
 
-- [Privacy policy](privacy-policy.md)
+- [Privacy policy](privacy-policy/)
 
 ## What it does
 
@@ -20,4 +20,6 @@ calculators — in twelve languages, with no internet access, no ads and no trac
 
 ## Contact
 
-Please raise an issue on the project repository.
+Numera is published by Gurpreet Singh. Email
+[goravsinghc.gc@gmail.com](mailto:goravsinghc.gc@gmail.com), or raise an issue at
+<https://github.com/gsingh1629/numera>.

@@ -1,5 +1,6 @@
 package app.numera.calculator.math.expr
 
+import java.io.ByteArrayOutputStream
 import java.util.Base64
 
 /**
@@ -34,6 +35,24 @@ object ExprCodec {
     private const val TAG_KEY: Byte = 1
 
     /**
+     * A number token whose length needs more than the single byte [TAG_NUMBER] carries.
+     *
+     * [CalculatorExpr.MAX_LITERAL_LENGTH] is 255 *because* of that byte, but the ceiling is
+     * enforced by the four places that build a [Token.Number] and not by the type, whose
+     * constructor is public. A 256-character token written under [TAG_NUMBER] would take a
+     * length byte of zero and decode as a different, shorter number — silently, since the
+     * blob stays well-formed. Spending a second tag on the case makes the framing correct
+     * whatever a producer hands over, rather than correct by remote agreement.
+     *
+     * Appended rather than replacing [TAG_NUMBER], so every blob written before it still
+     * decodes: [VERSION] is unchanged and short tokens are still framed exactly as they were.
+     */
+    private const val TAG_NUMBER_LONG: Byte = 2
+
+    /** The largest length a [TAG_NUMBER] frame can state, and so the ceiling on that form. */
+    private const val MAX_SHORT_LITERAL: Int = 0xFF
+
+    /**
      * Refuses absurd token counts before allocating for them.
      *
      * A corrupt length prefix would otherwise ask for a multi-gigabyte array. No real
@@ -44,26 +63,42 @@ object ExprCodec {
 
     /** Encodes [expr] to bytes. Never fails: any expression is representable. */
     fun encode(expr: CalculatorExpr): ByteArray {
-        val out = ArrayList<Byte>(expr.tokens.size * 2 + 1)
-        out += VERSION
+        // A stream rather than an ArrayList<Byte>: persist() runs this on the main thread on
+        // every keystroke, and the list form boxed each byte and then copied the whole thing
+        // again in toByteArray().
+        val out = ByteArrayOutputStream(expr.tokens.size * 2 + 1)
+        out.write(VERSION.toInt())
         for (token in expr.tokens) {
             when (token) {
                 is Token.Number -> {
+                    // Every character CalculatorExpr.isNumberLiteral admits is ASCII, so the
+                    // byte count is the character count; the long form is reached only by a
+                    // token no current producer can build.
                     val bytes = token.text.toByteArray(Charsets.UTF_8)
-                    out += TAG_NUMBER
-                    // A single length byte is enough: no number token exceeds
-                    // CalculatorExpr.MAX_LITERAL_LENGTH, and every character one admits is
-                    // ASCII. That ceiling is 255 precisely because of this byte.
-                    out += bytes.size.toByte()
-                    for (b in bytes) out += b
+                    if (bytes.size <= MAX_SHORT_LITERAL) {
+                        out.write(TAG_NUMBER.toInt())
+                        out.write(bytes.size)
+                    } else {
+                        out.write(TAG_NUMBER_LONG.toInt())
+                        writeInt(out, bytes.size)
+                    }
+                    out.write(bytes, 0, bytes.size)
                 }
                 is Token.Key -> {
-                    out += TAG_KEY
-                    out += tagOf(token.key)
+                    out.write(TAG_KEY.toInt())
+                    out.write(tagOf(token.key).toInt())
                 }
             }
         }
         return out.toByteArray()
+    }
+
+    /** Big-endian, so a length reads the same way on every device that opens the blob. */
+    private fun writeInt(out: ByteArrayOutputStream, value: Int) {
+        out.write((value ushr 24) and 0xFF)
+        out.write((value ushr 16) and 0xFF)
+        out.write((value ushr 8) and 0xFF)
+        out.write(value and 0xFF)
     }
 
     /** Decodes [bytes], or returns `null` if they are not a well-formed expression. */
@@ -74,12 +109,18 @@ object ExprCodec {
         while (i < bytes.size) {
             if (tokens.size >= MAX_TOKENS) return null
             when (bytes[i]) {
-                TAG_NUMBER -> {
-                    if (i + 1 >= bytes.size) return null
+                TAG_NUMBER, TAG_NUMBER_LONG -> {
+                    val wide = bytes[i] == TAG_NUMBER_LONG
+                    val header = if (wide) 5 else 2
+                    if (i + header > bytes.size) return null
                     // Read unsigned: a 200-character token would otherwise arrive negative.
-                    val length = bytes[i + 1].toInt() and 0xFF
-                    val start = i + 2
-                    if (start + length > bytes.size) return null
+                    val length =
+                        if (wide) readInt(bytes, i + 1) else bytes[i + 1].toInt() and 0xFF
+                    val start = i + header
+                    // A crafted four-byte length can be negative or vast, so it is compared
+                    // against the room that is left rather than added to the offset — the
+                    // sum itself would overflow and pass a bounds check written that way.
+                    if (length < 0 || length > bytes.size - start) return null
                     val text = String(bytes, start, length, Charsets.UTF_8)
                     // Content, not just framing. A blob is not necessarily one this version
                     // wrote: a truncated preference, a crafted clipboard payload or a
@@ -104,6 +145,12 @@ object ExprCodec {
         }
         return CalculatorExpr(tokens)
     }
+
+    private fun readInt(bytes: ByteArray, offset: Int): Int =
+        ((bytes[offset].toInt() and 0xFF) shl 24) or
+            ((bytes[offset + 1].toInt() and 0xFF) shl 16) or
+            ((bytes[offset + 2].toInt() and 0xFF) shl 8) or
+            (bytes[offset + 3].toInt() and 0xFF)
 
     /**
      * Encodes to a URL-safe, unpadded Base64 string.

@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="mode_deg">DEG</string>
-    <string name="mode_rad">RAD</string>
     <string name="key_clear">AC</string>
     <string name="desc_op_add">plus</string>
     <string name="desc_op_sub">moins</string>
@@ -36,7 +34,6 @@
     <string name="desc_more_options">plus d\'options</string>
     <string name="desc_more_digits">lire plus de chiffres</string>
     <string name="desc_computing">calcul en cours</string>
-    <string name="desc_formula">formule</string>
     <string name="desc_digit">chiffre %1$s</string>
     <string name="error_syntax">Expression incorrecte</string>
     <string name="error_divide_by_zero">Division par 0 impossible</string>
@@ -45,4 +42,5 @@
     <string name="error_aborted">Annulé</string>
     <string name="error_timeout">Le calcul est trop long</string>
     <string name="action_copy">Copier</string>
+    <string name="action_paste">Coller</string>
 </resources>

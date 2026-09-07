@@ -1,3 +1,11 @@
 title: Numera
 description: An exact-arithmetic calculator for Android
 theme: jekyll-theme-minimal
+
+# A project page is served from a sub-path, and jekyll-theme-minimal builds its stylesheet
+# link with `relative_url`. Left unset, baseurl is "" and the theme asks for
+# /assets/css/style.css at the domain root, which 404s — the page then renders as unstyled
+# black-on-white and looks like a broken host to whoever Play sends to read it.
+# These two must match the repository name; change both together if it is ever renamed.
+url: https://gsingh1629.github.io
+baseurl: /numera

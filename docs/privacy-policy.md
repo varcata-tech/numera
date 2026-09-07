@@ -1,6 +1,11 @@
+---
+title: Privacy policy
+permalink: /privacy-policy/
+---
+
 # Privacy Policy for Numera
 
-**Last updated: 22 August 2026**
+**Last updated: 6 September 2026**
 
 Numera is a calculator. It collects nothing, sends nothing, and has no way to reach the
 internet.
@@ -30,8 +35,11 @@ defines for itself, added automatically by Google's AndroidX libraries, and its 
 is to stop *other* apps from sending messages to Numera's internal components. It cannot be
 held by any app not signed with the same key. There is no user-facing capability behind it.
 
-Numera also contains no third-party libraries beyond Google's own AndroidX components. There
-is no advertising SDK, no analytics SDK, and no crash-reporting SDK embedded in the app.
+Beyond AndroidX, the Kotlin standard library and kotlinx-coroutines — Google's and
+JetBrains' own general-purpose libraries, all under the Apache License 2.0 — Numera bundles no
+third-party code at all. There is no advertising SDK, no analytics SDK, and no crash-reporting
+SDK embedded in the app, and none of the libraries it does use can reach the network without
+the `INTERNET` permission the app does not hold.
 
 ## What is stored on your device
 
@@ -63,12 +71,15 @@ to change.
 
 ## Contact
 
-Questions about this policy can be raised as an issue on the project's repository.
+Numera is published by Gurpreet Singh. Questions about this policy, or about the app, can be
+sent to **[goravsinghc.gc@gmail.com](mailto:goravsinghc.gc@gmail.com)**, or raised as an issue
+at <https://github.com/gsingh1629/numera>.
 
 ---
 
 *Numera includes an arithmetic engine derived from the Android Open Source Project's
 ExactCalculator, which is licensed under the Apache License 2.0, and from the published
-algorithms of Hans-J. Boehm's constructive reals library. No third-party code is bundled.
-The Apache License 2.0 text is available inside the app under Settings → About, and the full
-attribution is in `NOTICE.md` in the project's repository.*
+algorithms of Hans-J. Boehm's constructive reals library. Apart from AndroidX, the Kotlin
+standard library and kotlinx-coroutines, no third-party code is bundled. The Apache License 2.0
+text is available inside the app under Settings → About, and the full attribution is in
+`NOTICE.md` in the project's repository.*

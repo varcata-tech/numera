@@ -10,4 +10,5 @@
     <string name="desc_history_open">기록 열기</string>
     <string name="desc_history_close">기록 닫기</string>
     <string name="desc_history_entry">%1$s 은 %2$s, 탭하여 삽입</string>
+    <string name="desc_history_entry_radians">라디안 기준 %1$s 은 %2$s, 탭하여 삽입</string>
 </resources>

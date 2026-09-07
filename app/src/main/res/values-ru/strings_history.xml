@@ -10,4 +10,5 @@
     <string name="desc_history_open">Открыть историю</string>
     <string name="desc_history_close">Закрыть историю</string>
     <string name="desc_history_entry">%1$s равно %2$s, нажмите, чтобы вставить</string>
+    <string name="desc_history_entry_radians">%1$s в радианах равно %2$s, нажмите, чтобы вставить</string>
 </resources>

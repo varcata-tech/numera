@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="mode_deg">DEG</string>
-    <string name="mode_rad">RAD</string>
     <string name="key_clear">AC</string>
     <string name="desc_op_add">जोड़</string>
     <string name="desc_op_sub">घटा</string>
@@ -36,7 +34,6 @@
     <string name="desc_more_options">और विकल्प</string>
     <string name="desc_more_digits">और अंक पढ़ें</string>
     <string name="desc_computing">गणना जारी है</string>
-    <string name="desc_formula">सूत्र</string>
     <string name="desc_digit">अंक %1$s</string>
     <string name="error_syntax">गलत व्यंजक</string>
     <string name="error_divide_by_zero">0 से भाग नहीं दे सकते</string>
@@ -45,4 +42,5 @@
     <string name="error_aborted">रद्द किया गया</string>
     <string name="error_timeout">गणना में बहुत समय लग रहा है</string>
     <string name="action_copy">कॉपी करें</string>
+    <string name="action_paste">चिपकाएँ</string>
 </resources>

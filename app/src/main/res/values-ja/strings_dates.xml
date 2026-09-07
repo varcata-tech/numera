@@ -7,9 +7,6 @@
     <string name="dates_start">開始日</string>
     <string name="dates_end">終了日</string>
     <string name="dates_birth">生年月日</string>
-    <string name="dates_total_days">%1$d 日</string>
-    <string name="dates_breakdown">%1$d 年 %2$d か月 %3$d 日</string>
-    <string name="dates_weeks">%1$d 週間と %2$d 日</string>
     <string name="dates_years">年</string>
     <string name="dates_months">月</string>
     <string name="dates_weeks_field">週</string>
@@ -17,10 +14,31 @@
     <string name="dates_add">加算</string>
     <string name="dates_subtract">減算</string>
     <string name="dates_clamp_note">月・年の加算は、短い月の末日に丸められます。</string>
-    <string name="dates_business_result">%1$d 営業日</string>
     <string name="dates_exclude_weekend">土曜日と日曜日を除く</string>
-    <string name="dates_age_result">%1$d 歳 %2$d か月 %3$d 日</string>
-    <string name="dates_age_total">生後 %1$d 日</string>
-    <string name="dates_next_birthday">次の誕生日は %1$s（あと %2$d 日）</string>
     <string name="dates_out_of_range">これらの値はこの計算機が扱える範囲を超えています。</string>
+    <plurals name="dates_age_years_part">
+        <item quantity="other">%1$d 歳</item>
+    </plurals>
+    <plurals name="dates_days_part">
+        <item quantity="other">%1$d 日</item>
+    </plurals>
+    <plurals name="dates_months_part">
+        <item quantity="other">%1$d か月</item>
+    </plurals>
+    <plurals name="dates_weeks_part">
+        <item quantity="other">%1$d 週間</item>
+    </plurals>
+    <plurals name="dates_years_part">
+        <item quantity="other">%1$d 年</item>
+    </plurals>
+    <plurals name="dates_age_total">
+        <item quantity="other">生後 %1$d 日</item>
+    </plurals>
+    <plurals name="dates_business_result">
+        <item quantity="other">%1$d 営業日</item>
+    </plurals>
+    <string name="dates_age_result">%1$s %2$s %3$s</string>
+    <string name="dates_breakdown">%1$s %2$s %3$s</string>
+    <string name="dates_next_birthday">次の誕生日は %1$s（あと %2$s）</string>
+    <string name="dates_weeks">%1$sと %2$s</string>
 </resources>

@@ -22,28 +22,65 @@ import java.util.Locale
 internal const val MAX_AMOUNT_LENGTH: Int = 18
 
 /**
- * Keeps only what a numeric field can mean.
+ * Keeps only what a numeric field can mean, in the locale the field is drawn in.
  *
- * Three rules. Non-numeric characters are dropped. A second decimal point is refused, because
- * "1.2.3" would otherwise pass the filter, fail to parse and blank the result card. And the
- * whole thing is capped at [MAX_AMOUNT_LENGTH]; see there for why a paste is the case that
- * matters.
+ * Four rules. Digits are kept, whatever numbering system they belong to. [decimalSeparator]
+ * is kept once; a second one is refused, because "1.2.3" would otherwise pass the filter,
+ * fail to parse and blank the result card. Everything else is dropped. And the whole thing is
+ * capped at [MAX_AMOUNT_LENGTH]; see there for why a paste is the case that matters.
  *
- * @param decimal false for a field that counts things, where a '.' has no meaning at all.
+ * The separator is a parameter rather than a hardcoded '.' because the field is put on
+ * [androidx.compose.ui.text.input.KeyboardType.Decimal], which offers a comma in de, es, fr,
+ * it, pt-BR and ru — and [formatAmount] prints one back in those locales too. Accepting only
+ * '.' meant a German user typing "8,5" got 8.5% silently rewritten to 85%, with no error and
+ * no way to retype a figure this screen had just displayed.
+ *
+ * Dropping every other character is what makes a paste safe: a German "1.234,56" loses its
+ * '.' grouping and keeps its ',' decimal, giving 1234,56 rather than a mangled 1,23456.
+ *
+ * @param decimal false for a field that counts things, where a separator has no meaning.
  */
-internal fun sanitiseAmount(text: String, decimal: Boolean): String {
+internal fun sanitiseAmount(text: String, decimal: Boolean, decimalSeparator: Char): String {
     val kept = StringBuilder(minOf(text.length, MAX_AMOUNT_LENGTH))
-    var pointSeen = false
+    var separatorSeen = false
     for (character in text) {
         if (kept.length >= MAX_AMOUNT_LENGTH) break
         if (character.isDigit()) {
             kept.append(character)
-        } else if (decimal && character == '.' && !pointSeen) {
-            pointSeen = true
+        } else if (decimal && character == decimalSeparator && !separatorSeen) {
+            separatorSeen = true
             kept.append(character)
         }
     }
     return kept.toString()
+}
+
+/**
+ * Reads back what [sanitiseAmount] kept, or null when the field does not yet spell a number.
+ *
+ * [BigDecimal] parses one spelling only: ASCII digits around an ASCII point. The field holds
+ * the user's own, so "8,5" and an Arabic-Indic "٨٫٥" both have to be translated before they
+ * reach it. Null rather than an exception because a field mid-edit — empty, or holding just a
+ * separator — is an ordinary state, not an error to report.
+ */
+internal fun parseAmount(text: String, decimalSeparator: Char): BigDecimal? {
+    if (text.isBlank()) return null
+    val normalised = buildString(text.length) {
+        for (character in text) {
+            when {
+                character == decimalSeparator -> append('.')
+                character.isDigit() -> append(Character.digit(character, 10))
+                else -> return null
+            }
+        }
+    }
+    return try {
+        BigDecimal(normalised)
+    } catch (e: NumberFormatException) {
+        // Reached by a field holding only a separator, which is a state the user passes
+        // through on the way to a number rather than a mistake worth a message.
+        null
+    }
 }
 
 /** Formats an amount using [locale]'s number conventions; no exchange rate is involved. */

@@ -12,7 +12,12 @@
     <string name="desc_graph_canvas">图表</string>
     <string name="graph_list_separator">", "</string>
     <string name="graph_roots_of">%1$s 的零点：%2$s</string>
-    <string name="graph_roots_of_truncated">%2$s 的前 %1$d 个零点：%3$s</string>
     <string name="graph_trace_offscreen">x = %1$s，y = %2$s（屏幕外）</string>
     <string name="graph_clear_trace">清除追踪点</string>
+    <string name="graph_angle_unit">x 以弧度为单位</string>
+    <string name="graph_sentence_separator">"。"</string>
+    <string name="graph_trace_centre">追踪视图中心</string>
+    <plurals name="graph_roots_of_truncated">
+        <item quantity="other">%2$s 的前 %1$d 个零点：%3$s</item>
+    </plurals>
 </resources>

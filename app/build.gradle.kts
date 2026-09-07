@@ -124,6 +124,22 @@ android {
         fatal += listOf("MissingTranslation", "HardcodedText")
     }
 
+    // Every locale ships inside the base APK instead of in a per-language split. Left at
+    // bundletool's default, Play installs only the splits matching the device's *system*
+    // languages, while res/xml/locales_config.xml offers all twelve to the Android 13+
+    // per-app language picker — so picking a language whose split was never installed renders
+    // the whole app in English with no error, no logcat line and nothing to click. The app
+    // cannot repair that itself: fetching a split needs
+    // com.google.android.play:feature-delivery, which is not androidx, and a preloaded or
+    // offline install has no store round trip to fetch it in the first place. The whole
+    // resource table is 460 KB uncompressed against a 3.3 MB APK, so the split bought nothing
+    // worth this.
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
+
     packaging {
         resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}", "DebugProbesKt.bin")
     }

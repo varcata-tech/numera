@@ -10,4 +10,5 @@
     <string name="desc_history_open">Abrir el historial</string>
     <string name="desc_history_close">Cerrar el historial</string>
     <string name="desc_history_entry">%1$s es igual a %2$s, toca para insertar</string>
+    <string name="desc_history_entry_radians">%1$s en radianes es igual a %2$s, toca para insertar</string>
 </resources>

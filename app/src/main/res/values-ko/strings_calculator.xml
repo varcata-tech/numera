@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="mode_deg">DEG</string>
-    <string name="mode_rad">RAD</string>
     <string name="key_clear">AC</string>
     <string name="desc_op_add">더하기</string>
     <string name="desc_op_sub">빼기</string>
@@ -36,7 +34,6 @@
     <string name="desc_more_options">옵션 더보기</string>
     <string name="desc_more_digits">자릿수 더 읽기</string>
     <string name="desc_computing">계산 중</string>
-    <string name="desc_formula">수식</string>
     <string name="desc_digit">숫자 %1$s</string>
     <string name="error_syntax">잘못된 수식</string>
     <string name="error_divide_by_zero">0으로 나눌 수 없음</string>
@@ -45,4 +42,5 @@
     <string name="error_aborted">취소됨</string>
     <string name="error_timeout">계산이 너무 오래 걸림</string>
     <string name="action_copy">복사</string>
+    <string name="action_paste">붙여넣기</string>
 </resources>

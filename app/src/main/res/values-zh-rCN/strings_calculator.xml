@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="mode_deg">度</string>
-    <string name="mode_rad">弧度</string>
     <string name="key_clear">AC</string>
     <string name="desc_op_add">加</string>
     <string name="desc_op_sub">减</string>
@@ -36,7 +34,6 @@
     <string name="desc_more_options">更多选项</string>
     <string name="desc_more_digits">读取更多位数</string>
     <string name="desc_computing">正在计算</string>
-    <string name="desc_formula">算式</string>
     <string name="desc_digit">数字 %1$s</string>
     <string name="error_syntax">表达式有误</string>
     <string name="error_divide_by_zero">不能除以 0</string>
@@ -45,4 +42,5 @@
     <string name="error_aborted">已取消</string>
     <string name="error_timeout">计算耗时过长</string>
     <string name="action_copy">复制</string>
+    <string name="action_paste">粘贴</string>
 </resources>

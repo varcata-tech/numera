@@ -201,6 +201,22 @@ class UnifiedReal private constructor(
      * and `9^1.5` is exactly 27 rather than a padded `27.0000000000000000…`.
      */
     fun pow(exponent: UnifiedReal): UnifiedReal {
+        // `0^p` is 0 for every positive p, but nothing said so until the exponent had been
+        // shown to be rational. A π exponent went straight to powViaExpLn, whose `ln(0)`
+        // sends InvCR into a most-significant-bit search on a value that is identically
+        // zero — undecidable by construction, so it gave up with a precision overflow and
+        // the display reported "Bad expression" for a defined value, one keystroke away
+        // from a `0^2` that answers 0. The sign is taken from the factor rather than from
+        // signum(), so an opaque exponent still falls through to the behaviour below
+        // instead of starting an undecidable search of its own.
+        if (definitelyZero()) {
+            if (exponent.definitelyZero()) return ONE
+            val exponentSign = exponent.factorSignum()
+            if (exponentSign != null) {
+                if (exponent.ratFactor.signum * exponentSign > 0) return ZERO
+                throw DivideByZeroException()
+            }
+        }
         if (!exponent.isRational) return opaque(powViaExpLn(exponent))
         val e = exponent.ratFactor
 
@@ -233,16 +249,26 @@ class UnifiedReal private constructor(
         if (whole != null) {
             if (isRational) {
                 ratFactor.pow(whole)?.let { return make(it, Factor.One) }
-                // The exact path declined. For an integer exponent that means only one
-                // thing: the result is too big. Its size is known before any work is done
-                // — bits are roughly exponent times the width of the base — so check it
-                // here rather than discovering it inside a lazy approximation later.
-                // Without this, 10^10^10 is four keystrokes that "succeed" and then wedge
-                // the display thread the moment it asks for a digit. The bound is the
-                // exponential's, not the general one, because the fall-through below is
-                // powViaExpLn: this result is produced by a Taylor series, not by squaring.
-                val widest = maxOf(ratFactor.num.bitLength(), ratFactor.den.bitLength())
-                val estimatedBits = whole.abs() * BigInteger.valueOf(widest.toLong())
+                // The exact path declined, and for an integer exponent the size of the
+                // result is known before any work is done — so decide it here rather than
+                // discovering it inside a lazy approximation later. Without this, 10^10^10
+                // is four keystrokes that "succeed" and then wedge the display thread the
+                // moment it asks for a digit. The bound is the exponential's, not the
+                // general one, because the fall-through below is powViaExpLn: this result
+                // is produced by a Taylor series, not by squaring.
+                //
+                // The estimate is signed, deliberately. Measuring the base by its widest
+                // half and the exponent by its magnitude refused a large *negative*
+                // exponent too, so 2^(−1000000) and (1/2)^1000000 — the same value, about
+                // 10^−301030, which the display renders honestly as 0… — came back as
+                // "requires too much memory". That contradicted the rule boundedProduct
+                // states for exactly this situation: a value driven far below one is never
+                // refused. Only a result that *grows* can be too large to hold. The trailing
+                // |whole| is the slack in log2 of a ratio measured by bit lengths, added in
+                // the direction that over-estimates.
+                val scale = ratFactor.num.abs().bitLength() - ratFactor.den.bitLength()
+                val estimatedBits =
+                    whole * BigInteger.valueOf(scale.toLong()) + whole.abs()
                 CalculationLimits.checkBits(estimatedBits, CalculationLimits.MAX_EXP_BITS)
                 return powWithSign(whole, exponent)
             }
@@ -566,12 +592,30 @@ class UnifiedReal private constructor(
          * *formatter* to discover, fourteen million bits in, that it cannot finish — and
          * the formatting stage has neither a timeout nor a catch around it.
          *
-         * Only a positive exponent is bounded. `e^(−10^7)` is a value the approximation
-         * layer disposes of in microseconds, because every operand is indistinguishable
-         * from zero at the precision asked for; refusing it would report an error for an
-         * answer that is simply zero to every digit anyone can scroll to.
+         * Two different sizes are bounded, and only one of them cares about the sign.
+         *
+         * The *width of the answer* is a problem only when the exponent is positive:
+         * `e^(−10^7)` is a value the approximation layer disposes of in microseconds,
+         * because every operand is indistinguishable from zero at the precision asked for,
+         * and refusing it would report an error for an answer that is simply zero to every
+         * digit anyone can scroll to.
+         *
+         * The *magnitude of the exponent* is a problem for either sign. That was the hole:
+         * [ConstructiveReal.exp] halves its argument until it is under about 1/512, so the
+         * multiplication tree it leaves behind is `log2(|r|)` levels deep regardless of
+         * which way the exponent points, and the stage that expands that tree is the
+         * formatter — where a `StackOverflowError` is an `Error` that escapes every catch
+         * in the app and kills the process. `e^(0−10^600)` is ten keypresses, and it was
+         * waved through by a guard reasoning about a width that was never the cost.
          */
         private fun checkExpSize(exponent: BoundedRational) {
+            // A strict upper bound on log2(|r|): num < 2^bitLength(num) and den ≥
+            // 2^(bitLength(den) − 1). Costs nothing beside the arithmetic that built r.
+            val magnitudeBits =
+                exponent.num.abs().bitLength() - exponent.den.bitLength() + 1
+            if (magnitudeBits > CalculationLimits.MAX_EXP_ARGUMENT_BITS) {
+                throw TooMuchMemoryException()
+            }
             if (exponent.signum <= 0) return
             // log2(e) < 1.443, so this over-estimates the width of e^r rather than
             // under-estimating it, which is the safe direction for a refusal.
@@ -632,13 +676,6 @@ class UnifiedReal private constructor(
         }
 
         /**
-         * Splits `√n` into `coefficient × √(square-free part)`.
-         *
-         * The trial division bound is small on purpose: users type `√8` and `√50`, not
-         * `√(p²q)` for six-digit primes, and an unbounded factorisation would be a much
-         * better way to hang the calculator than any arithmetic in it.
-         */
-        /**
          * The exact `index`-th root of a positive rational, or null when there is not one.
          *
          * Both halves of the fraction have to come out whole: 8/27 has an exact cube root
@@ -682,20 +719,77 @@ class UnifiedReal private constructor(
             return if (x.pow(n) == value) x else null
         }
 
+        /**
+         * How far `√n` is trial-divided in search of a square factor.
+         *
+         * Small on purpose: users type `√8` and `√50`, not `√(p²q)` for six-digit primes,
+         * and an unbounded factorisation would be a much better way to hang the calculator
+         * than any arithmetic in it.
+         */
+        private const val TRIAL_DIVISION_BOUND: Long = 10_000L
+
+        /**
+         * Splits `√n` into `coefficient × √(square-free part)`.
+         *
+         * Square-freeness of what comes back is what [Factor.Sqrt] promises and what
+         * [plus] relies on, so the trial division to [TRIAL_DIVISION_BOUND] is backed by
+         * two further tests that cost one square root each: the whole remainder may itself
+         * be a perfect square, and — once the small primes still present are known — so may
+         * the part of it built from nothing but large ones. What escapes all three is
+         * documented on [Factor.Sqrt].
+         */
         private fun sqrtOfInteger(n: BigInteger): Pair<BoundedRational, Factor> {
             require(n.signum() > 0)
             var remaining = n
             var coefficient = BigInteger.ONE
+            // The distinct primes below the trial bound that survive in the remainder, each
+            // to the first power. Every square factor the loop could not reach is therefore
+            // contained in `remaining / smallPart`, which is what lets one probe decide it.
+            var smallPart = BigInteger.ONE
             var d = 2L
-            while (d <= 10_000L) {
+            while (d <= TRIAL_DIVISION_BOUND) {
                 CalculationLimits.checkNotAborted()
+                val divisor = BigInteger.valueOf(d)
+                // d is at most 10,000, so d² cannot overflow a Long on the way in.
                 val square = BigInteger.valueOf(d * d)
                 if (square > remaining) break
-                while (remaining.mod(square).signum() == 0) {
-                    remaining /= square
-                    coefficient *= BigInteger.valueOf(d)
+                if (remaining.mod(divisor).signum() == 0) {
+                    if (remaining.mod(square).signum() == 0) {
+                        // Peeling one square at a time is linear in the *count* of factors,
+                        // and the count is unbounded: √(1E100000) arrives here as 10^100000,
+                        // whose hundred thousand factors of two cost seven seconds of
+                        // BigInteger division — inside the one loop in this module with no
+                        // cancellation point, so an interrupted preview held a core long
+                        // after the UI had moved on. stripFactors peels `d^(2^k)` blocks
+                        // instead, one division per bit of the count, and checks for
+                        // cancellation at every step.
+                        val (count, rest) = BoundedRational.stripFactors(remaining, divisor)
+                        coefficient *= divisor.pow(count / 2)
+                        remaining = if (count % 2 == 1) rest * divisor else rest
+                    }
+                    // d survives at most once now. Only a divisor coprime to what has
+                    // already been collected can be prime — 6 divides only when 2 and 3
+                    // both do, and both were taken at their own step — so this stays a
+                    // product of distinct primes, which is what makes it square-free.
+                    if (remaining.mod(divisor).signum() == 0 &&
+                        smallPart.gcd(divisor) == BigInteger.ONE
+                    ) {
+                        smallPart *= divisor
+                    }
                 }
                 d++
+            }
+            // The part built only from primes past the bound. A square factor the loop
+            // could not see lives entirely here, so if this is a perfect square the whole
+            // radicand normalises — which is how √(2·10007²) becomes 10007√2 rather than
+            // staying an un-normalised √200280098 that 10007√2 can never be shown to equal.
+            if (smallPart > BigInteger.ONE) {
+                val cofactor = remaining / smallPart
+                val cofactorRoot = cofactor.sqrt()
+                if (cofactorRoot * cofactorRoot == cofactor) {
+                    coefficient *= cofactorRoot
+                    remaining = smallPart
+                }
             }
             // What is left may still be a large perfect square that trial division missed.
             val root = remaining.sqrt()

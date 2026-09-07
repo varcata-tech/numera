@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+      Every sym_* value is untranslatable notation, and must actually *be* notation: an
+      English word in a symbol slot renders in English at titleMedium beside a fully
+      translated unit name, and MissingTranslation cannot see it because the string is
+      declared untranslatable. "long ton", "ton", "cup" and "turn" each shipped that way
+      until they became LT, ST, c and tr.
+
+      Known and deliberately left: the whole time category leans on English abbreviations —
+      yr, mo, wk, and the invented c (century), dec (decade) and fn (fortnight), plus lea
+      for league — because these units have no international symbol to reach for. They are
+      not defensible as "the same in every language", so the rule above does not really
+      cover them. They are left alone rather than half-fixed: translating c, dec, fn and lea
+      while yr, mo and wk stay English would be a worse inconsistency than the present one,
+      and doing the category properly means making seven or more sym_* translatable and
+      adding eleven locales each, behind a fatal MissingTranslation gate, which is not a
+      change to land beside a first submission. The cost of leaving it is bounded: the chip
+      is opaque on its own, but ConverterScreen renders the fully localised unit name from
+      UnitNames.nameRes in the same card, so the unit is never actually ambiguous. Fix the
+      category as a unit, after the first release.
+    -->
     <!-- Category names. -->
     <string name="dim_length">Length</string>
     <string name="dim_mass">Mass</string>
@@ -73,7 +93,7 @@
     <string name="unit_cubic_yard">Cubic yard</string>
     <string name="sym_cubic_yard" translatable="false">yd³</string>
     <string name="unit_cup_us">Cup (US)</string>
-    <string name="sym_cup_us" translatable="false">cup</string>
+    <string name="sym_cup_us" translatable="false">c</string>
     <string name="unit_day">Day</string>
     <string name="sym_day" translatable="false">d</string>
     <string name="unit_decade">Decade</string>
@@ -365,15 +385,15 @@
     <string name="unit_ton_force">Ton-force</string>
     <string name="sym_ton_force" translatable="false">tnf</string>
     <string name="unit_ton_imperial">Imperial ton</string>
-    <string name="sym_ton_imperial" translatable="false">long ton</string>
+    <string name="sym_ton_imperial" translatable="false">LT</string>
     <string name="unit_ton_us">US ton</string>
-    <string name="sym_ton_us" translatable="false">ton</string>
+    <string name="sym_ton_us" translatable="false">ST</string>
     <string name="unit_tonne">Tonne</string>
     <string name="sym_tonne" translatable="false">t</string>
     <string name="unit_torr">Torr</string>
     <string name="sym_torr" translatable="false">Torr</string>
     <string name="unit_turn">Turn</string>
-    <string name="sym_turn" translatable="false">turn</string>
+    <string name="sym_turn" translatable="false">tr</string>
     <string name="unit_watt">Watt</string>
     <string name="sym_watt" translatable="false">W</string>
     <string name="unit_watt_hour">Watt-hour</string>
@@ -394,6 +414,7 @@
     <string name="converter_from">From</string>
     <string name="converter_to">To</string>
     <string name="converter_swap">Swap units</string>
+    <string name="converter_change_unit">Change unit: %1$s</string>
     <string name="converter_search">Search units</string>
     <string name="converter_common">Common conversions</string>
 </resources>

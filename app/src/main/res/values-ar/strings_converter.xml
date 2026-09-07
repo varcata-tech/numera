@@ -19,6 +19,7 @@
     <string name="converter_from">من</string>
     <string name="converter_to">إلى</string>
     <string name="converter_swap">تبديل الوحدتين</string>
+    <string name="converter_change_unit">تغيير الوحدة: %1$s</string>
     <string name="converter_search">البحث عن وحدة</string>
     <string name="converter_common">تحويلات شائعة</string>
     <string name="unit_bit">بت</string>

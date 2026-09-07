@@ -19,6 +19,7 @@
     <string name="converter_from">से</string>
     <string name="converter_to">में</string>
     <string name="converter_swap">इकाइयाँ बदलें</string>
+    <string name="converter_change_unit">इकाई बदलें: %1$s</string>
     <string name="converter_search">इकाइयाँ खोजें</string>
     <string name="converter_common">सामान्य रूपांतरण</string>
     <string name="unit_bit">बिट</string>

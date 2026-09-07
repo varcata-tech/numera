@@ -97,22 +97,30 @@ object ExprEvaluator {
      * infinities — so the plotter can break the line instead of guarding every call site.
      */
     fun compileToDouble(expr: CalculatorExpr, mode: AngleMode): ((Double) -> Double)? {
-        val node = try {
-            ExprParser(expr.tokens).parse()
+        // Compiling is inside the guard, not just parsing. The parser bounds its own
+        // *recursion* depth, but `1+1+1+…` is parsed by an iterative loop into a left-leaning
+        // tree as deep as the term count, and `compile` then descends that tree recursively:
+        // parse depth is bounded where tree depth is not, so this is the half that overflows
+        // first. A graph that cannot be compiled is a blank plot, never a crash.
+        val compiled = try {
+            // Compiled once into a tree of closures rather than interpreted per sample: the
+            // per-point cost is what decides whether a pinch-zoom holds sixty frames a second.
+            compile(ExprParser(expr.tokens).parse(), mode)
         } catch (e: Exception) {
             return null
         } catch (e: StackOverflowError) {
-            // Deeply nested tokens overflow the stack rather than throwing an Exception,
-            // and a graph that cannot be compiled is a blank plot, never a crash.
             return null
         }
-        // Compiled once into a tree of closures rather than interpreted per sample: the
-        // per-point cost is what decides whether a pinch-zoom holds sixty frames a second.
-        val compiled = compile(node, mode)
         return { x ->
             val y = try {
                 compiled(x)
             } catch (e: ArithmeticException) {
+                Double.NaN
+            } catch (e: StackOverflowError) {
+                // Each sample re-descends the same tree, on a Dispatchers.Default worker
+                // whose stack is smaller than the one that compiled it — so a depth that
+                // compiled can still overflow here. An Error escaping a sample loop is an
+                // uncaught failure on viewModelScope rather than a gap in the plotted line.
                 Double.NaN
             }
             if (y.isFinite()) y else Double.NaN

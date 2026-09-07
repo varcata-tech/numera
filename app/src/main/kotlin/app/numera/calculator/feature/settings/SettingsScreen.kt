@@ -22,6 +22,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -30,9 +31,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.numera.calculator.R
@@ -42,6 +45,7 @@ import app.numera.calculator.settings.LocalSettingsStore
 import app.numera.calculator.settings.SettingsStore
 import app.numera.calculator.ui.common.ModeScaffold
 import app.numera.calculator.ui.theme.ThemeMode
+import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -238,7 +242,11 @@ private fun AboutSection() {
     }
 
     if (privacyShown) {
-        AssetText(PRIVACY_ASSET, softWrap = true)
+        AssetText(
+            asset = PRIVACY_ASSET,
+            softWrap = true,
+            loadingLabel = R.string.about_privacy_loading,
+        )
     }
 
     TextButton(
@@ -253,55 +261,104 @@ private fun AboutSection() {
     }
 
     if (licenseShown) {
-        AssetText(LICENSE_ASSET, softWrap = false)
+        AssetText(
+            asset = LICENSE_ASSET,
+            softWrap = false,
+            loadingLabel = R.string.about_license_loading,
+        )
     }
+}
+
+/**
+ * What [AssetText] has to draw.
+ *
+ * Three states rather than a nullable string, because "not read yet" and "cannot be read"
+ * need different words on screen and the nullable form could not tell them apart.
+ */
+private sealed interface AssetState {
+
+    /** The read is still in flight. */
+    data object Loading : AssetState
+
+    /** The asset was read. */
+    data class Loaded(val text: String) : AssetState
+
+    /** The asset is missing or unreadable, and no amount of waiting will change that. */
+    data object Failed : AssetState
 }
 
 /**
  * Renders a bundled text asset.
  *
+ * @param asset the file under `assets/` to show.
  * @param softWrap false for the licence, whose indentation is meaningful — re-wrapping it to
  *   the screen width makes the numbered clauses unreadable, so it scrolls sideways instead.
  *   True for prose like the privacy policy, which should wrap normally.
+ * @param loadingLabel the string resource shown while the read is in flight. A parameter
+ *   rather than a constant because this composable is shared: with the licence's wording
+ *   hardcoded here, tapping "Privacy policy" put "Loading licence…" on screen underneath a
+ *   button reading "Hide privacy policy".
  */
 @Composable
-private fun AssetText(asset: String, softWrap: Boolean) {
+private fun AssetText(asset: String, softWrap: Boolean, loadingLabel: Int) {
     val context: Context = LocalContext.current
     // Nine kilobytes off the asset manager is not free on the main thread, and a settings
     // screen that jank-stutters when a disclosure expands is the first thing a reviewer
     // notices. produceState keeps the read off the frame and cancels it if the user leaves.
-    val loaded: String? by produceState<String?>(initialValue = null, context, asset) {
+    val state: AssetState by produceState<AssetState>(AssetState.Loading, context, asset) {
         value = withContext(Dispatchers.IO) {
-            runCatching {
-                context.assets.open(asset).bufferedReader().use { it.readText() }
-            }.getOrNull()
+            try {
+                AssetState.Loaded(
+                    context.assets.open(asset).bufferedReader().use { reader -> reader.readText() }
+                )
+            } catch (unreadable: IOException) {
+                // Narrow, and it produces a state the user is told about. Folding every
+                // failure into a null left the pending line on screen for good instead: a
+                // build that had lost the privacy-policy asset would have answered Play's
+                // in-app-policy requirement with a sentence saying it was still loading.
+                AssetState.Failed
+            }
         }
     }
 
-    val body: String? = loaded
-    if (body == null) {
-        Text(
-            text = stringResource(R.string.about_license_loading),
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = 24.dp),
-        )
-    } else if (softWrap) {
-        Text(
-            text = body,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-        )
-    } else {
-        Text(
-            text = body,
-            style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Start,
-            softWrap = false,
-            modifier = Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 8.dp),
-        )
+    when (val current: AssetState = state) {
+        AssetState.Loading -> AssetNotice(stringResource(loadingLabel))
+        AssetState.Failed -> AssetNotice(stringResource(R.string.about_asset_error))
+        // Both bundled documents are English, so the direction is pinned rather than
+        // inherited: under Arabic the ambient RTL right-aligns the licence and parks its
+        // horizontal scroll at the far end, opening it on the ends of its lines.
+        is AssetState.Loaded -> CompositionLocalProvider(
+            LocalLayoutDirection provides LayoutDirection.Ltr
+        ) {
+            if (softWrap) {
+                Text(
+                    text = current.text,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                )
+            } else {
+                Text(
+                    text = current.text,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Start,
+                    softWrap = false,
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp, vertical = 8.dp),
+                )
+            }
+        }
     }
+}
+
+/** One line of status where an asset's text would otherwise be. */
+@Composable
+private fun AssetNotice(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(horizontal = 24.dp),
+    )
 }
 
 /**

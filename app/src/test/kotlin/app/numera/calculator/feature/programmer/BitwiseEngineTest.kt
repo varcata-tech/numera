@@ -86,24 +86,25 @@ class BitwiseEngineTest {
     }
 
     @Test
-    fun `byte swap reverses the word`() {
-        assertEquals(0x3412L, BitwiseEngine.byteSwap(0x1234, WordSize.BITS_16))
-        assertEquals(0x78563412L, BitwiseEngine.byteSwap(0x12345678, WordSize.BITS_32))
-    }
-
-    @Test
     fun `bitwise operators stay inside the word`() {
         assertEquals(0x0FL, BitwiseEngine.and(0xFF, 0x0F, WordSize.BITS_8))
         assertEquals(0xFFL, BitwiseEngine.or(0xF0, 0x0F, WordSize.BITS_8))
         assertEquals(0xFFL, BitwiseEngine.xor(0xF0, 0x0F, WordSize.BITS_8))
-        assertEquals(0xF0L, BitwiseEngine.nand(0xFF, 0x0F, WordSize.BITS_8))
-        assertEquals(0x00L, BitwiseEngine.nor(0xF0, 0x0F, WordSize.BITS_8))
+        assertEquals(0x0FL, BitwiseEngine.not(0xF0, WordSize.BITS_8))
     }
 
+    /**
+     * The sign key's arithmetic, including the one value that has no negative.
+     *
+     * −128 in eight bits negates to itself. That is what the register does, and reporting it
+     * as an error instead would be describing the JVM rather than the emulated machine.
+     */
     @Test
-    fun `two's complement negates and one's complement inverts`() {
+    fun `two's complement negates within the word`() {
         assertEquals(0xFFL, BitwiseEngine.twosComplement(1, WordSize.BITS_8))
-        assertEquals(0xFEL, BitwiseEngine.onesComplement(1, WordSize.BITS_8))
+        assertEquals(1L, BitwiseEngine.twosComplement(0xFF, WordSize.BITS_8))
+        assertEquals(0L, BitwiseEngine.twosComplement(0, WordSize.BITS_8))
+        assertEquals(0x80L, BitwiseEngine.twosComplement(0x80, WordSize.BITS_8))
     }
 
     @Test
@@ -135,6 +136,64 @@ class BitwiseEngineTest {
         // 0x100 needs nine bits.
         assertNull(BitwiseEngine.parse("100", NumberBase.HEX, WordSize.BITS_8))
         assertEquals(0xFFL, BitwiseEngine.parse("FF", NumberBase.HEX, WordSize.BITS_8))
+    }
+
+    /**
+     * The range check has to be an *unsigned* comparison.
+     *
+     * parseUnsignedLong hands back a raw bit pattern, so everything from 2^63 up arrives as a
+     * negative Long. A signed `parsed > mask` is then false against a small positive mask,
+     * the guard is skipped, and the value is truncated into the word instead of refused —
+     * 0xFFFFFFFFFFFFFFFF would be accepted as a 32-bit 0xFFFFFFFF, which is a different
+     * number presented as the one that was typed.
+     */
+    @Test
+    fun `parsing refuses a value at or above two to the sixty three`() {
+        assertNull(BitwiseEngine.parse("FFFFFFFFFFFFFFFF", NumberBase.HEX, WordSize.BITS_32))
+        assertNull(BitwiseEngine.parse("8000000000000000", NumberBase.HEX, WordSize.BITS_32))
+        assertNull(BitwiseEngine.parse("18446744073709551615", NumberBase.DEC, WordSize.BITS_8))
+        // The whole unsigned range still fits a 64-bit word, and must not be caught by it.
+        assertEquals(-1L, BitwiseEngine.parse("FFFFFFFFFFFFFFFF", NumberBase.HEX, WordSize.BITS_64))
+        assertEquals(
+            Long.MIN_VALUE,
+            BitwiseEngine.parse("9223372036854775808", NumberBase.DEC, WordSize.BITS_64),
+        )
+    }
+
+    /**
+     * Backspace once the typed buffer has been committed.
+     *
+     * The register is what is left, and shortening it is the only reading of delete that
+     * does not destroy a value the user was correcting. The signed decimal case is the one
+     * worth pinning: the sign is not a digit, so it survives the keystroke that removes one.
+     */
+    @Test
+    fun `dropping a digit shortens the value as it is written`() {
+        assertEquals(0x10L, BitwiseEngine.dropLastDigit(0x100, WordSize.BITS_32, true, NumberBase.HEX))
+        assertEquals(12L, BitwiseEngine.dropLastDigit(123, WordSize.BITS_32, true, NumberBase.DEC))
+        assertEquals(0b101L, BitwiseEngine.dropLastDigit(0b1011, WordSize.BITS_8, false, NumberBase.BIN))
+        // Octal 123 is 83, and dropping its last digit leaves octal 12, which is 10.
+        assertEquals(10L, BitwiseEngine.dropLastDigit(83, WordSize.BITS_16, false, NumberBase.OCT))
+        // -123 in an 8-bit signed word backspaces to -12, not to a huge unsigned number.
+        val negative = BitwiseEngine.truncate(-123, WordSize.BITS_8)
+        val shortened = BitwiseEngine.dropLastDigit(negative, WordSize.BITS_8, true, NumberBase.DEC)
+        assertEquals(-12L, BitwiseEngine.interpret(shortened, WordSize.BITS_8, signed = true))
+        // The last digit of a single-digit value leaves zero rather than wrapping.
+        assertEquals(0L, BitwiseEngine.dropLastDigit(7, WordSize.BITS_8, false, NumberBase.DEC))
+    }
+
+    /**
+     * The magnitude of the most negative 64-bit value cannot be held in a Long at all.
+     *
+     * Negating it wraps it back to itself, so a signed division of the negated value would
+     * take the digits from the wrong number entirely. Read unsigned, the same wrapped pattern
+     * is exactly 2^63, which is what the decimal row on screen says.
+     */
+    @Test
+    fun `dropping a digit from the most negative sixty four bit value`() {
+        val shortened =
+            BitwiseEngine.dropLastDigit(Long.MIN_VALUE, WordSize.BITS_64, true, NumberBase.DEC)
+        assertEquals(-922337203685477580L, shortened)
     }
 
     @Test

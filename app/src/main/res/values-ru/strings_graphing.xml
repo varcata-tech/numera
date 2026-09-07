@@ -12,7 +12,15 @@
     <string name="desc_graph_canvas">График</string>
     <string name="graph_list_separator">"; "</string>
     <string name="graph_roots_of">Корни %1$s: %2$s</string>
-    <string name="graph_roots_of_truncated">Первые %1$d корней %2$s: %3$s</string>
     <string name="graph_trace_offscreen">x = %1$s, y = %2$s (за пределами экрана)</string>
     <string name="graph_clear_trace">Убрать курсор</string>
+    <string name="graph_angle_unit">x в радианах</string>
+    <string name="graph_sentence_separator">". "</string>
+    <string name="graph_trace_centre">Отметить центр видимой области</string>
+    <plurals name="graph_roots_of_truncated">
+        <item quantity="one">Первый %1$d корень %2$s: %3$s</item>
+        <item quantity="few">Первые %1$d корня %2$s: %3$s</item>
+        <item quantity="many">Первые %1$d корней %2$s: %3$s</item>
+        <item quantity="other">Первые %1$d корня %2$s: %3$s</item>
+    </plurals>
 </resources>

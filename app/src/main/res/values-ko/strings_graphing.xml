@@ -12,7 +12,12 @@
     <string name="desc_graph_canvas">그래프</string>
     <string name="graph_list_separator">", "</string>
     <string name="graph_roots_of">%1$s의 근: %2$s</string>
-    <string name="graph_roots_of_truncated">%2$s의 근 중 처음 %1$d개: %3$s</string>
     <string name="graph_trace_offscreen">x = %1$s, y = %2$s(화면 밖)</string>
     <string name="graph_clear_trace">추적점 지우기</string>
+    <string name="graph_angle_unit">x는 라디안</string>
+    <string name="graph_sentence_separator">". "</string>
+    <string name="graph_trace_centre">보이는 범위의 가운데 추적</string>
+    <plurals name="graph_roots_of_truncated">
+        <item quantity="other">%2$s의 근 중 처음 %1$d개: %3$s</item>
+    </plurals>
 </resources>
