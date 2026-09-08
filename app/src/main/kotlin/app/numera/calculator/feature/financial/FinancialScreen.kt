@@ -112,8 +112,9 @@ fun FinancialScreen(onBack: () -> Unit) {
 
 @Composable
 private fun LoanTab() {
+    val separator = LocalConfiguration.current.locales[0].decimalSeparator()
     var principal: String by rememberSaveable { mutableStateOf("1000000") }
-    var rate: String by rememberSaveable { mutableStateOf("8.5") }
+    var rate: String by rememberSaveable { mutableStateOf(seedAmount("8.5", separator)) }
     var months: String by rememberSaveable { mutableStateOf("240") }
 
     MoneyField(stringResource(R.string.fin_principal), principal) { principal = it }

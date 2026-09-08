@@ -89,4 +89,30 @@ class MoneyFormatTest {
         assertEquals(null, parseAmount("", ','))
         assertEquals(null, parseAmount("12x", ','))
     }
+
+    @Test
+    fun `a seeded default is spelled in the locale that has to read it back`() {
+        // The loan tab opened on "enter a valid number in each field" in every
+        // comma-decimal locale, untouched, because the seed "8.5" is a display string and
+        // the parser is locale-aware. Seed and parser have to agree.
+        val german = seedAmount("8.5", ',')
+        assertEquals("8,5", german)
+        assertEquals(BigDecimal("8.5"), parseAmount(german, ','))
+        // ...and appending a digit must extend it, not silently delete the separator.
+        assertEquals("8,55", sanitiseAmount(german + "5", decimal = true, decimalSeparator = ','))
+        // An en seed is left exactly as written.
+        assertEquals("8.5", seedAmount("8.5", '.'))
+    }
+
+    @Test
+    fun `a value saved under another locale still reads as a number`() {
+        // Switching the app language leaves whatever was typed before in the field. A
+        // stored '.' can only ever be a decimal point — sanitiseAmount drops grouping
+        // separators — so it must parse rather than blank the card.
+        assertEquals(BigDecimal("8.5"), parseAmount("8.5", ','))
+        assertEquals(BigDecimal("8.5"), parseAmount("8,5", ','))
+        // Two decimal marks are still nonsense, whichever spelling they use.
+        assertEquals(null, parseAmount("1.2,3", ','))
+        assertEquals(null, parseAmount("1.2.3", ','))
+    }
 }

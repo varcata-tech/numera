@@ -65,10 +65,21 @@ internal fun sanitiseAmount(text: String, decimal: Boolean, decimalSeparator: Ch
  */
 internal fun parseAmount(text: String, decimalSeparator: Char): BigDecimal? {
     if (text.isBlank()) return null
+    var pointSeen = false
     val normalised = buildString(text.length) {
         for (character in text) {
             when {
-                character == decimalSeparator -> append('.')
+                character == decimalSeparator || character == '.' -> {
+                    // An ASCII point is accepted alongside the locale's own separator
+                    // because a stored value can never contain a *grouping* separator:
+                    // sanitiseAmount keeps digits and the decimal separator and drops
+                    // everything else, so a '.' here is always a decimal point that
+                    // arrived from a seed or from a value saved under another locale.
+                    // Rejecting it made the whole field read as "not a number".
+                    if (pointSeen) return null
+                    pointSeen = true
+                    append('.')
+                }
                 character.isDigit() -> append(Character.digit(character, 10))
                 else -> return null
             }
@@ -82,6 +93,19 @@ internal fun parseAmount(text: String, decimalSeparator: Char): BigDecimal? {
         null
     }
 }
+
+/**
+ * Rewrites a hard-coded default so the field can read it back.
+ *
+ * A seed is written in source with an ASCII point, but it is handed straight to the text
+ * field as a *display* string and read back by [parseAmount] against the locale's own
+ * separator. Left alone, "8.5" opened the loan tab reading "enter a valid number in each
+ * field" in de, es, fr, it, pt-BR, ru and ar — every locale whose decimal mark is not a
+ * point — before the user had touched anything. It also made the field un-repairable:
+ * [sanitiseAmount] drops the foreign '.', so appending a digit turned 8.5 into 855.
+ */
+internal fun seedAmount(literal: String, decimalSeparator: Char): String =
+    if (decimalSeparator == '.') literal else literal.replace('.', decimalSeparator)
 
 /** Formats an amount using [locale]'s number conventions; no exchange rate is involved. */
 internal fun formatAmount(value: BigDecimal, locale: Locale): String =

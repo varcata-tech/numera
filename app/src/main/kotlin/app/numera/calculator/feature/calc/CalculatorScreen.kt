@@ -82,6 +82,7 @@ import app.numera.calculator.data.HistoryEntry
 import app.numera.calculator.data.LocalHistoryStore
 import app.numera.calculator.feature.history.DrawerState
 import app.numera.calculator.feature.history.HistoryDrawer
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import app.numera.calculator.math.AngleMode
 import app.numera.calculator.math.expr.CalculatorExpr
@@ -489,15 +490,50 @@ private fun ResultLine(
     LaunchedEffect(generation) { scrollState.scrollTo(0) }
 
     if (hasMoreDigits) {
-        LaunchedEffect(scrollState, hasMoreDigits) {
-            snapshotFlow { scrollState.value to scrollState.maxValue }
-                .collect { (value, max) ->
-                    // Ask well before the end so the next block of digits has landed by the
-                    // time the finger gets there; waiting until the true edge shows a stop.
-                    // `value > 0` is what keeps a line that merely overflows its box by a few
-                    // pixels from requesting an expansion nobody scrolled for — including the
-                    // clamped position a shrinking result leaves behind.
-                    if (max > 0 && value > 0 && value >= max - 8) onRequestMoreDigits()
+        // Keyed on the text as well, so each rendering gets exactly one chance to grow
+        // itself to fit; without that the fit branch below re-fires on every measurement
+        // between the request and the longer answer arriving.
+        LaunchedEffect(scrollState, hasMoreDigits, text) {
+            var askedToFill = false
+            snapshotFlow { Triple(scrollState.value, scrollState.maxValue, scrollState.viewportSize) }
+                .collect { (value, max, viewport) ->
+                    // viewportSize is 0 until the line has actually been measured, and
+                    // snapshotFlow emits once before that. Reading max == 0 in that first
+                    // emission means "not laid out yet", not "nothing to scroll" — acting on
+                    // it expanded every result on every screen, including the portrait ones
+                    // that could already scroll perfectly well.
+                    if (viewport == 0) return@collect
+                    if (max == 0) {
+                        // maxValue is also 0 for a frame or two straight after the text
+                        // changes, before the new content has been measured — so a bare
+                        // max == 0 fires on every result everywhere. Let it settle and
+                        // look again; only a line that still cannot scroll a moment later
+                        // genuinely has no more room.
+                        // The answer does not fill the line, so there is nothing to scroll
+                        // and the branch below can never fire — no drag can produce a
+                        // scroll offset in a viewport with no overflow. That is not a
+                        // corner case: it is every landscape phone, tablet and unfolded
+                        // foldable, where a twenty-character answer sits in a viewport
+                        // three times its width. Those users could never reach past the
+                        // first seventeen digits of one seventh while the trailing ellipsis
+                        // went on promising more. Ask on the display's behalf instead, once
+                        // per rendering; each expansion doubles, so this stops as soon as
+                        // the answer is wider than the line and scrolling takes over.
+                        if (!askedToFill) {
+                            delay(SETTLE_MS)
+                            if (scrollState.maxValue == 0 && scrollState.viewportSize > 0) {
+                                askedToFill = true
+                                onRequestMoreDigits()
+                            }
+                        }
+                    } else if (value > 0 && value >= max - 8) {
+                        // Ask well before the end so the next block of digits has landed by
+                        // the time the finger gets there; waiting until the true edge shows
+                        // a stop. `value > 0` is what keeps a line that merely overflows its
+                        // box by a few pixels from requesting an expansion nobody scrolled
+                        // for — including the clamped position a shrinking result leaves.
+                        onRequestMoreDigits()
+                    }
                 }
         }
     }
@@ -1072,3 +1108,13 @@ private const val CLIP_LABEL = "app.numera.calculator/expression"
 
 /** Where the exact token stream rides: read by this app, pasted by nothing. */
 private const val CLIP_EXTRA_EXPR = "app.numera.calculator.EXPRESSION"
+
+/**
+ * How long to wait before believing that a result line has nothing left to scroll.
+ *
+ * `ScrollState.maxValue` is 0 both for a line that fits its viewport and for one whose new
+ * text has not been measured yet, and the two are indistinguishable in the frame the text
+ * changes. Long enough for layout, short enough that a wide display fills itself before the
+ * user looks for the digits that are missing.
+ */
+private const val SETTLE_MS: Long = 250L

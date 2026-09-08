@@ -174,16 +174,23 @@ private fun BaseRow(base: NumberBase, text: String, active: Boolean, onClick: ()
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(width = 42.dp, height = 20.dp),
         )
-        Text(
-            text = text,
-            // Monospace so the digits line up between the four rows; a proportional font
-            // makes two bit patterns of the same length look different lengths.
-            style = MaterialTheme.typography.titleMedium.copy(fontFamily = FontFamily.Monospace),
-            maxLines = 1,
-            softWrap = false,
-            textAlign = TextAlign.End,
-            modifier = Modifier.weight(1f).horizontalScroll(scrollState),
-        )
+        // The label mirrors with the chrome, but the value must not. A binary word is
+        // written in space-separated nibbles, and space is bidi-neutral: in an RTL
+        // paragraph the groups reorder, so 0000 0000 0000 1111 — fifteen — is drawn as
+        // 1111 0000 0000 0000, which reads as 61440. The row would be showing a different
+        // number from the one it holds.
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Text(
+                text = text,
+                // Monospace so the digits line up between the four rows; a proportional font
+                // makes two bit patterns of the same length look different lengths.
+                style = MaterialTheme.typography.titleMedium.copy(fontFamily = FontFamily.Monospace),
+                maxLines = 1,
+                softWrap = false,
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f).horizontalScroll(scrollState),
+            )
+        }
     }
 }
 
