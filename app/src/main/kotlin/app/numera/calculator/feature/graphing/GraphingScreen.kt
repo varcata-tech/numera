@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -265,6 +266,13 @@ private fun GraphCanvas(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
+                // A Compose Canvas does not clip its own drawing. The sampler works in graph
+                // coordinates and happily produces y values far outside the viewport — a
+                // parabola at the reset view leaves the top of the plot area almost at once —
+                // so the curve was drawn straight over the readout, the buttons and the
+                // function list below it, in ink the same colour as the plot. It read as a
+                // rendering fault rather than as a line that simply continues off screen.
+                .clipToBounds()
                 // Reported from the layout phase, never from inside the draw lambda. The size
                 // feeds state that the layout depends on, and a draw-phase write to it is an
                 // invalidate-draw-invalidate loop waiting for the moment the reported value

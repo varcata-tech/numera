@@ -3,6 +3,8 @@ package app.numera.calculator.feature.programmer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,83 +60,129 @@ fun ProgrammerScreen(onBack: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     ModeScaffold(title = stringResource(R.string.title_programmer), onBack = onBack) { padding ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = dimensionResource(R.dimen.calc_screen_padding)),
         ) {
-            for (base in NumberBase.entries) {
-                BaseRow(
-                    base = base,
-                    text = state.rendered(base),
-                    active = base == state.base,
-                    onClick = { viewModel.onSelectBase(base) },
-                )
-            }
-
-            // Scrollable, like the compounding row in the financial screen. Five chips
-            // labelled "Vorzeichenbehaftet" or "Со знаком" do not fit a phone at any font
-            // scale, and a plain Row squeezes the last of them to nothing rather than
-            // letting the user reach it.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                for (size in WordSize.entries) {
-                    FilterChip(
-                        selected = size == state.wordSize,
-                        onClick = { viewModel.onSelectWordSize(size) },
-                        label = { Text(size.bits.toString()) },
-                    )
-                }
-                FilterChip(
-                    selected = state.signed,
-                    onClick = { viewModel.onToggleSigned() },
-                    label = {
-                        Text(
-                            stringResource(
-                                if (state.signed) R.string.prog_signed else R.string.prog_unsigned,
-                            ),
-                        )
-                    },
-                )
-            }
-            // On its own full-width line, not squeezed in beside the chips: this is the
-            // screen's only error indication, and in the locales with the longest chip
-            // labels it was the child that got clipped off the end of the row.
-            state.error?.let { error ->
-                Text(
-                    text = stringResource(
-                        when (error) {
-                            ProgError.OVERFLOW -> R.string.prog_overflow
-                            // Shared with the main calculator rather than reworded here: it
-                            // is the same fault, already translated into all twelve locales,
-                            // and one app saying it two ways is how a wording drifts.
-                            ProgError.DIVIDE_BY_ZERO -> R.string.error_divide_by_zero
-                        },
+            // Measured, not inferred from orientation, for the reason the calculator's own
+            // breakpoint gives: at targetSdk 36 a freeform or split-screen window can be any
+            // shape, and "landscape" answers a different question than the layout asks.
+            //
+            // Stacking is only safe when there is height to stack into. The four base rows,
+            // the chip row and the bit grid all have hard minimums totalling about 312dp, and
+            // the pad was the single weighted child underneath them. A landscape phone leaves
+            // roughly 300dp of content height, so the pad's weight resolved to less than the
+            // 48dp of inter-row spacing its own Column subtracts first — and every row then
+            // collapsed to exactly 0px. Not a small keypad: no keypad at all, on a screen
+            // that still showed the word and its bits. Side by side, the pad is measured
+            // against the full height instead of the remainder.
+            if (maxWidth >= WIDE_BREAKPOINT) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(
+                        dimensionResource(R.dimen.calc_key_spacing),
                     ),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            BitGrid(
-                value = state.value,
-                wordSize = state.wordSize,
-                onToggleBit = viewModel::onToggleBit,
-            )
-
-            Box(modifier = Modifier.weight(1f)) {
-                ProgrammerPad(state, viewModel, Modifier.fillMaxSize())
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        ProgrammerReadout(state, viewModel)
+                    }
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        ProgrammerPad(state, viewModel, Modifier.fillMaxSize())
+                    }
+                }
+            } else {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    ProgrammerReadout(state, viewModel)
+                    Box(modifier = Modifier.weight(1f)) {
+                        ProgrammerPad(state, viewModel, Modifier.fillMaxSize())
+                    }
+                }
             }
         }
     }
+}
+
+/** The width at which the pad moves beside the readout instead of under it. */
+private val WIDE_BREAKPOINT = 600.dp
+
+/**
+ * The word itself: the four base rows, the size and sign chips, any error, and the bits.
+ *
+ * Extracted so the tall and wide arrangements share one definition — two copies would drift,
+ * and the wide one is the arrangement nobody looks at day to day.
+ */
+@Composable
+private fun ColumnScope.ProgrammerReadout(
+    state: ProgrammerUiState,
+    viewModel: ProgrammerViewModel,
+) {
+    for (base in NumberBase.entries) {
+        BaseRow(
+            base = base,
+            text = state.rendered(base),
+            active = base == state.base,
+            onClick = { viewModel.onSelectBase(base) },
+        )
+    }
+
+    // Scrollable, like the compounding row in the financial screen. Five chips
+    // labelled "Vorzeichenbehaftet" or "Со знаком" do not fit a phone at any font
+    // scale, and a plain Row squeezes the last of them to nothing rather than
+    // letting the user reach it.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        for (size in WordSize.entries) {
+            FilterChip(
+                selected = size == state.wordSize,
+                onClick = { viewModel.onSelectWordSize(size) },
+                label = { Text(size.bits.toString()) },
+            )
+        }
+        FilterChip(
+            selected = state.signed,
+            onClick = { viewModel.onToggleSigned() },
+            label = {
+                Text(
+                    stringResource(
+                        if (state.signed) R.string.prog_signed else R.string.prog_unsigned,
+                    ),
+                )
+            },
+        )
+    }
+    // On its own full-width line, not squeezed in beside the chips: this is the
+    // screen's only error indication, and in the locales with the longest chip
+    // labels it was the child that got clipped off the end of the row.
+    state.error?.let { error ->
+        Text(
+            text = stringResource(
+                when (error) {
+                    ProgError.OVERFLOW -> R.string.prog_overflow
+                    // Shared with the main calculator rather than reworded here: it
+                    // is the same fault, already translated into all twelve locales,
+                    // and one app saying it two ways is how a wording drifts.
+                    ProgError.DIVIDE_BY_ZERO -> R.string.error_divide_by_zero
+                },
+            ),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+
+    BitGrid(
+        value = state.value,
+        wordSize = state.wordSize,
+        onToggleBit = viewModel::onToggleBit,
+    )
 }
 
 @Composable
