@@ -288,29 +288,42 @@ private fun BitGrid(value: Long, wordSize: WordSize, onToggleBit: (Int) -> Unit)
                             val setLabel = stringResource(R.string.desc_bit_set)
                             val clearLabel = stringResource(R.string.desc_bit_clear)
                             val bitLabel = stringResource(R.string.desc_bit, bit)
-                            Text(
-                                text = if (set) "1" else "0",
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.labelLarge
-                                    .copy(fontFamily = FontFamily.Monospace),
-                                color = if (set) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                // A monospace glyph with 3dp either side was a 17dp target with
-                                // the next bit 17dp away, so a slightly off tap silently set the
-                                // wrong bit. cellWidth above is what widens it, by as much as the
-                                // word size can spare.
+                            // An explicit Box, so the layout node, the touch target and the
+                            // glyph are one rectangle.
+                            //
+                            // A monospace glyph with 3dp either side was a 17dp target with
+                            // the next bit 17dp away, so a slightly off tap silently set the
+                            // wrong bit. cellWidth above is what widens it, by as much as the
+                            // word size can spare.
+                            //
+                            // Widening it by hanging sizeIn off a centred Text was not enough:
+                            // the digit was drawn 12dp to the right of the bounds the node
+                            // reported to the accessibility tree, so touch worked where the
+                            // user could see it while TalkBack's focus rectangle and
+                            // explore-by-touch sat over the neighbouring bit. Centring the
+                            // glyph inside a sized Box makes the three agree by construction.
+                            Box(
                                 modifier = Modifier
-                                    .clickable { onToggleBit(bit) }
                                     .sizeIn(minWidth = cellWidth, minHeight = 48.dp)
-                                    .wrapContentHeight(Alignment.CenterVertically)
-                                    .semantics {
+                                    .clickable { onToggleBit(bit) }
+                                    .semantics(mergeDescendants = true) {
                                         contentDescription = bitLabel
                                         stateDescription = if (set) setLabel else clearLabel
                                     },
-                            )
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = if (set) "1" else "0",
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.labelLarge
+                                        .copy(fontFamily = FontFamily.Monospace),
+                                    color = if (set) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                )
+                            }
                         }
                     }
                     Text(

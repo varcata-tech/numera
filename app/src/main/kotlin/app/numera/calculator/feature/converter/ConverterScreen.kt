@@ -1,5 +1,6 @@
 package app.numera.calculator.feature.converter
 
+import androidx.core.text.BidiFormatter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -239,7 +240,7 @@ private fun ValueRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = stringResource(UnitNames.symbolRes(unit.id)),
+                    text = unitSymbol(unit.id),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(text = "  ▾", style = MaterialTheme.typography.titleMedium)
@@ -317,7 +318,7 @@ private fun CommonConversions(entries: List<Pair<UnitDef, String>>) {
                 Column(modifier = Modifier.semantics(mergeDescendants = true) { }) {
                     Text(text = text, style = MaterialTheme.typography.bodyMedium)
                     Text(
-                        text = stringResource(UnitNames.symbolRes(unit.id)),
+                        text = unitSymbol(unit.id),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -402,7 +403,7 @@ private fun UnitPickerSheet(
                         modifier = Modifier.weight(1f),
                     )
                     Text(
-                        text = stringResource(UnitNames.symbolRes(unit.id)),
+                        text = unitSymbol(unit.id),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -522,4 +523,26 @@ private fun digitKey(digit: Int): KeyId = when (digit) {
     7 -> KeyId.D7
     8 -> KeyId.D8
     else -> KeyId.D9
+}
+
+/**
+ * A unit's symbol, isolated from the paragraph it is drawn in.
+ *
+ * The degree sign is bidi class ET — a European Terminator — which takes its direction from
+ * whatever surrounds it. With no adjacent European number and an RTL paragraph, "°C" was laid
+ * out as "C°" in Arabic: the stored string was right and the rendering was not. The same
+ * hazard applies to "µg", "Ω" and every other symbol built from neutrals.
+ *
+ * Isolated rather than pinned to LTR, because a symbol is not always an LTR run — the
+ * formatter looks at the string and wraps it in whichever direction it actually reads.
+ *
+ * Not applied to the search haystack, which is matched against what the user types: the
+ * isolate characters are invisible but they are still characters, and they would sit between
+ * the query and the symbol it is meant to find.
+ */
+@Composable
+private fun unitSymbol(id: String): String {
+    val locale = LocalConfiguration.current.locales[0]
+    val bidi = remember(locale) { BidiFormatter.getInstance(locale) }
+    return bidi.unicodeWrap(stringResource(UnitNames.symbolRes(id)))
 }
