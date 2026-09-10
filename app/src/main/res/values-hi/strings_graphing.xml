@@ -8,7 +8,7 @@
     <string name="graph_invalid">यह व्यंजक प्लॉट नहीं हो सकता</string>
     <string name="graph_summary">x %1$s से %2$s और y %3$s से %4$s तक दिख रहा है</string>
     <string name="graph_trace_value">x = %1$s, y = %2$s</string>
-    <string name="graph_delete">हटाएँ</string>
+    <string name="graph_delete">%1$s हटाएँ</string>
     <string name="desc_graph_canvas">ग्राफ़</string>
     <string name="graph_list_separator">", "</string>
     <string name="graph_roots_of">%1$s के मूल: %2$s</string>

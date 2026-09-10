@@ -8,7 +8,7 @@
     <string name="graph_invalid">この式は描画できません</string>
     <string name="graph_summary">x は %1$s〜%2$s、y は %3$s〜%4$s を表示中</string>
     <string name="graph_trace_value">x = %1$s、y = %2$s</string>
-    <string name="graph_delete">削除</string>
+    <string name="graph_delete">%1$s を削除</string>
     <string name="desc_graph_canvas">グラフ</string>
     <string name="graph_list_separator">", "</string>
     <string name="graph_roots_of">%1$s の零点: %2$s</string>

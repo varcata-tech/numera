@@ -8,7 +8,7 @@
     <string name="graph_invalid">无法绘制该表达式</string>
     <string name="graph_summary">显示 x 从 %1$s 到 %2$s，y 从 %3$s 到 %4$s</string>
     <string name="graph_trace_value">x = %1$s，y = %2$s</string>
-    <string name="graph_delete">删除</string>
+    <string name="graph_delete">删除 %1$s</string>
     <string name="desc_graph_canvas">图表</string>
     <string name="graph_list_separator">", "</string>
     <string name="graph_roots_of">%1$s 的零点：%2$s</string>

@@ -8,7 +8,7 @@
     <string name="graph_invalid">Dieser Ausdruck lässt sich nicht zeichnen</string>
     <string name="graph_summary">Zeigt x von %1$s bis %2$s und y von %3$s bis %4$s</string>
     <string name="graph_trace_value">x = %1$s, y = %2$s</string>
-    <string name="graph_delete">Löschen</string>
+    <string name="graph_delete">%1$s löschen</string>
     <string name="desc_graph_canvas">Diagramm</string>
     <string name="graph_list_separator">"; "</string>
     <string name="graph_roots_of">Nullstellen von %1$s: %2$s</string>

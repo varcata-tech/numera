@@ -8,7 +8,7 @@
     <string name="graph_invalid">Não é possível plotar essa expressão</string>
     <string name="graph_summary">Mostrando x de %1$s a %2$s e y de %3$s a %4$s</string>
     <string name="graph_trace_value">x = %1$s, y = %2$s</string>
-    <string name="graph_delete">Excluir</string>
+    <string name="graph_delete">Excluir %1$s</string>
     <string name="desc_graph_canvas">Gráfico</string>
     <string name="graph_list_separator">"; "</string>
     <string name="graph_roots_of">Raízes de %1$s: %2$s</string>

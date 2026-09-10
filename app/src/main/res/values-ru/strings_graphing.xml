@@ -8,7 +8,7 @@
     <string name="graph_invalid">Это выражение нельзя построить</string>
     <string name="graph_summary">Показано x от %1$s до %2$s и y от %3$s до %4$s</string>
     <string name="graph_trace_value">x = %1$s, y = %2$s</string>
-    <string name="graph_delete">Удалить</string>
+    <string name="graph_delete">Удалить %1$s</string>
     <string name="desc_graph_canvas">График</string>
     <string name="graph_list_separator">"; "</string>
     <string name="graph_roots_of">Корни %1$s: %2$s</string>

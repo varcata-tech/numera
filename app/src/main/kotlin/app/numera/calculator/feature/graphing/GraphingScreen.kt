@@ -565,7 +565,9 @@ private fun FunctionList(
                 IconButton(onClick = { onRemove(index) }) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(R.string.graph_delete),
+                        // Named, because three rows each announced as "Delete" leave a
+                        // screen-reader user guessing which function is about to go.
+                        contentDescription = stringResource(R.string.graph_delete, plot.expressionText),
                     )
                 }
             }

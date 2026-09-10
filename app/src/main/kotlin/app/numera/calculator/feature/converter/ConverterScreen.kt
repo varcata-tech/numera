@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -55,6 +56,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.numera.calculator.R
 import app.numera.calculator.math.expr.KeyId
 import app.numera.calculator.settings.LocalSettingsStore
+import app.numera.calculator.feature.calc.localiseFormula
 import app.numera.calculator.ui.common.CalcButton
 import app.numera.calculator.ui.common.KeyStyle
 import app.numera.calculator.ui.common.KeypadColumn
@@ -114,7 +116,16 @@ fun ConverterScreen(onBack: () -> Unit) {
                         dimensionResource(R.dimen.calc_key_spacing),
                     ),
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    // Scrolls, because beside the pad it has the window's full height and no
+                    // more: a landscape phone gives it about 300dp for chips, two value rows,
+                    // the swap button and the common conversions, and a plain Column hands
+                    // the last child whatever is left — which squeezed the common conversions
+                    // to nothing rather than letting the user reach them.
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
+                    ) {
                         ConverterReadout(state, viewModel, onPick = { picking = it })
                     }
                     Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
@@ -424,6 +435,14 @@ private fun ConverterReadout(
     viewModel: ConverterViewModel,
     onPick: (Boolean) -> Unit,
 ) {
+    // The typed side holds the locale-free text the parser reads — `1.5` under a German
+    // keypad whose point key says `,` — and the computed side is already in the locale's
+    // digits, so both are respelt the same way the calculator's formula line is. A no-op
+    // on text that is already localised.
+    val locale = LocalConfiguration.current.locales[0]
+    val symbols = remember(locale) { DecimalFormatSymbols.getInstance(locale) }
+    fun shown(text: String): String = localiseFormula(text, symbols.zeroDigit, symbols.decimalSeparator)
+
     CategoryChips(
         selected = state.dimension,
         onSelect = viewModel::onSelectDimension,
@@ -431,7 +450,7 @@ private fun ConverterReadout(
 
     ValueRow(
         label = stringResource(R.string.converter_from),
-        value = state.fromText,
+        value = shown(state.fromText),
         unit = state.fromUnit,
         active = state.editingFrom,
         onActivate = { viewModel.onFocus(from = true) },
@@ -452,7 +471,7 @@ private fun ConverterReadout(
 
     ValueRow(
         label = stringResource(R.string.converter_to),
-        value = state.toText,
+        value = shown(state.toText),
         unit = state.toUnit,
         active = !state.editingFrom,
         onActivate = { viewModel.onFocus(from = false) },

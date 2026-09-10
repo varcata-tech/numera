@@ -3,6 +3,7 @@ package app.numera.calculator.feature.programmer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
@@ -86,7 +88,15 @@ fun ProgrammerScreen(onBack: () -> Unit) {
                         dimensionResource(R.dimen.calc_key_spacing),
                     ),
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    // Scrolls: beside the pad the readout gets the window's full height and
+                    // nothing more, and on a landscape phone the four rows, the chips and
+                    // the bit grid add up to more than that. Without the scroll a plain
+                    // Column squeezed the chips to 39dp and clipped the grid instead.
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
+                    ) {
                         ProgrammerReadout(state, viewModel)
                     }
                     Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
@@ -221,7 +231,11 @@ private fun BaseRow(base: NumberBase, text: String, active: Boolean, onClick: ()
             text = label,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(width = 42.dp, height = 20.dp),
+            // A minimum width, not a fixed size: the label is sp and the box was dp, so at
+            // a 2.0 font scale "HEX" was clipped to "HE" and "BIN" ran under its value.
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier.widthIn(min = 42.dp).padding(end = 8.dp),
         )
         // The label mirrors with the chrome, but the value must not. A binary word is
         // written in space-separated nibbles, and space is bidi-neutral: in an RTL

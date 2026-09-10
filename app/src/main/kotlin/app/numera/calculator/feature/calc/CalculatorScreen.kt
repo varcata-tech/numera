@@ -220,6 +220,7 @@ fun CalculatorScreen(onOpenMode: (Route) -> Unit) {
                     Column(modifier = Modifier.fillMaxSize()) {
                         Display(
                             state = state,
+                            symbols = symbols,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
@@ -386,6 +387,7 @@ fun CalculatorScreen(onOpenMode: (Route) -> Unit) {
 @Composable
 private fun Display(
     state: CalculatorUiState,
+    symbols: DecimalFormatSymbols,
     modifier: Modifier,
     onRequestMoreDigits: () -> Unit,
     onCopy: () -> Unit,
@@ -447,7 +449,14 @@ private fun Display(
             // reorder a mixed expression would move the operators out from between operands.
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 FormulaLine(
-                    text = state.formula.ifEmpty { EmptyFormula },
+                    // Localised here, not in the view model: the formula it holds is the
+                    // locale-free form that history stores and paste reads back, and the
+                    // symbols come from the composable that observes LocalConfiguration.
+                    text = localiseFormula(
+                        state.formula.ifEmpty { EmptyFormula },
+                        symbols.zeroDigit,
+                        symbols.decimalSeparator,
+                    ),
                     scale = formulaScale * fit,
                     onPaste = onPaste,
                     drawerLabel = drawerLabel,

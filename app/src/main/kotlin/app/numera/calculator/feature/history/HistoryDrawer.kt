@@ -41,10 +41,13 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import app.numera.calculator.R
 import app.numera.calculator.data.HistoryEntry
+import app.numera.calculator.feature.calc.localiseFormula
 import app.numera.calculator.math.AngleMode
+import java.text.DecimalFormatSymbols
 
 /**
  * The list of past calculations, pulled down over the keypad.
@@ -63,6 +66,11 @@ fun HistoryDrawer(
     modifier: Modifier = Modifier,
 ) {
     var confirmingClear by remember { mutableStateOf(false) }
+    // Observable locale read, for the same reason the keypad makes one: an entry's formula is
+    // stored locale-free and respelt in the current locale's digits as it is drawn, so a row
+    // reads `٧÷٣` under an Arabic keypad and `1,5×2` under a German one.
+    val locale = LocalConfiguration.current.locales[0]
+    val symbols = remember(locale) { DecimalFormatSymbols.getInstance(locale) }
 
     Surface(
         modifier = modifier,
@@ -116,7 +124,11 @@ fun HistoryDrawer(
                 ) {
                     items(entries, key = { it.id }) { entry ->
                         HistoryRow(
-                            formula = entry.formula,
+                            formula = localiseFormula(
+                                entry.formula,
+                                symbols.zeroDigit,
+                                symbols.decimalSeparator,
+                            ),
                             result = entry.result,
                             angleMode = entry.angleMode,
                             onClick = { onSelect(entry) },
