@@ -47,7 +47,7 @@ EXACT ARITHMETIC
 
 SEVEN CALCULATORS IN ONE
 • Scientific — trigonometry, logarithms, powers, roots, factorials, degrees and radians
-• Unit converter — 16 categories and 180+ units, with exact conversion factors, so an
+• Unit converter — 16 categories and 140+ units, with exact conversion factors, so an
   inch → centimetre → inch round trip returns precisely what you typed
 • Programmer — hex, decimal, octal and binary at once, a tappable bit grid, 8/16/32/64-bit
   words, signed and unsigned, bitwise operations, shifts and rotates

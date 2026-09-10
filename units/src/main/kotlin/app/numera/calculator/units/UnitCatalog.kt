@@ -32,9 +32,16 @@ private fun e10(power: Int): UnifiedReal =
  *
  * Also in [java.math.BigInteger]: `1L shl 64` is silently `1`, not an overflow, so a ladder
  * extended one rung past the pebibyte would define a unit as its own base rather than fail.
+ *
+ * Built with `valueOf(2)`, never `BigInteger.TWO`. That field exists in Android's `java.math`
+ * only from API 33, and minSdk is 31: this module compiles against a desktop JDK that has it,
+ * no Android lint ever inspects a plain JVM module, and on Android 12 the first open of the
+ * converter ran this catalogue's initialiser and died with a `NoSuchFieldError` — the same
+ * crash the engine had, one module over. `ApiLevelTest` in this module now fails the build
+ * on any such reference.
  */
 private fun e2(power: Int): UnifiedReal =
-    UnifiedReal.of(BoundedRational.of(java.math.BigInteger.TWO.pow(power)))
+    UnifiedReal.of(BoundedRational.of(java.math.BigInteger.valueOf(2).pow(power)))
 
 /**
  * Every unit the converter offers, defined exactly.
