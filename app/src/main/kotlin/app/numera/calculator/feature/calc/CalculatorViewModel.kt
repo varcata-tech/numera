@@ -390,7 +390,15 @@ class CalculatorViewModel(
 
     fun onEquals() {
         if (expr.isEmpty()) return
-        val snapshot = expr
+        // A trailing operator is a change of mind, not an error: `1+` evaluates as `1`. The
+        // trimmed expression replaces the typed one — on screen now, so the formula line
+        // agrees with the answer it is about to get, and in `expr`, so a delete after the
+        // result peels a digit off `1` rather than a `+` the display no longer shows.
+        val snapshot = expr.withoutTrailingOperators()
+        if (snapshot !== expr) {
+            expr = snapshot
+            _state.update { it.copy(formula = snapshot.display()) }
+        }
         val mode = _state.value.angleMode
         // The same calculation is already under way: leave it running. Cancelling it here
         // interrupts the worker, and an interrupted approximation is thrown away rather than

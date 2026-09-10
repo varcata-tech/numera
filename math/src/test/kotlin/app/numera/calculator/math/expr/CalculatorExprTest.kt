@@ -341,4 +341,38 @@ class CalculatorExprTest {
             .fold(CalculatorExpr()) { acc, key -> acc.append(key) }
         assertEquals(listOf("12.5", "12.", "12", "1"), assertPeelsCleanly(typed))
     }
+
+    // ------------------------------------------------------------ equals on a trailing operator
+
+    @Test
+    fun `equals drops a trailing operator and evaluates what came before it`() {
+        // The case a user hits by pressing = one key early. It answered "Bad expression".
+        val trimmed = built(KeyId.D1, KeyId.ADD).withoutTrailingOperators()
+        assertEquals("1", trimmed.display())
+        assertEquals(BoundedRational.of(1L), rationalOf(trimmed))
+    }
+
+    @Test
+    fun `the whole run of trailing operators goes, sign included`() {
+        // `5×−` is `5` times a negative something that was never typed; the `−` is not a value.
+        assertEquals("5", built(KeyId.D5, KeyId.MULTIPLY, KeyId.SUBTRACT).withoutTrailingOperators().display())
+        assertEquals("2", built(KeyId.D2, KeyId.POWER, KeyId.SUBTRACT).withoutTrailingOperators().display())
+    }
+
+    @Test
+    fun `a leading minus keeps its zero, so equals shows 0 rather than nothing`() {
+        assertEquals("0", built(KeyId.SUBTRACT).withoutTrailingOperators().display())
+    }
+
+    @Test
+    fun `a complete expression is returned as the same instance`() {
+        // Identity is the signal the view model reads to know whether to replace the
+        // expression on screen; a fresh but equal copy would repaint the formula for nothing.
+        val complete = built(KeyId.D1, KeyId.ADD, KeyId.D2)
+        assertTrue(complete === complete.withoutTrailingOperators())
+        val open = built(KeyId.D1, KeyId.ADD, KeyId.LEFT_PAREN)
+        assertTrue(open === open.withoutTrailingOperators())
+        val empty = CalculatorExpr()
+        assertTrue(empty === empty.withoutTrailingOperators())
+    }
 }

@@ -268,6 +268,33 @@ data class CalculatorExpr(val tokens: List<Token> = emptyList()) {
     fun clear(): CalculatorExpr = CalculatorExpr()
 
     /**
+     * The expression with any binary operators hanging off its end removed.
+     *
+     * For the equals key. `1+` then `=` used to answer "Bad expression", which is true of
+     * the text and useless to the person who typed it: every desk calculator, and the one
+     * this app is measured against, reads a trailing operator as a change of mind and
+     * evaluates what stands before it. The whole run goes, so `5×−` becomes `5` — the `−`
+     * there is the sign of an operand that never arrived, not a value.
+     *
+     * The zero a leading `−` wrote is kept, so `0−` becomes `0` and evaluates to it: the
+     * display would otherwise go from showing a formula to showing nothing, which reads as
+     * the key having been ignored.
+     *
+     * Returns `this` when there is nothing to remove, so a caller can tell by identity
+     * whether the expression on screen has to be replaced.
+     */
+    fun withoutTrailingOperators(): CalculatorExpr {
+        var end = tokens.size
+        while (end > 0) {
+            val token = tokens[end - 1]
+            if (token !is Token.Key || !token.key.isBinaryOperator) break
+            end--
+        }
+        if (end == tokens.size) return this
+        return CalculatorExpr(tokens.subList(0, end).toList())
+    }
+
+    /**
      * True when the first [count] tokens end in something an operator can take as its left
      * operand.
      *
