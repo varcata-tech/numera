@@ -181,7 +181,11 @@ to users as well as to a reviewer.
       are shipping.
 - [ ] Complete: store listing, Data Safety, content rating, target audience, app content.
 - [ ] Add screenshots: at least 2 phone screenshots, plus a 512×512 icon and a 1024×500
-      feature graphic.
+      feature graphic. All of these are in `art/play-listing/`: eight phone screenshots
+      captured from the release build on the Pixel 8 emulator and cropped to 1080×2160 —
+      Play refuses anything taller than 2:1, and the raw 1080×2400 capture is 2.22:1 —
+      plus `icon_512.png` and `feature_1024x500.png` rendered from the launcher vector.
+      Recapture the screenshots whenever a screen they show changes.
 - [ ] Start a **closed test** and recruit **12 testers**.
 - [ ] Keep them opted in for **14 continuous days**. Updates during the window do not reset
       the clock, so improvements can ship while it runs.
