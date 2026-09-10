@@ -7,5 +7,5 @@ theme: jekyll-theme-minimal
 # /assets/css/style.css at the domain root, which 404s — the page then renders as unstyled
 # black-on-white and looks like a broken host to whoever Play sends to read it.
 # These two must match the repository name; change both together if it is ever renamed.
-url: https://gsingh1629.github.io
+url: https://varcata-tech.github.io
 baseurl: /numera

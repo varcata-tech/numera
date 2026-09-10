@@ -5,7 +5,7 @@ permalink: /privacy-policy/
 
 # Privacy Policy for Numera
 
-**Last updated: 6 September 2026**
+**Last updated: 10 September 2026**
 
 Numera is a calculator. It collects nothing, sends nothing, and has no way to reach the
 internet.
@@ -71,9 +71,9 @@ to change.
 
 ## Contact
 
-Numera is published by Gurpreet Singh. Questions about this policy, or about the app, can be
-sent to **[goravsinghc.gc@gmail.com](mailto:goravsinghc.gc@gmail.com)**, or raised as an issue
-at <https://github.com/gsingh1629/numera>.
+Numera is published by Varcata. Questions about this policy, or about the app, can be sent
+to **[gurpreet@varcata.com](mailto:gurpreet@varcata.com)**, or raised as an issue at
+<https://github.com/varcata-tech/numera>.
 
 ---
 

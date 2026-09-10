@@ -20,6 +20,6 @@ calculators — in twelve languages, with no internet access, no ads and no trac
 
 ## Contact
 
-Numera is published by Gurpreet Singh. Email
-[goravsinghc.gc@gmail.com](mailto:goravsinghc.gc@gmail.com), or raise an issue at
-<https://github.com/gsingh1629/numera>.
+Numera is published by Varcata. Email
+[gurpreet@varcata.com](mailto:gurpreet@varcata.com), or raise an issue at
+<https://github.com/varcata-tech/numera>.

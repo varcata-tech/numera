@@ -81,7 +81,7 @@ Numera is free, and it always will be. There is nothing to buy and nothing to su
 
 **Category:** Tools
 **Tags:** Calculator, Unit converter, Productivity
-**Contact email:** `goravsinghc.gc@gmail.com`
+**Contact email:** `gurpreet@varcata.com`
 
 Play shows this address publicly on the listing. It is the same address the privacy policy
 gives, and that is not an accident — a reviewer who finds two different contact addresses
@@ -89,13 +89,13 @@ treats the policy as boilerplate. If it is ever swapped for a dedicated alias, c
 all four places at once: here, `docs/privacy-policy.md`, `docs/index.md` and
 `app/src/main/assets/privacy-policy.txt`.
 
-**Privacy policy URL:** `https://gsingh1629.github.io/numera/privacy-policy/`
+**Privacy policy URL:** `https://varcata-tech.github.io/numera/privacy-policy/`
 
 Built from `docs/privacy-policy.md`, whose front matter pins that exact permalink, and served
 under the `baseurl` set in `docs/_config.yml`. Play **fetches and validates this URL during
 review**, so open it in a private window and confirm it returns the styled policy page — not a
 404, and not the raw Markdown source — before pasting it into the Console. Both halves of the
-URL are derived from the GitHub account name: if the repository is not `gsingh1629/numera`,
+URL are derived from the GitHub organisation name: if the repository is not `varcata-tech/numera`,
 `docs/_config.yml`, this line and the two contact sections are all wrong together.
 
 ---
@@ -167,9 +167,10 @@ to users as well as to a reviewer.
 ## Release checklist
 
 - [ ] Create the developer account, pay the one-off $25, complete identity verification.
-- [ ] Publish `docs/` to GitHub Pages (Settings → Pages → branch `main`, folder `/docs`);
-      confirm `https://gsingh1629.github.io/numera/privacy-policy/` loads publicly, styled,
-      in a browser with no session for the repository.
+- [x] Publish `docs/` to GitHub Pages (Settings → Pages → branch `master`, folder `/docs`);
+      confirm `https://varcata-tech.github.io/numera/privacy-policy/` loads publicly, styled,
+      in a browser with no session for the repository. The repository is public for this
+      reason: a free organisation cannot serve Pages from a private one.
 - [ ] Create the app in the Console; enrol in **Play App Signing**.
 - [ ] Upload `app/build/outputs/bundle/release/app-release.aab` — **the bundle, not the
       APK**. No `archivesName` is configured, so that is the literal filename AGP writes.
