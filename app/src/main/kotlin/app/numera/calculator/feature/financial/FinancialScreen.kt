@@ -226,6 +226,17 @@ private fun InterestTab() {
         // The interest comes from FinanceMath rather than from balance − principal, which
         // counts every contribution the investor made as interest they earned.
         Line(stringResource(R.string.fin_total_interest), growth.interest)
+        // Said out loud, and only when it applies. Discrete compounding credits interest at
+        // the end of a period, so 0.9 years at annual compounding earns nothing — a correct
+        // figure that reads as a broken one beside the monthly and continuous answers for
+        // the same inputs unless the card says why.
+        if (FinanceMath.dropsPartPeriod(y, compounding)) {
+            Text(
+                text = stringResource(R.string.fin_whole_periods_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -392,7 +403,10 @@ private fun MoneyField(
 ) {
     val separator = LocalConfiguration.current.locales[0].decimalSeparator()
     OutlinedTextField(
-        value = value,
+        // Drawn in this locale's spelling whatever locale it was typed in. The saved string
+        // outlives a per-app language change, and a German "8,5" shown verbatim under
+        // English was filtered to "850" by the very next keystroke.
+        value = if (decimal) localiseAmount(value, separator) else value,
         onValueChange = { text -> onChange(sanitiseAmount(text, decimal, separator)) },
         label = { Text(label) },
         singleLine = true,

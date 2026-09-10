@@ -290,6 +290,80 @@ class ConstructiveRealTest {
         assertTrue("expected AbortedException but got $thrown", thrown is AbortedException)
     }
 
+    @Test
+    fun `a positive exponential wider than the display is refused on the opaque route too`() {
+        // The width bound lived only in UnifiedReal.checkExpSize, which sees the exponent
+        // only when it is rational. π×1E8 is not: its argument is 29 bits, well inside the
+        // depth bound here, and its value is 450 million bits wide. The evaluator returned
+        // it instantly because the value is lazy; the formatter then asked for a digit and
+        // the squaring chain needed 56 MB integers per series term — never finishing, and
+        // large enough that the allocator gave up first with an OutOfMemoryError the
+        // formatter does not catch.
+        val argument = ConstructiveReal.PI * ConstructiveReal.valueOf(100_000_000)
+        try {
+            argument.exp()
+            throw AssertionError("expected TooMuchMemoryException")
+        } catch (expected: TooMuchMemoryException) {
+        }
+        // The mirror image is not wide, only deep, and the depth bound already accepts it.
+        val negative = argument.unaryMinus().exp()
+        assertEquals("0.00000000000000000000", negative.toStringTruncated(20))
+        // Just inside the width bound: π×1E5 is 453,000 bits, and must still build.
+        (ConstructiveReal.PI * ConstructiveReal.valueOf(100_000)).exp()
+    }
+
+    @Test
+    fun `toDouble is taken at relative precision across the whole range of a double`() {
+        // getAppr(-53) was fifty-three bits after the binary point whatever the magnitude:
+        // right for an ordinary number, and for 2^1000 a 1,053-bit request whose low bits
+        // no double could hold. The leading bit has to be found first, and then sixty bits
+        // below it asked for — the same for every magnitude.
+        val big = ConstructiveReal.valueOf(BigInteger.ONE.shiftLeft(1000))
+        assertEquals(Math.pow(2.0, 1000.0), big.toDouble(), 0.0)
+        val small = ConstructiveReal.ONE.shiftRight(1000)
+        assertEquals(Math.pow(2.0, -1000.0), small.toDouble(), 0.0)
+        // Past either end of the range the honest double is infinity or zero, not an
+        // exception and not a value that merely looks plausible.
+        assertTrue(ConstructiveReal.valueOf(BigInteger.ONE.shiftLeft(1100)).toDouble().isInfinite())
+        assertEquals(0.0, ConstructiveReal.ONE.shiftRight(1100).toDouble(), 0.0)
+        assertEquals(0.0, ConstructiveReal.ZERO.toDouble(), 0.0)
+        // Ordinary values still round to the nearest double, sign included.
+        val third = ConstructiveReal.ONE / ConstructiveReal.valueOf(3)
+        assertTrue(Math.abs(third.toDouble() - 1.0 / 3.0) <= Math.ulp(1.0 / 3.0))
+        assertTrue(Math.abs(ConstructiveReal.PI.unaryMinus().toDouble() + Math.PI) <= Math.ulp(Math.PI))
+    }
+
+    @Test
+    fun `measuring the magnitude of a huge product does not refine its small operand`() {
+        // MultCR budgets each operand from the size of the other, so a probe of
+        // x × 10^100000 at absolute precision asks x for msd(10^100000) + 3 = 332,195 bits
+        // after the point. For x = sin(1) that is a cosine series carried to a third of a
+        // million bits, on the keystroke, for a magnitude the display needs only to choose
+        // a notation. The operand here throws if asked for more than 200 bits, which is
+        // what a probe seeded at the product's own scale asks of it.
+        val sine = PrecisionCeilingCR(861, -200)
+        val huge = ConstructiveReal.valueOf(BigInteger.TEN.pow(100000))
+        val product = sine * huge
+        // 0.84 × 10^100000 has its leading bit at floor(log2) = 332192. An msd read off a
+        // finite approximation can be a bit high, as in creals, so the assertions allow one.
+        assertMsdNear(332192, product.estimateMsd(-64), "sin × 1E100000")
+        assertTrue(product.toDouble().isInfinite())
+        // Operand order must not matter: the swap inside MultCR budgets from whichever
+        // operand is found large first.
+        assertMsdNear(332192, (huge * PrecisionCeilingCR(861, -200)).estimateMsd(-64), "1E100000 × sin")
+        // A hint that over-estimates — a sum whose terms cancel — still walks down to the
+        // answer rather than reporting the bound.
+        val cancelled = huge - huge + ConstructiveReal.valueOf(7)
+        assertMsdNear(2, cancelled.estimateMsd(-64), "1E100000 − 1E100000 + 7")
+        // The search from zero is unchanged for a value that starts there.
+        assertMsdNear(1, ConstructiveReal.PI.iterMsd(-64), "π")
+        assertEquals(Int.MIN_VALUE, ConstructiveReal.ONE.shiftRight(100).iterMsd(-64))
+    }
+
+    private fun assertMsdNear(expected: Int, actual: Int, label: String) {
+        assertTrue("$label: expected msd near $expected but was $actual", Math.abs(actual - expected) <= 1)
+    }
+
     private fun assertClose(expected: Double, actual: ConstructiveReal, label: String) {
         val got = actual.toDouble()
         val tolerance = Math.max(Math.abs(expected) * 1e-12, 1e-12)

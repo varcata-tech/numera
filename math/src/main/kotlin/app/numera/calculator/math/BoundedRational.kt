@@ -82,7 +82,14 @@ class BoundedRational private constructor(
      */
     fun pow(exponent: BigInteger): BoundedRational? {
         if (exponent.signum() == 0) return ONE
-        if (isOne) return ONE
+        // Both units, not just +1. Only isOne was short-circuited, so −1 fell through to
+        // the width test below, where `1 × |e| > MAX_RATIONAL_BITS` declined every exponent
+        // past ten thousand and (0−1)^20000 came back as an opaque `1.000…` with an
+        // ellipsis — and (0−1)^2000000 as "requires too much memory" — while 1^2000000 was
+        // exact. Bit 0 of a two's-complement BigInteger is its parity for either sign.
+        if (den == BigInteger.ONE && num.abs() == BigInteger.ONE) {
+            return if (exponent.testBit(0)) this else ONE
+        }
         if (isZero) {
             if (exponent.signum() < 0) throw DivideByZeroException()
             return ZERO
@@ -107,9 +114,9 @@ class BoundedRational private constructor(
     fun sqrt(): BoundedRational? {
         if (signum < 0) throw NotANumberException()
         if (isZero) return ZERO
-        val rootNum = num.sqrt()
+        val rootNum = integerSqrt(num)
         if (rootNum * rootNum != num) return null
-        val rootDen = den.sqrt()
+        val rootDen = integerSqrt(den)
         if (rootDen * rootDen != den) return null
         return of(rootNum, rootDen)
     }
@@ -192,11 +199,37 @@ class BoundedRational private constructor(
         val ZERO = BoundedRational(BigInteger.ZERO, BigInteger.ONE)
         val ONE = BoundedRational(BigInteger.ONE, BigInteger.ONE)
         val MINUS_ONE = BoundedRational(BigInteger.ONE.negate(), BigInteger.ONE)
-        val HALF = BoundedRational(BigInteger.ONE, BigInteger.TWO)
-        val TWO = BoundedRational(BigInteger.TWO, BigInteger.ONE)
+        // ConstructiveReal.BIG2, never BigInteger.TWO: that field is API 33 and the app
+        // ships to 31, and this initialiser is the first thing every calculation runs.
+        val HALF = BoundedRational(BigInteger.ONE, ConstructiveReal.BIG2)
+        val TWO = BoundedRational(ConstructiveReal.BIG2, BigInteger.ONE)
         val TEN = BoundedRational(BigInteger.TEN, BigInteger.ONE)
 
         private val FIVE: BigInteger = BigInteger.valueOf(5L)
+
+        /**
+         * `floor(√value)` for a non-negative integer, by Newton's method.
+         *
+         * Not `BigInteger.sqrt()`: that method exists in Android's `java.math` only from
+         * API 33, the app ships to 31, and this module compiles against a desktop JDK where
+         * nothing notices. On an Android 12 phone `√2` would end in `NoSuchMethodError`
+         * — an `Error`, which no catch in the app is looking for. Newton from an upper
+         * bound decreases monotonically to the floor and stops the first time it fails to
+         * decrease, the same scheme `UnifiedReal.exactIntegerRoot` uses for other indices.
+         */
+        internal fun integerSqrt(value: BigInteger): BigInteger {
+            require(value.signum() >= 0) { "square root of a negative integer" }
+            if (value.signum() == 0) return BigInteger.ZERO
+            // 2^(bitLength/2 + 1) exceeds sqrt(value), which is what makes the first step
+            // a descent rather than an undershoot that the stopping rule would accept.
+            var x: BigInteger = BigInteger.ONE.shiftLeft(value.bitLength() / 2 + 1)
+            while (true) {
+                CalculationLimits.checkNotAborted()
+                val next: BigInteger = x.add(value.divide(x)).shiftRight(1)
+                if (next >= x) return x
+                x = next
+            }
+        }
 
         /**
          * Removes every factor of [base] from [value], returning how many there were and

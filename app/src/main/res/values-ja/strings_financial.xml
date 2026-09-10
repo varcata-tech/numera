@@ -48,6 +48,7 @@
     <string name="fin_invalid_input">すべての項目に有効な数値を入力してください。</string>
     <string name="fin_out_of_range">これらの値はこの計算機が計算できる範囲を超えています。</string>
     <string name="fin_contribution_continuous">連続複利には期間がないため、積立額は計算に含まれません。</string>
+    <string name="fin_whole_periods_note">利息は完了した複利期間にのみ付きます。端数の期間は計算に含まれません。</string>
     <plurals name="fin_extra_cents">
         <item quantity="other">%1$d 人が 1 単位多く支払います</item>
     </plurals>

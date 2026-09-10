@@ -48,6 +48,7 @@
     <string name="fin_invalid_input">Saisissez un nombre valide dans chaque champ.</string>
     <string name="fin_out_of_range">Ces valeurs dépassent la plage que cette calculatrice peut traiter.</string>
     <string name="fin_contribution_continuous">La capitalisation continue n\'a pas de période : les versements ne sont pas pris en compte.</string>
+    <string name="fin_whole_periods_note">Seules les périodes de capitalisation entières produisent des intérêts ; la fraction de période restante n\'est pas comptée.</string>
     <plurals name="fin_extra_cents">
         <item quantity="one">%1$d paie une unité de plus</item>
         <item quantity="other">%1$d paient une unité de plus</item>

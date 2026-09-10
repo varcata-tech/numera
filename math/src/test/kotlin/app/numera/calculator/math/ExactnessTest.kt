@@ -429,6 +429,130 @@ class ExactnessTest {
     }
 
     @Test
+    fun `an exponential wide beyond the display is refused whichever route builds it`() {
+        // MAX_EXP_BITS was enforced only by checkExpSize, i.e. only for a rational
+        // exponent. π×1E8 is Factor.Pi, so exp() took the opaque branch, and there the only
+        // refusal was the 2^300 bound on the argument's *magnitude* — 29 bits, waved
+        // through — for a value 450 million bits wide. Nothing failed in the evaluator;
+        // the formatter asked for a digit and the process was gone.
+        val wide = UnifiedReal.PI * n(100_000_000)
+        try {
+            wide.exp()
+            throw AssertionError("expected TooMuchMemoryException from exp on an opaque value")
+        } catch (expected: TooMuchMemoryException) {
+        }
+        try {
+            n(10).pow(wide)
+            throw AssertionError("expected TooMuchMemoryException from powViaExpLn")
+        } catch (expected: TooMuchMemoryException) {
+        }
+        // An opaque base with a whole exponent past 64 is the third route: 65 × ln(1E100000)
+        // is about 1.5e7, and 1E100000 + 1 is opaque because it is too wide to stay rational.
+        try {
+            (parse("1E100000") + UnifiedReal.ONE).pow(n(65))
+            throw AssertionError("expected TooMuchMemoryException from powWithSign")
+        } catch (expected: TooMuchMemoryException) {
+        }
+        // Inside the bound — 453,000 bits — the value must still be built. Only evaluation
+        // is asserted: rendering it would run the series at that width, which is minutes.
+        assertFalse((UnifiedReal.PI * n(100_000)).exp().isRational)
+    }
+
+    @Test
+    fun `a product with a huge rational factor is bounded at the operands' own scale`() {
+        // boundedProduct probed the *product* at precision zero. MultCR budgets its small
+        // operand from the size of the large one, so `sin(1) × 1E100000` asked sin(1) for
+        // 332,195 bits after the point — a cosine series carried to a third of a million
+        // bits, inside the evaluator, for a value the display shows as 8.4E99999. The
+        // 1 s preview never appeared and the 15 s evaluation reported "timed out". The
+        // operand here throws if it is asked for more than 200 bits.
+        val small = UnifiedReal.of(PrecisionCeilingCR(861, -200))
+        val huge = parse("1E100000")
+        val product = small * huge
+        assertFalse(product.isRational)
+        val real = product.toConstructiveReal()
+        // Within a bit of floor(log2(0.84 × 10^100000)): an msd read off an approximation
+        // can be one high, as in creals.
+        val msd = real.estimateMsd(-64)
+        assertTrue("msd was $msd", Math.abs(msd - 332192) <= 1)
+        assertTrue(real.toDouble().isInfinite())
+        // The other operand order, and a product of two opaque values, budget the same way.
+        assertTrue((huge * small).toConstructiveReal().toDouble().isInfinite())
+        val opaqueHuge = huge + UnifiedReal.ONE
+        val opaqueMsd = (small * opaqueHuge).toConstructiveReal().estimateMsd(-64)
+        assertTrue("msd was $opaqueMsd", Math.abs(opaqueMsd - 332192) <= 1)
+        // The bound itself still holds, from the operands: 1E800000 × 1E400000 is refused
+        // and 1E100 × sin(1) is an ordinary double.
+        try {
+            (parse("1E400000") * parse("1E400000")) * parse("1E400000")
+            throw AssertionError("expected TooMuchMemoryException")
+        } catch (expected: TooMuchMemoryException) {
+        }
+        val moderate = (n(1).sin(AngleMode.RADIANS) * parse("1E100")).toConstructiveReal().toDouble()
+        assertTrue("sin(1) × 1E100 was $moderate", Math.abs(moderate / (Math.sin(1.0) * 1e100) - 1.0) < 1e-12)
+    }
+
+    @Test
+    fun `powers of a unit base stay exact for any exponent`() {
+        // (0−1)^20000 printed 1.000… with an ellipsis and (0−1)^2000000 was "requires too
+        // much memory", while 1^2000000 was exact: BoundedRational.pow short-circuited only
+        // +1, and the width test that followed measures −1 as one bit times the exponent.
+        // 1^π went to powViaExpLn and came back opaque for the same reason one step up.
+        assertExactly(BoundedRational.ONE, n(-1).pow(n(20000)), "(−1)^20000")
+        assertExactly(BoundedRational.MINUS_ONE, n(-1).pow(n(2000001)), "(−1)^2000001")
+        assertExactly(BoundedRational.ONE, n(-1).pow(n(2000000)), "(−1)^2000000")
+        assertExactly(BoundedRational.MINUS_ONE, n(-1).pow(n(-3)), "(−1)^−3")
+        assertExactly(BoundedRational.ONE, n(1).pow(UnifiedReal.PI), "1^π")
+        assertExactly(BoundedRational.ONE, n(1).pow(n(1).sin(AngleMode.RADIANS)), "1^sin(1)")
+        assertExactly(BoundedRational.ONE, n(1).pow(n(2000000)), "1^2000000")
+        // A negative base with a fractional exponent is still not a real number.
+        try {
+            n(-1).pow(UnifiedReal.PI)
+            throw AssertionError("expected NotANumberException")
+        } catch (expected: NotANumberException) {
+        }
+    }
+
+    @Test
+    fun `zero raised to an opaque power is decided from the exponent's sign`() {
+        // The zero-base guard read the exponent's sign from its factor and fell through for
+        // Factor.Opaque, reasoning that deciding it was an undecidable search. The search
+        // that is undecidable is ln(0) on the *base*, which is exactly where the
+        // fall-through went — so 0^sin(1) was "Bad expression" while 0^π was 0.
+        val sine = n(1).sin(AngleMode.RADIANS)
+        assertFalse(sine.isRational)
+        assertEquals(UnifiedReal.ZERO, UnifiedReal.ZERO.pow(sine))
+        try {
+            UnifiedReal.ZERO.pow(-sine)
+            throw AssertionError("expected DivideByZeroException")
+        } catch (expected: DivideByZeroException) {
+        }
+    }
+
+    @Test
+    fun `a rational power that shrinks is answered whatever the base's width`() {
+        // The size estimate measures the base by bit lengths, which cannot tell 9/10 from
+        // 10/9: both give a scale of zero, so the |whole| slack alone refused 0.9^2000000 —
+        // about 10^−91515, which renders as 0… — with the very error the rule beside it
+        // had been written to prevent. Whether a power grows is a property of the value.
+        val zeros = "0." + "0".repeat(50)
+        assertEquals(zeros, frac(9, 10).pow(n(2000000)).toConstructiveReal().toStringTruncated(50))
+        assertEquals(zeros, frac(3, 4).pow(n(1500000)).toConstructiveReal().toStringTruncated(50))
+        assertEquals(zeros, frac(10, 9).pow(n(-2000000)).toConstructiveReal().toStringTruncated(50))
+        // Growth in either direction of the sign is still refused.
+        try {
+            frac(1, 2).pow(n(-2000000))
+            throw AssertionError("expected TooMuchMemoryException")
+        } catch (expected: TooMuchMemoryException) {
+        }
+        try {
+            n(2).pow(n(2000000))
+            throw AssertionError("expected TooMuchMemoryException")
+        } catch (expected: TooMuchMemoryException) {
+        }
+    }
+
+    @Test
     fun `a symbolic power of pi is expanded correctly and bounded`() {
         // The exponent doubles on every press of x², and nothing capped it. Expanding it
         // into that many chained multiplications builds a product nested deep enough that

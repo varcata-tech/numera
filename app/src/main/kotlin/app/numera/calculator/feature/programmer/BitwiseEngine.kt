@@ -286,6 +286,23 @@ object BitwiseEngine {
     }
 
     /**
+     * Whether a typed decimal magnitude can be held by a *signed* word of [size].
+     *
+     * [parse] checks only that the bit pattern fits the word, which is the right question for
+     * hex, octal and binary — those rows show the pattern, and 0xC8 is a legitimate thing to
+     * type into a signed byte. Decimal is different: the keypad has no minus key, so what is
+     * typed is a magnitude, and a signed byte holds no magnitude above 127. Accepting 200
+     * there stored the pattern 0xC8, which the same row then read back as −56 the moment the
+     * entry was committed, and 200 + 100 answered 44 with no overflow flag — the operand the
+     * user saw was never the operand the machine held.
+     *
+     * The bound is `mask ushr 1` at every width, 64 included: the all-ones mask shifted once
+     * is 2^63 − 1, so the comparison needs no special case for the width whose mask is −1.
+     */
+    fun fitsSignedMagnitude(raw: Long, size: WordSize): Boolean =
+        java.lang.Long.compareUnsigned(raw, size.mask ushr 1) <= 0
+
+    /**
      * The value with the last digit of its [base] rendering removed.
      *
      * What backspace has to mean once the typed entry has been committed — after an operator,

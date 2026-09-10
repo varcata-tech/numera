@@ -13,6 +13,7 @@
     <string name="graph_list_separator">", "</string>
     <string name="graph_roots_of">%1$s의 근: %2$s</string>
     <string name="graph_trace_offscreen">x = %1$s, y = %2$s(화면 밖)</string>
+    <string name="graph_trace_undefined">x = %1$s, y가 정의되지 않음</string>
     <string name="graph_clear_trace">추적점 지우기</string>
     <string name="graph_angle_unit">x는 라디안</string>
     <string name="graph_sentence_separator">". "</string>

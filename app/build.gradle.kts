@@ -119,9 +119,13 @@ android {
     }
 
     // The app is shipped preloaded, so a missing translation is a shipped defect rather
-    // than something to notice in a report nobody reads.
+    // than something to notice in a report nobody reads. HardcodedText is deliberately not
+    // listed: its detector only reads android:text/hint attributes in XML layouts and never
+    // looks at a Kotlin `Text("...")` call, so in a Compose-only app it can never fire.
+    // Listing it as fatal made the build look like it guarded against untranslated literals
+    // when only review does.
     lint {
-        fatal += listOf("MissingTranslation", "HardcodedText")
+        fatal += listOf("MissingTranslation")
     }
 
     // Every locale ships inside the base APK instead of in a per-language split. Left at
@@ -145,6 +149,48 @@ android {
     }
 }
 
+/**
+ * Writes `res/xml/shortcuts.xml` for one variant from the template in `src/main/shortcuts/`.
+ *
+ * The launcher shortcuts name MainActivity explicitly, and an explicit component must carry
+ * the package the build actually installs — the plain applicationId in release, the
+ * ".debug"-suffixed one in debug. Nothing short of generating the file can do that: a
+ * resource file cannot expand a manifest placeholder, and a `@string` reference in
+ * `targetPackage` is resolved by the system's ShortcutParser against the *system's*
+ * resources, so it stores the unresolved `@2131362132` as the package name and the shortcut
+ * points at an app that does not exist. Two hand-written copies under `src/debug` and
+ * `src/release` would work, and would drift the first time one was edited.
+ */
+abstract class GenerateShortcutsTask : DefaultTask() {
+    @get:Input
+    abstract val applicationId: Property<String>
+
+    @get:InputFile
+    abstract val template: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun generate() {
+        val xml = template.get().asFile.readText().replace("\${applicationId}", applicationId.get())
+        val out = outputDir.get().asFile.resolve("xml/shortcuts.xml")
+        out.parentFile.mkdirs()
+        out.writeText(xml)
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        val name = variant.name.replaceFirstChar { it.uppercase() }
+        val generate = tasks.register<GenerateShortcutsTask>("generate${name}Shortcuts") {
+            applicationId.set(variant.applicationId)
+            template.set(layout.projectDirectory.file("src/main/shortcuts/shortcuts.xml"))
+        }
+        variant.sources.res?.addGeneratedSourceDirectory(generate, GenerateShortcutsTask::outputDir)
+    }
+}
+
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
@@ -163,7 +209,6 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     debugImplementation(libs.androidx.ui.tooling)

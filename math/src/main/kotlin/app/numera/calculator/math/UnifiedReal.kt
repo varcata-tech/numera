@@ -206,17 +206,26 @@ class UnifiedReal private constructor(
         // sends InvCR into a most-significant-bit search on a value that is identically
         // zero — undecidable by construction, so it gave up with a precision overflow and
         // the display reported "Bad expression" for a defined value, one keystroke away
-        // from a `0^2` that answers 0. The sign is taken from the factor rather than from
-        // signum(), so an opaque exponent still falls through to the behaviour below
-        // instead of starting an undecidable search of its own.
+        // from a `0^2` that answers 0. The sign comes from the factor where the factor
+        // knows it, and from the constructive real otherwise: an opaque exponent used to
+        // fall through to that same ln(0) on the reasoning that deciding its sign was an
+        // undecidable search, but the search that is undecidable is the one on the *base*.
+        // The exponent's sign is decided in a couple of probes for anything but an
+        // exponent that is itself an undecidable zero, and `0^sin(1)` was "Bad expression"
+        // while `0^π` was 0.
         if (definitelyZero()) {
             if (exponent.definitelyZero()) return ONE
-            val exponentSign = exponent.factorSignum()
-            if (exponentSign != null) {
-                if (exponent.ratFactor.signum * exponentSign > 0) return ZERO
-                throw DivideByZeroException()
-            }
+            val exponentSign: Int = exponent.factorSignum()
+                ?.let { it * exponent.ratFactor.signum }
+                ?: exponent.toConstructiveReal().signum()
+            if (exponentSign > 0) return ZERO
+            throw DivideByZeroException()
         }
+        // A base of exactly one, for any real exponent. 1^π went through powViaExpLn and
+        // came back opaque, printing `1.000…` with an ellipsis for a value the engine can
+        // prove; the integer route already special-cased it, so only the sign of the base
+        // and the shape of the exponent decided whether the display was honest.
+        if (isRational && ratFactor.isOne) return ONE
         if (!exponent.isRational) return opaque(powViaExpLn(exponent))
         val e = exponent.ratFactor
 
@@ -227,8 +236,8 @@ class UnifiedReal private constructor(
         // already handles. Handing it to powViaExpLn instead produced a Factor.Opaque, and
         // an opaque value can never report that it terminates, so a whole-number answer
         // came back wearing an ellipsis and an unbounded run of zeros.
-        if (isRational && e.den == BigInteger.TWO) {
-            val wholeHalves = (e.num - BigInteger.ONE) / BigInteger.TWO
+        if (isRational && e.den == ConstructiveReal.BIG2) {
+            val wholeHalves = (e.num - BigInteger.ONE) / ConstructiveReal.BIG2
             return sqrt() * pow(of(BoundedRational.of(wholeHalves)))
         }
 
@@ -266,10 +275,21 @@ class UnifiedReal private constructor(
                 // refused. Only a result that *grows* can be too large to hold. The trailing
                 // |whole| is the slack in log2 of a ratio measured by bit lengths, added in
                 // the direction that over-estimates.
-                val scale = ratFactor.num.abs().bitLength() - ratFactor.den.bitLength()
-                val estimatedBits =
-                    whole * BigInteger.valueOf(scale.toLong()) + whole.abs()
-                CalculationLimits.checkBits(estimatedBits, CalculationLimits.MAX_EXP_BITS)
+                //
+                // Whether the result grows is decided from the value, not from the
+                // estimate. Bit lengths cannot tell 9/10 from 10/9 — both give a scale of
+                // zero — so the slack alone refused 0.9^2000000, a value near 10^−91515
+                // that renders as `0…`, with the same "requires too much memory" the rule
+                // above had just been written to prevent. A power that shrinks is still
+                // bounded, by the depth of the argument reduction in ConstructiveReal.exp.
+                val shrinking =
+                    (ratFactor.abs() < BoundedRational.ONE) == (whole.signum() > 0)
+                if (!shrinking) {
+                    val scale = ratFactor.num.abs().bitLength() - ratFactor.den.bitLength()
+                    val estimatedBits =
+                        whole * BigInteger.valueOf(scale.toLong()) + whole.abs()
+                    CalculationLimits.checkBits(estimatedBits, CalculationLimits.MAX_EXP_BITS)
+                }
                 return powWithSign(whole, exponent)
             }
             // Irrational base: exact only while the repeated product stays cheap.
@@ -566,16 +586,28 @@ class UnifiedReal private constructor(
          * Only the large side is bounded. A product driven far *below* one is never
          * refused: the display searches a couple of thousand places, finds every one of
          * them zero, and prints `0…` — the honest answer, at no cost.
+         *
+         * The bound is measured on the *operands*, each on its own, and never by probing
+         * the product at a fixed precision. `product.msd(0)` asks the product to within
+         * one unit, and MultCR can only deliver that by asking the smaller operand for
+         * `msd(larger) + 3` bits after the point — for `sin(1) × 1E100000` that is a cosine
+         * series carried to 332,000 bits, inside the evaluator, for a value the display
+         * shows as `8.4E99999`. The sum of the operands' leading-bit positions is the
+         * product's to within a bit, and each is found at its own scale.
          */
         private fun boundedProduct(a: UnifiedReal, b: UnifiedReal): UnifiedReal {
-            val product = a.toConstructiveReal() * b.toConstructiveReal()
-            // Asked for at a fixed precision, so a value that cannot be separated from
-            // zero answers Int.MIN_VALUE instead of refining until the budget runs out.
-            val msd = product.msd(0)
-            if (msd != Int.MIN_VALUE && msd > CalculationLimits.MAX_PRODUCT_BITS) {
-                throw TooMuchMemoryException()
+            val left = a.toConstructiveReal()
+            val right = b.toConstructiveReal()
+            // Bounded searches, so an operand that cannot be separated from zero answers
+            // Int.MIN_VALUE instead of refining until the budget runs out — and a product
+            // with such an operand cannot be too large to show.
+            val msdLeft = left.estimateMsd(ConstructiveReal.HINT_FLOOR)
+            val msdRight = right.estimateMsd(ConstructiveReal.HINT_FLOOR)
+            if (msdLeft != Int.MIN_VALUE && msdRight != Int.MIN_VALUE) {
+                val estimate = msdLeft.toLong() + msdRight.toLong()
+                if (estimate > CalculationLimits.MAX_PRODUCT_BITS) throw TooMuchMemoryException()
             }
-            return opaque(product)
+            return opaque(left * right)
         }
 
         private fun expFactor(exponent: BoundedRational): Factor {
@@ -785,14 +817,14 @@ class UnifiedReal private constructor(
             // staying an un-normalised √200280098 that 10007√2 can never be shown to equal.
             if (smallPart > BigInteger.ONE) {
                 val cofactor = remaining / smallPart
-                val cofactorRoot = cofactor.sqrt()
+                val cofactorRoot = BoundedRational.integerSqrt(cofactor)
                 if (cofactorRoot * cofactorRoot == cofactor) {
                     coefficient *= cofactorRoot
                     remaining = smallPart
                 }
             }
             // What is left may still be a large perfect square that trial division missed.
-            val root = remaining.sqrt()
+            val root = BoundedRational.integerSqrt(remaining)
             if (root * root == remaining) {
                 coefficient *= root
                 remaining = BigInteger.ONE
@@ -832,7 +864,7 @@ class UnifiedReal private constructor(
             val value = when (reduced) {
                 0 -> ZERO
                 30 -> of(BoundedRational.HALF)
-                45 -> make(BoundedRational.HALF, Factor.Sqrt(BigInteger.TWO))
+                45 -> make(BoundedRational.HALF, Factor.Sqrt(ConstructiveReal.BIG2))
                 60 -> make(BoundedRational.HALF, Factor.Sqrt(BigInteger.valueOf(3L)))
                 90 -> ONE
                 else -> return null

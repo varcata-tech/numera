@@ -48,6 +48,7 @@
     <string name="fin_invalid_input">أدخل رقمًا صالحًا في كل حقل.</string>
     <string name="fin_out_of_range">هذه القيم خارج النطاق الذي يمكن لهذه الآلة الحاسبة حسابه.</string>
     <string name="fin_contribution_continuous">التركيب المستمر ليس له فترة، لذا لا تُدرج الإيداعات الدورية.</string>
+    <string name="fin_whole_periods_note">تُحتسب الفائدة على فترات التراكب الكاملة فقط؛ ولا يُحتسب الجزء المتبقي من الفترة.</string>
     <plurals name="fin_extra_cents">
         <item quantity="zero">لا أحد يدفع وحدة إضافية</item>
         <item quantity="one">شخص واحد يدفع وحدة إضافية</item>

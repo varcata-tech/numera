@@ -13,6 +13,7 @@
     <string name="graph_list_separator">", "</string>
     <string name="graph_roots_of">%1$s の零点: %2$s</string>
     <string name="graph_trace_offscreen">x = %1$s, y = %2$s（画面外）</string>
+    <string name="graph_trace_undefined">x = %1$s、y は定義されていません</string>
     <string name="graph_clear_trace">トレースを消去</string>
     <string name="graph_angle_unit">x はラジアン</string>
     <string name="graph_sentence_separator">"。"</string>

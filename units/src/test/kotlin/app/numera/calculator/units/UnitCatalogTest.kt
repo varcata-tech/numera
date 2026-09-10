@@ -103,6 +103,17 @@ class UnitCatalogTest {
     }
 
     @Test
+    fun `an inch of mercury is exactly twenty five point four millimetres of mercury`() {
+        // NIST lists inHg as 3386.389 Pa, which is 25.4 × 133.322387415 rounded to seven
+        // significant figures. Typing that rounding in next to the exact mmHg made the two
+        // units disagree inside one catalogue: 1 inHg → mmHg showed 25.4000026976… with a
+        // truncation ellipsis, which is the kind of answer an exact converter must never give.
+        assertExactly("25.4", convert("1", "inhg", "mmhg"), "1 inHg → mmHg")
+        assertExactly("3386.388640341", convert("1", "inhg", "pascal"), "1 inHg → Pa")
+        assertExactly("759.968", convert("29.92", "inhg", "mmhg"), "29.92 inHg → mmHg")
+    }
+
+    @Test
     fun `pound force is exactly 4 point 4482216152605 newtons`() {
         assertExactly("4.4482216152605", convert("1", "pound_force", "newton"), "1 lbf → N")
     }

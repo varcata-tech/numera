@@ -32,8 +32,11 @@
     <string name="key_del" translatable="false">⌫</string>
     <string name="key_inv" translatable="false">INV</string>
 
-    <!-- These two are labels rather than symbols, and some languages do abbreviate them
-         differently, so they are translatable. -->
+    <!-- DEG and RAD are notation like the glyphs above and are not translated. Adding a
+         values-<locale> entry for either fails the build: ExtraTranslation is fatal for a
+         translatable="false" resource. AC is the one key label left translatable on purpose,
+         so a locale that abbreviates "all clear" differently can do so; today every locale
+         keeps "AC". -->
     <string name="mode_deg" translatable="false">DEG</string>
     <string name="mode_rad" translatable="false">RAD</string>
     <string name="key_clear">AC</string>

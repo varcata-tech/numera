@@ -53,6 +53,27 @@ class DateMathTest {
         assertEquals(d("2028-02-29"), DateMath.add(d("2024-02-29"), years = 4))
     }
 
+    /**
+     * Years and months are one step, as `Period.addTo` makes them.
+     *
+     * Applied separately they clamp twice: a year from 29 February 2024 lands on the 28th,
+     * and a month from *there* is 28 March, while thirteen months in one step is 29 March.
+     * Every calendar app, `Period` and dateutil give the 29th, so the 28th is an answer off
+     * by a day that no one would spot.
+     */
+    @Test
+    fun `a year and a month from a leap day clamp once, not twice`() {
+        assertEquals(d("2025-03-29"), DateMath.add(d("2024-02-29"), years = 1, months = 1))
+        assertEquals(d("2023-01-29"), DateMath.subtract(d("2024-02-29"), years = 1, months = 1))
+        // The reference implementation, so the agreement is checked rather than assumed.
+        assertEquals(
+            java.time.Period.of(1, 1, 0).addTo(d("2024-02-29")),
+            DateMath.add(d("2024-02-29"), years = 1, months = 1),
+        )
+        // A year alone still clamps, exactly as before.
+        assertEquals(d("2025-02-28"), DateMath.add(d("2024-02-29"), years = 1, months = 0))
+    }
+
     @Test
     fun `subtraction mirrors addition`() {
         assertEquals(d("2024-01-01"), DateMath.subtract(d("2024-03-01"), months = 2))

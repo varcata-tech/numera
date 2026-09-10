@@ -96,7 +96,7 @@ private val MinimumLabelSize = 11.sp
  * window (landscape, split screen) into more rows than fit therefore produces keys well under
  * 48dp, and nothing here can widen them. The floor has to be enforced where the constraints are
  * still loose: by the pad, which must bound its row height and scroll or shed a pad rather than
- * shrink past the minimum.
+ * shrink past the minimum. [KeypadColumn] is that enforcement; every pad lays its rows into one.
  *
  * Haptics fire on press rather than on release — a keypad that ticks when your finger
  * lifts feels lagged — and only when both the in-app preference ([LocalHapticsEnabled])

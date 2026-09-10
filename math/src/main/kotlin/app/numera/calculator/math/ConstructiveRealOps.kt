@@ -2,6 +2,7 @@ package app.numera.calculator.math
 
 import app.numera.calculator.math.CalculationLimits.checkNotAborted
 import app.numera.calculator.math.ConstructiveReal.Companion.BIG1
+import app.numera.calculator.math.ConstructiveReal.Companion.HINT_FLOOR
 import app.numera.calculator.math.ConstructiveReal.Companion.boundLog2
 import app.numera.calculator.math.ConstructiveReal.Companion.scale
 import java.math.BigInteger
@@ -25,9 +26,27 @@ private fun shiftBI(k: BigInteger, n: Int): BigInteger = when {
     else -> k.shiftLeft(n)
 }
 
+/**
+ * An operand's magnitude for the purpose of a hint: its own seeded search, floored.
+ *
+ * The floor is what keeps a hint an over-estimate. An operand the search cannot separate
+ * from zero above 2^[HINT_FLOOR] contributes the floor itself rather than "unknown", so
+ * the product above it is seeded at `other − 64` and walks down from there — each step
+ * asking the small operand for bits *relative to the large one*, never for every bit
+ * between zero and the product's magnitude.
+ */
+private fun hintOf(op: ConstructiveReal): Int {
+    val found = op.estimateMsd(HINT_FLOOR)
+    return if (found == Int.MIN_VALUE) HINT_FLOOR else found
+}
+
 /** An exact integer. The base case for everything else. */
 internal class IntCR(private val value: BigInteger) : ConstructiveReal() {
     override fun approximate(precision: Int): BigInteger = scale(value, -precision)
+
+    // Exact, and free: no search is needed to know where an integer's leading bit is.
+    override fun computeMsdHint(): Int =
+        if (value.signum() == 0) HINT_FLOOR else value.abs().bitLength() - 1
 }
 
 /** Sum. Each operand is asked for two extra bits so the two roundings cannot combine. */
@@ -37,10 +56,16 @@ internal class AddCR(
 ) : ConstructiveReal() {
     override fun approximate(precision: Int): BigInteger =
         scale(op1.getAppr(precision - 2) + op2.getAppr(precision - 2), -2)
+
+    // An upper bound, deliberately: a sum can cancel to anything below this, and a search
+    // seeded too high only walks down through probes that a sum answers cheaply.
+    override fun computeMsdHint(): Int = maxOf(op1.msdHint(), op2.msdHint()) + 1
 }
 
 internal class NegCR(private val op: ConstructiveReal) : ConstructiveReal() {
     override fun approximate(precision: Int): BigInteger = op.getAppr(precision).negate()
+
+    override fun computeMsdHint(): Int = op.msdHint()
 }
 
 /** Multiplication by `2^shift`, which is exact: it only moves the precision request. */
@@ -49,6 +74,8 @@ internal class ShiftedCR(
     private val shift: Int,
 ) : ConstructiveReal() {
     override fun approximate(precision: Int): BigInteger = op.getAppr(precision - shift)
+
+    override fun computeMsdHint(): Int = op.msdHint() + shift
 }
 
 /**
@@ -85,6 +112,11 @@ internal class MultCR(
         val appr1 = op1.getAppr(prec1)
         return scale(appr1 * appr2, prec1 + prec2 - precision)
     }
+
+    // The sum of the operands' magnitudes is the product's to within a bit. Each operand
+    // is measured on its own, so `sin(1)` is asked for a few dozen bits rather than for
+    // the 332,000 that a probe of the product at absolute precision would demand of it.
+    override fun computeMsdHint(): Int = hintOf(op1) + hintOf(op2)
 }
 
 /**
@@ -112,6 +144,14 @@ internal class InvCR(private val op: ConstructiveReal) : ConstructiveReal() {
         val adjustedDividend = dividend + absDivisor.shiftRight(1)
         val result = adjustedDividend / absDivisor
         return if (scaledDivisor.signum() < 0) result.negate() else result
+    }
+
+    // 1/x for x in [2^m, 2^(m+1)) lies in (2^(-m-1), 2^-m]. An operand below the floor
+    // has a reciprocal of unknown size, and a hint that is merely too *low* is harmless
+    // here: a probe of a reciprocal costs a division at the true magnitude, not a search.
+    override fun computeMsdHint(): Int {
+        val found = op.estimateMsd(HINT_FLOOR)
+        return if (found == Int.MIN_VALUE) -HINT_FLOOR else -found - 1
     }
 }
 
@@ -159,6 +199,9 @@ internal class SqrtCR(private val op: ConstructiveReal) : ConstructiveReal() {
             shiftBI(scaledSqrt, workingPrec / 2 - precision)
         }
     }
+
+    // x in [2^m, 2^(m+1)) has a root in [2^(m/2), 2^((m+1)/2)), i.e. msd floor(m/2).
+    override fun computeMsdHint(): Int = Math.floorDiv(hintOf(op), 2)
 }
 
 /**

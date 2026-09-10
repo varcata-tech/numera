@@ -190,7 +190,7 @@ to users as well as to a reviewer.
 
 ```sh
 ./gradlew :math:test :units:test :app:testDebugUnitTest
-./gradlew :app:lintDebug          # MissingTranslation / HardcodedText are fatal
+./gradlew :app:lintDebug          # MissingTranslation is fatal; HardcodedText cannot see Compose
 ./gradlew :app:bundleRelease
 
 # Check what is actually going up. bundleRelease writes an .aab and never produces an APK, so

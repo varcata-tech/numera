@@ -13,6 +13,7 @@
     <string name="graph_list_separator">", "</string>
     <string name="graph_roots_of">Roots of %1$s: %2$s</string>
     <string name="graph_trace_offscreen">x = %1$s, y = %2$s (off screen)</string>
+    <string name="graph_trace_undefined">x = %1$s, y is undefined</string>
     <string name="graph_clear_trace">Clear trace</string>
     <string name="graph_angle_unit">x in radians</string>
     <string name="graph_sentence_separator">". "</string>

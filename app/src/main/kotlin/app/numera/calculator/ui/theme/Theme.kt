@@ -1,6 +1,7 @@
 package app.numera.calculator.ui.theme
 
 import android.app.Activity
+import android.graphics.drawable.ColorDrawable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
@@ -11,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -90,6 +92,13 @@ fun CalculatorTheme(
         // the app is open otherwise leaves the status-bar icons in the previous polarity.
         SideEffect {
             val window = (view.context as Activity).window
+            // The window is repainted together with the bar polarity, and from the scheme
+            // rather than from the XML colour MainActivity uses at launch. Flipping only the
+            // icons left the window at the launch colour, and with transparent system bars
+            // that is what shows behind them: light icons over a still-white band after a
+            // switch to Dark, and — with dynamic colour on — a band in the hand-tuned tone
+            // beside content in the wallpaper's, even when the picker is never touched.
+            window.setBackgroundDrawable(ColorDrawable(scheme.background.toArgb()))
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = scheme.background.luminance() > 0.5f
                 isAppearanceLightNavigationBars = scheme.background.luminance() > 0.5f

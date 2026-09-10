@@ -48,6 +48,7 @@
     <string name="fin_invalid_input">हर फ़ील्ड में एक मान्य संख्या दर्ज करें।</string>
     <string name="fin_out_of_range">ये मान उस सीमा से बाहर हैं जिसकी गणना यह कैलकुलेटर कर सकता है।</string>
     <string name="fin_contribution_continuous">सतत चक्रवृद्धि में कोई अवधि नहीं होती, इसलिए नियमित योगदान शामिल नहीं किए जाते।</string>
+    <string name="fin_whole_periods_note">ब्याज केवल पूर्ण चक्रवृद्धि अवधियों पर मिलता है; बची हुई आंशिक अवधि की गणना नहीं होती।</string>
     <plurals name="fin_extra_cents">
         <item quantity="one">%1$d एक इकाई अधिक देंगे</item>
         <item quantity="other">%1$d एक इकाई अधिक देंगे</item>

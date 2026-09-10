@@ -253,6 +253,21 @@ object FinanceMath {
         )
     }
 
+    /**
+     * Whether [compoundGrowth] would leave part of a period out of [years].
+     *
+     * The screen asks so it can say so. [periodCount] floors deliberately, but the Years
+     * field invites a decimal, and nothing in the result card distinguished "0.9 years at
+     * annual compounding earned nothing" from a broken calculation — the same inputs earned
+     * 42.47 monthly and 46.03 continuously, and the annual figure sat beside them with no
+     * explanation. Continuous compounding has no period and never drops one.
+     */
+    fun dropsPartPeriod(years: BigDecimal, compounding: Compounding): Boolean {
+        if (compounding == Compounding.CONTINUOUS || years.signum() < 0) return false
+        val periods = years.multiply(BigDecimal(compounding.perYear))
+        return periods.compareTo(periods.setScale(0, RoundingMode.FLOOR)) != 0
+    }
+
     /** Balance after [years]. Convenience over [compoundGrowth] for in-range inputs. */
     fun compoundInterest(
         principal: BigDecimal,

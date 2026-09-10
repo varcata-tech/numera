@@ -13,6 +13,7 @@
     <string name="graph_list_separator">"; "</string>
     <string name="graph_roots_of">Nullstellen von %1$s: %2$s</string>
     <string name="graph_trace_offscreen">x = %1$s, y = %2$s (außerhalb des Ausschnitts)</string>
+    <string name="graph_trace_undefined">x = %1$s, y ist nicht definiert</string>
     <string name="graph_clear_trace">Fadenkreuz entfernen</string>
     <string name="graph_angle_unit">x im Bogenmaß</string>
     <string name="graph_sentence_separator">". "</string>

@@ -1,7 +1,9 @@
 package app.numera.calculator.feature.graphing
 
 import kotlin.math.abs
+import kotlin.math.ln
 import kotlin.math.sin
+import kotlin.math.sqrt
 import kotlin.math.tan
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -158,6 +160,144 @@ class GraphMathTest {
         assertTrue(GraphSampler.breaksBetween(-32.7, 32.7, wide))
         // A steep-but-real slope that stays well inside the window is still joined.
         assertFalse(GraphSampler.breaksBetween(1.0, 12.0, wide))
+    }
+
+    @Test
+    fun `a steep line is joined through every column rather than scattered as dots`() {
+        // 1000x climbs twice the window's height in one column, so the jump test alone broke
+        // every segment and the whole line came out as two round-capped dots at the top and
+        // bottom edges with nothing between. Sampling settles each candidate with one more
+        // evaluation halfway between the two columns: a line passes through the midpoint
+        // value, a pole does not.
+        val line = GraphSampler.sample({ x -> 1000.0 * x }, viewport, 1016)
+        for (i in 1 until line.xs.size) {
+            assertTrue(
+                "column $i of 1000x should be joined",
+                GraphSampler.breaksBetween(line.ys[i - 1], line.ys[i], viewport),
+            )
+            assertTrue("column $i of 1000x was broken", line.continuous[i])
+        }
+
+        // The pole of 1/x is still broken: the midpoint lands on the pole itself. And the
+        // steep-but-real segments either side of it, which the old rule also broke, are now
+        // joined — the run from -13 to -40 one column short of the pole is the function.
+        val pole = GraphSampler.sample({ x -> 1.0 / x }, viewport, 400)
+        val across = (1 until pole.xs.size).first { pole.xs[it - 1] < 0.0 && pole.xs[it] >= 0.0 }
+        assertFalse("the segment across the pole of 1/x was joined", pole.continuous[across])
+        assertTrue(
+            "the steep run up to the pole of 1/x was broken",
+            GraphSampler.breaksBetween(pole.ys[across - 2], pole.ys[across - 1], viewport) &&
+                pole.continuous[across - 1],
+        )
+    }
+
+    @Test
+    fun `a margin samples beyond the window without moving a single visible column`() {
+        // What a pan reveals is drawn from samples taken before the finger went down, so the
+        // margin is where the newly uncovered curve comes from. It must not shift the grid
+        // inside the window: the root finder's exact-zero and last-column behaviour both
+        // depend on `minX` and `maxX` being sampled exactly.
+        val f = { x: Double -> x * x }
+        val plain = GraphSampler.sample(f, viewport, 100)
+        val padded = GraphSampler.sample(f, viewport, 100, margin = 1)
+        assertEquals(300, padded.xs.size)
+        // A margin is `columns` columns, which is one step more than a window's width.
+        assertTrue("margin too short: ${padded.xs.first()}", padded.xs.first() <= -30.0)
+        assertTrue("margin too short: ${padded.xs.last()}", padded.xs.last() >= 30.0)
+        assertEquals(-10.0, padded.xs[100], 0.0)
+        assertEquals(10.0, padded.xs[199], 0.0)
+        for (i in 0 until 100) {
+            assertEquals("column $i moved", plain.xs[i], padded.xs[i + 100], 0.0)
+            assertEquals("column $i changed value", plain.ys[i], padded.ys[i + 100], 0.0)
+        }
+        // And the visible slice is the plain sampling again, so the roots see the same grid.
+        val visible = GraphSampler.visible(padded, viewport)
+        assertEquals(100, visible.xs.size)
+        assertEquals(-10.0, visible.xs.first(), 0.0)
+        assertEquals(10.0, visible.xs.last(), 0.0)
+        // Without a margin the samples are already the visible ones.
+        assertTrue(GraphSampler.visible(plain, viewport) === plain)
+    }
+
+    @Test
+    fun `the roots readout counts only what is in view against its cap`() {
+        // The margin exists for the canvas alone. Fed the whole array, the root finder spent
+        // its hundred on the left margin — sin(100x) has six hundred roots per window — and
+        // the line captioned "in view" listed roots two screens to the left.
+        val f = { x: Double -> sin(100 * x) }
+        val padded = GraphSampler.sample(f, viewport, 1080, margin = 1)
+        val roots = RootFinder.roots(f, GraphSampler.visible(padded, viewport))
+        assertEquals(RootFinder.MAX_ROOTS, roots.size)
+        assertTrue("a root outside the window was listed: ${roots.first()}", roots.all { it >= -10.0 })
+    }
+
+    @Test
+    fun `a root the curve touches without crossing is found`() {
+        // x^2 is the first thing anyone plots, and it never changes sign. It was found only
+        // when a column landed on zero exactly, which at the default window happens at almost
+        // no device width, so the readout printed "No roots in view" under a parabola
+        // visibly resting on the axis — and (x-1)^2 was never found on any device at all.
+        for (columns in listOf(672, 900, 1016, 1080, 1440)) {
+            val parabola = { x: Double -> x * x }
+            val origin = RootFinder.roots(parabola, GraphSampler.sample(parabola, viewport, columns))
+            assertEquals("at $columns columns", 1, origin.size)
+            assertEquals("at $columns columns", 0.0, origin[0], 1e-9)
+
+            // Refined to full resolution, not just to the point where the touch is
+            // recognised: stopping there reported 1.00009, which prints as 1.0001.
+            val shifted = { x: Double -> (x - 1.0) * (x - 1.0) }
+            val one = RootFinder.roots(shifted, GraphSampler.sample(shifted, viewport, columns))
+            assertEquals("at $columns columns", 1, one.size)
+            assertEquals("at $columns columns", 1.0, one[0], 1e-6)
+        }
+        // A tangency far from the origin, where the ulp is coarser, at the tightest zoom.
+        val deep = { x: Double -> (x - 10.0) * (x - 10.0) }
+        val tight = Viewport(10.0 - 5e-10, 10.0 + 5e-10, -1e-9, 1e-9)
+        val roots = RootFinder.roots(deep, GraphSampler.sample(deep, tight, 1080))
+        assertEquals(1, roots.size)
+        assertEquals(10.0, roots[0], 1e-12)
+    }
+
+    @Test
+    fun `a curve that only comes close to the axis has no root`() {
+        // The touch test is relative to the neighbouring samples, the way the crossing test
+        // is: a minimum that stays a fixed fraction of its neighbours is a curve passing
+        // near the axis, not one resting on it. x^2+0.001 sits under a pixel of the axis at
+        // the default zoom and still must not be reported.
+        for (offset in listOf(1.0, 0.01, 0.001, 1e-6)) {
+            val near = { x: Double -> x * x + offset }
+            val roots = RootFinder.roots(near, GraphSampler.sample(near, viewport, 1016))
+            assertTrue("x^2 + $offset has no root, found $roots", roots.isEmpty())
+        }
+        // A function with hundreds of local minima, none of them roots, stays rootless.
+        val wave = { x: Double -> sin(100 * x) + 2.0 }
+        assertTrue(RootFinder.roots(wave, GraphSampler.sample(wave, viewport, 1080)).isEmpty())
+    }
+
+    @Test
+    fun `a root on the edge of the domain is found, and a pole there is not`() {
+        // The root of √x sits where the function starts existing: the column to its left is
+        // NaN, so no bracket ever formed and the readout denied the root the plot clearly
+        // shows. ln(x) has the same boundary and diverges there instead; its only root in
+        // the window is at 1. √x + 1 reaches the boundary at 1 and has no root at all.
+        val root = { x: Double -> sqrt(x) }
+        val atZero = RootFinder.roots(root, GraphSampler.sample(root, viewport, 1016))
+        assertEquals(1, atZero.size)
+        assertEquals(0.0, atZero[0], 1e-9)
+
+        val log = { x: Double -> ln(x) }
+        val logRoots = RootFinder.roots(log, GraphSampler.sample(log, viewport, 1016))
+        assertEquals(listOf(1.0), logRoots.map { Math.round(it * 1e9) / 1e9 })
+
+        val lifted = { x: Double -> sqrt(x) + 1.0 }
+        assertTrue(RootFinder.roots(lifted, GraphSampler.sample(lifted, viewport, 1016)).isEmpty())
+
+        // Both edges of a bounded domain.
+        val arc = { x: Double -> sqrt(1.0 - x * x) }
+        val ends = RootFinder.roots(arc, GraphSampler.sample(arc, viewport, 1016)).sorted()
+        assertEquals(2, ends.size)
+        assertEquals(-1.0, ends[0], 1e-9)
+        assertEquals(1.0, ends[1], 1e-9)
     }
 
     @Test

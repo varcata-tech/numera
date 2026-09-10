@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.min
 
 /** One plotted function: its text, its compiled closure, and its current samples. */
 data class Plot(
@@ -79,6 +80,40 @@ internal fun GraphingUiState.withoutStaleReadouts(): GraphingUiState = copy(
 )
 
 /**
+ * The crosshair for [plot] at [x].
+ *
+ * A column where the function has no value produces a point with a NaN `y`, not no point.
+ * Writing `null` there deleted whatever crosshair was already placed: tapping left of the
+ * axis on `ln(x)` blanked the readout and took the "Clear trace" button with it, exactly as
+ * if that button had been pressed, and nothing said the function is undefined there. A NaN
+ * `y` keeps the column, the canvas marks it, and the readout says so in words.
+ */
+internal fun traceFor(plot: Plot, x: Double): TracePoint {
+    val y: Double = try {
+        plot.evaluate(x)
+    } catch (e: ArithmeticException) {
+        Double.NaN
+    }
+    return TracePoint(x, if (y.isFinite()) y else Double.NaN, plot.expressionText)
+}
+
+/**
+ * How long a gesture-driven resample waits, given how long one has already been pending.
+ *
+ * A plain restart-debounce never fires during a drag: pointer moves arrive every frame and
+ * each one restarted the wait, so the samples stayed exactly as they were until the finger
+ * lifted, and everything a long pan revealed past the sampled margin was blank for the whole
+ * gesture. The wait is therefore bounded. It shrinks as the gesture goes on, so a pass runs
+ * at least every [GraphingViewModel.RESAMPLE_MAX_WAIT_MS] while the finger keeps moving,
+ * and the ordinary debounce still coalesces the tail of the gesture into one pass once it
+ * settles.
+ */
+internal fun resampleDelayMillis(pendingForMillis: Long): Long {
+    val remaining: Long = GraphingViewModel.RESAMPLE_MAX_WAIT_MS - pendingForMillis
+    return min(GraphingViewModel.RESAMPLE_DEBOUNCE_MS, remaining).coerceAtLeast(0L)
+}
+
+/**
  * Owns the viewport, the plotted functions, and the resampling schedule.
  *
  * The resampling policy is the whole performance story. During a gesture the samples are
@@ -96,6 +131,12 @@ internal fun GraphingUiState.withoutStaleReadouts(): GraphingUiState = copy(
 class GraphingViewModel(private val savedState: SavedStateHandle) : ViewModel() {
 
     private var resampleJob: Job? = null
+
+    /** The pass in [resampleJob] once it is past its delay and computing, else null. */
+    private var inFlightJob: Job? = null
+
+    /** When the gesture now in progress first asked for a pass, or null outside a gesture. */
+    private var gesturePendingSinceMillis: Long? = null
 
     private val _state = MutableStateFlow(GraphingUiState())
     val state: StateFlow<GraphingUiState> = _state.asStateFlow()
@@ -213,20 +254,14 @@ class GraphingViewModel(private val savedState: SavedStateHandle) : ViewModel() 
      * Only the column is used. The crosshair's y is the curve's value there, not the height
      * the finger landed at, so a tap anywhere in a column snaps to the plot rather than
      * reporting a point the function never passes through — which is why the canvas height
-     * is not a parameter.
+     * is not a parameter. A column with no value still places the crosshair; see [traceFor].
      */
     fun onTrace(px: Float, width: Float) {
         val current = _state.value
         val plot = current.plots.firstOrNull() ?: return
         val x = current.viewport.screenToWorldX(px, width)
-        val y = try {
-            plot.evaluate(x)
-        } catch (e: ArithmeticException) {
-            Double.NaN
-        }
-        _state.update {
-            it.copy(trace = if (y.isFinite()) TracePoint(x, y, plot.expressionText) else null)
-        }
+        val trace: TracePoint = traceFor(plot, x)
+        _state.update { it.copy(trace = trace) }
     }
 
     /** Takes the crosshair off the graph; without it the readout can only ever be moved. */
@@ -238,52 +273,87 @@ class GraphingViewModel(private val savedState: SavedStateHandle) : ViewModel() 
     /**
      * Recomputes samples and roots off the main thread.
      *
-     * The debounce is what separates a gesture from its cost: [immediate] is for a discrete
-     * change the user is waiting on, while a pan or pinch coalesces into one pass after the
-     * finger settles.
+     * The wait is what separates a gesture from its cost: [immediate] is for a discrete
+     * change the user is waiting on, while a pan or pinch coalesces into a pass after the
+     * finger settles — and, bounded by [resampleDelayMillis], into one every quarter second
+     * while it keeps moving.
+     *
+     * A pass that is already computing is left to finish when only the window has moved.
+     * Its samples are in world coordinates and draw correctly under any window, and
+     * cancelling it on every pointer event is what kept a drag from ever seeing a fresh
+     * sample; it reschedules itself if the window moved on while it ran. A change to the
+     * plot list or the canvas must still cancel it, because the pass would otherwise publish
+     * a list that no longer matches what is plotted.
      */
     private fun scheduleResample(immediate: Boolean) {
-        resampleJob?.cancel()
-        resampleJob = viewModelScope.launch {
-            if (!immediate) delay(RESAMPLE_DEBOUNCE_MS)
-            // Saved here rather than at the call, which a pan or a pinch reaches on every
-            // pointer event: an ArrayList and a DoubleArray allocated and published into the
-            // saved-state flows at 60 to 120 Hz, for a window that only needs recording once
-            // the gesture has settled — which is exactly where the debounce already puts us.
-            persist()
-            val snapshot = _state.value
-            val columns = snapshot.canvasColumns
-            if (snapshot.plots.isEmpty()) {
-                // Returning here without touching the state left the roots and the traced
-                // point of the deleted function on screen, describing a curve that no longer
-                // exists and that the user has no way to remove.
-                _state.update { it.copy(roots = null, trace = null) }
-                return@launch
-            }
-            if (columns <= 1) return@launch
+        val current: Job? = resampleJob
+        if (current != null && current.isActive) {
+            if (!immediate && current === inFlightJob) return
+            current.cancel()
+        }
+        val delayMillis: Long = if (immediate) 0L else gestureDelayMillis()
+        resampleJob = launchPass(delayMillis)
+    }
 
-            val resampled = withContext(Dispatchers.Default) {
-                snapshot.plots.map { plot ->
-                    plot.copy(
-                        samples = GraphSampler.sample(plot.evaluate, snapshot.viewport, columns),
-                    )
-                }
+    /** The wait for a pan or pinch, measured from the first pointer event of the gesture. */
+    private fun gestureDelayMillis(): Long {
+        val now: Long = System.nanoTime() / NANOS_PER_MILLI
+        val since: Long = gesturePendingSinceMillis ?: now
+        gesturePendingSinceMillis = since
+        return resampleDelayMillis(now - since)
+    }
+
+    private fun launchPass(delayMillis: Long): Job = viewModelScope.launch {
+        if (delayMillis > 0L) delay(delayMillis)
+        inFlightJob = coroutineContext[Job]
+        gesturePendingSinceMillis = null
+        // Saved here rather than at the call, which a pan or a pinch reaches on every
+        // pointer event: an ArrayList and a DoubleArray allocated and published into the
+        // saved-state flows at 60 to 120 Hz, for a window that only needs recording once
+        // the gesture has settled — which is exactly where the wait already puts us.
+        persist()
+        val snapshot = _state.value
+        val columns = snapshot.canvasColumns
+        if (snapshot.plots.isEmpty()) {
+            // Returning here without touching the state left the roots and the traced
+            // point of the deleted function on screen, describing a curve that no longer
+            // exists and that the user has no way to remove.
+            _state.update { it.copy(roots = null, trace = null) }
+            return@launch
+        }
+        if (columns <= 1) return@launch
+
+        val resampled = withContext(Dispatchers.Default) {
+            snapshot.plots.map { plot ->
+                plot.copy(
+                    samples = GraphSampler.sample(
+                        plot.evaluate, snapshot.viewport, columns, SAMPLE_MARGIN_WINDOWS,
+                    ),
+                )
             }
-            val first: Plot? = resampled.firstOrNull()
-            val firstSamples: Samples? = first?.samples
-            val evaluate: ((Double) -> Double)? = first?.evaluate
-            val subject: String = first?.expressionText.orEmpty()
-            val roots: RootsReadout? = if (firstSamples == null || evaluate == null) {
-                null
-            } else {
-                withContext(Dispatchers.Default) {
-                    RootsReadout(subject, RootFinder.roots(evaluate, firstSamples))
-                }
+        }
+        val first: Plot? = resampled.firstOrNull()
+        val firstSamples: Samples? = first?.samples
+        val evaluate: ((Double) -> Double)? = first?.evaluate
+        val subject: String = first?.expressionText.orEmpty()
+        val roots: RootsReadout? = if (firstSamples == null || evaluate == null) {
+            null
+        } else {
+            withContext(Dispatchers.Default) {
+                // The visible columns only: the margin is for the canvas, and the readout
+                // says "in view".
+                val inView: Samples = GraphSampler.visible(firstSamples, snapshot.viewport)
+                RootsReadout(subject, RootFinder.roots(evaluate, inView))
             }
-            // Stale-checked once more on the way in. The job is cancelled whenever the plot
-            // list changes, but cancellation is only observed at a suspension point, and the
-            // readout must never be captioned with a function it was not computed from.
-            _state.update { it.copy(plots = resampled, roots = roots).withoutStaleReadouts() }
+        }
+        // Stale-checked once more on the way in. The job is cancelled whenever the plot
+        // list changes, but cancellation is only observed at a suspension point, and the
+        // readout must never be captioned with a function it was not computed from.
+        _state.update { it.copy(plots = resampled, roots = roots).withoutStaleReadouts() }
+        // The window moved while this pass ran, so what it published is already behind:
+        // a pass that was let run through a gesture owes the gesture's end its own pass.
+        if (_state.value.viewport != snapshot.viewport) {
+            resampleJob = launchPass(RESAMPLE_DEBOUNCE_MS)
         }
     }
 
@@ -330,7 +400,19 @@ class GraphingViewModel(private val savedState: SavedStateHandle) : ViewModel() 
     companion object {
         /** Four is where the colours stop being distinguishable and the frame budget bites. */
         const val MAX_PLOTS = 4
-        private const val RESAMPLE_DEBOUNCE_MS = 80L
+        internal const val RESAMPLE_DEBOUNCE_MS = 80L
+
+        /** The longest a moving finger can hold the samples still — see [resampleDelayMillis]. */
+        internal const val RESAMPLE_MAX_WAIT_MS = 250L
+        private const val NANOS_PER_MILLI = 1_000_000L
+
+        /**
+         * Whole window widths sampled beyond each edge, so that a pan reveals curve that has
+         * already been sampled — see [GraphSampler.sample]. One each side is three windows
+         * of columns, about three thousand evaluations, and covers a drag of a full screen
+         * or a pinch out to a third of the scale before anything unsampled shows.
+         */
+        private const val SAMPLE_MARGIN_WINDOWS = 1
         private const val KEY_EXPRESSIONS = "graph_expressions"
         private const val KEY_VIEWPORT = "graph_viewport"
     }

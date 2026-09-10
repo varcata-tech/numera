@@ -5,7 +5,10 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +16,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
@@ -50,6 +55,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.text.BidiFormatter
@@ -74,6 +80,7 @@ import kotlin.math.pow
  * magnitude too slow for that. The exact engine stays authoritative for numbers the app
  * *prints*; this path only decides where pixels go.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GraphingScreen(onBack: () -> Unit) {
     val viewModel: GraphingViewModel = viewModel(factory = graphingViewModelFactory())
@@ -95,62 +102,135 @@ fun GraphingScreen(onBack: () -> Unit) {
     val onAdd: (String) -> Boolean = remember(viewModel) { viewModel::onAddFunction }
     val onEdited: () -> Unit = remember(viewModel) { viewModel::onExpressionEdited }
     val onRemove: (Int) -> Unit = remember(viewModel) { viewModel::onRemoveFunction }
+    val onResetView: () -> Unit = remember(viewModel) { viewModel::onResetView }
+    val onSquareAxes: () -> Unit = remember(viewModel) { viewModel::onSquareAxes }
+    val onClearTrace: () -> Unit = remember(viewModel) { viewModel::onClearTrace }
+
+    // The window's bounds, printed under the canvas and spoken as part of its description.
+    // The gridlines carry no numbers, so with the bounds only in the description a sighted
+    // user had no way to tell, after a couple of pinches, whether the visible span was twenty
+    // units or a millionth of one — or whether "Square the axes" had done anything at all.
+    val summary: String = stringResource(
+        R.string.graph_summary,
+        state.viewport.minX.pretty(locale, state.viewport.width),
+        state.viewport.maxX.pretty(locale, state.viewport.width),
+        state.viewport.minY.pretty(locale, state.viewport.height),
+        state.viewport.maxY.pretty(locale, state.viewport.height),
+    )
 
     ModeScaffold(title = stringResource(R.string.title_graphing), onBack = onBack) { padding ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 12.dp),
         ) {
-            GraphCanvas(
-                viewport = state.viewport,
-                plots = state.plots,
-                trace = state.trace,
-                columns = state.canvasColumns,
-                locale = locale,
-                onPan = onPan,
-                onZoom = onZoom,
-                onTrace = onTrace,
-                onResize = onResize,
-                modifier = Modifier.fillMaxWidth().weight(1f),
-            )
+            // Measured, not inferred from orientation, for the reason the programmer screen
+            // gives: a freeform or split-screen window can be any shape. See
+            // [controlsHeightCap] for what the cap prevents.
+            val controlsCap: Dp = controlsHeightCap(maxHeight)
+            Column(modifier = Modifier.fillMaxSize()) {
+                GraphCanvas(
+                    viewport = state.viewport,
+                    plots = state.plots,
+                    trace = state.trace,
+                    columns = state.canvasColumns,
+                    summary = summary,
+                    onPan = onPan,
+                    onZoom = onZoom,
+                    onTrace = onTrace,
+                    onResize = onResize,
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                )
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(onClick = viewModel::onResetView) {
-                    Text(stringResource(R.string.graph_reset_view))
-                }
-                TextButton(onClick = viewModel::onSquareAxes) {
-                    Text(stringResource(R.string.graph_square_axes))
-                }
-                if (state.trace != null) {
-                    TextButton(onClick = viewModel::onClearTrace) {
-                        Text(stringResource(R.string.graph_clear_trace))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = controlsCap)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    // One line, always: a child under the canvas whose height varied with
+                    // the state the canvas reports would be a layout feedback loop.
+                    Text(
+                        text = summary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+
+                    // A FlowRow, not a Row. A Row measures each child against the width its
+                    // earlier siblings left, so a label that does not fit is not clipped: it
+                    // is handed a width near zero and breaks one glyph per line. In de the
+                    // first two labels alone exceed a 360dp phone, and the third —
+                    // "Fadenkreuz entfernen" — came out as a twenty-line column of single
+                    // letters that took the whole canvas height with it. The third button is
+                    // composed whether or not there is a trace to clear, so that placing one
+                    // does not re-measure the row and shift the canvas above it.
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        TextButton(onClick = onResetView) {
+                            Text(stringResource(R.string.graph_reset_view))
+                        }
+                        TextButton(onClick = onSquareAxes) {
+                            Text(stringResource(R.string.graph_square_axes))
+                        }
+                        TextButton(onClick = onClearTrace, enabled = state.trace != null) {
+                            Text(stringResource(R.string.graph_clear_trace))
+                        }
                     }
+
+                    Readouts(
+                        viewport = state.viewport,
+                        trace = state.trace,
+                        roots = state.roots,
+                        locale = locale,
+                    )
+
+                    FunctionList(
+                        plots = state.plots,
+                        lastAddFailed = state.lastAddFailed,
+                        onAdd = onAdd,
+                        onEdited = onEdited,
+                        onRemove = onRemove,
+                    )
                 }
             }
-
-            Readouts(
-                viewport = state.viewport,
-                trace = state.trace,
-                roots = state.roots,
-                locale = locale,
-            )
-
-            FunctionList(
-                plots = state.plots,
-                lastAddFailed = state.lastAddFailed,
-                onAdd = onAdd,
-                onEdited = onEdited,
-                onRemove = onRemove,
-            )
         }
     }
 }
+
+/**
+ * How tall the controls under the canvas may be, for a content area [available] tall.
+ *
+ * The canvas is the Column's only weighted child, so it is handed whatever the controls
+ * leave, and the controls — the button row, the readouts, the expression field and a
+ * function list of up to 120dp — come to about 300dp with three functions plotted. A phone
+ * in landscape has about that much content height altogether, so the plot was measured to a
+ * strip a few dp tall with two functions and to nothing with three; with the keyboard up the
+ * Column overflowed, and the very field being typed into was laid out below the visible area.
+ *
+ * The controls are therefore capped so that the canvas keeps [MIN_CANVAS_HEIGHT], and they
+ * scroll inside the cap. The cap never falls under [MIN_CONTROLS_HEIGHT] while there is that
+ * much height at all: below the point where both fit, the canvas gives way first — one dp at
+ * a time rather than at a cliff — because the field is the one thing the user can act on
+ * when the keyboard has taken the height, and when even that does not fit the controls get
+ * all of it.
+ */
+internal fun controlsHeightCap(available: Dp): Dp {
+    val leavingCanvas: Dp = available - MIN_CANVAS_HEIGHT
+    val floor: Dp = if (available < MIN_CONTROLS_HEIGHT) available else MIN_CONTROLS_HEIGHT
+    return if (leavingCanvas > floor) leavingCanvas else floor
+}
+
+/** The plot area the controls may not take from the canvas while there is room for both. */
+private val MIN_CANVAS_HEIGHT: Dp = 160.dp
+
+/** Enough for the expression field and its supporting line to be usable inside the cap. */
+private val MIN_CONTROLS_HEIGHT: Dp = 120.dp
 
 /**
  * The trace and roots lines.
@@ -171,6 +251,10 @@ private fun Readouts(
 ) {
     val traceText: String = if (trace == null) {
         ""
+    } else if (trace.y.isNaN()) {
+        // The column has no value — ln of a negative, 1/x on zero. Said in words: with the
+        // line blank and the dot gone, a tap there was indistinguishable from "Clear trace".
+        stringResource(R.string.graph_trace_undefined, trace.x.pretty(locale, viewport.width))
     } else {
         val x = trace.x.pretty(locale, viewport.width)
         val y = trace.y.pretty(locale, viewport.height)
@@ -233,7 +317,7 @@ private fun GraphCanvas(
     plots: List<Plot>,
     trace: TracePoint?,
     columns: Int,
-    locale: Locale,
+    summary: String,
     onPan: (Float, Float, Float, Float) -> Unit,
     onZoom: (Float, Offset, Float, Float) -> Unit,
     onTrace: (Float, Float) -> Unit,
@@ -251,13 +335,7 @@ private fun GraphCanvas(
     val sentence = stringResource(R.string.graph_sentence_separator)
     val description = listOf(
         stringResource(R.string.desc_graph_canvas),
-        stringResource(
-            R.string.graph_summary,
-            viewport.minX.pretty(locale, viewport.width),
-            viewport.maxX.pretty(locale, viewport.width),
-            viewport.minY.pretty(locale, viewport.height),
-            viewport.maxY.pretty(locale, viewport.height),
-        ),
+        summary,
         stringResource(R.string.graph_angle_unit),
     ).joinToString(sentence)
     val traceCentre = stringResource(R.string.graph_trace_centre)
@@ -351,7 +429,13 @@ private fun DrawScope.drawPlot(plot: Plot, viewport: Viewport, color: Color) {
             started = false
             continue
         }
-        if (started && i > 0 && GraphSampler.breaksBetween(samples.ys[i - 1], y, viewport)) {
+        // A segment the sampler showed to be a steep run of the function is joined however
+        // large its jump; see GraphSampler.sample. Under a window that has since been
+        // pinched narrower the jump test is re-asked against the new height, which is what
+        // keeps 1/x broken at its pole until the resample lands.
+        if (started && i > 0 && !samples.continuous[i] &&
+            GraphSampler.breaksBetween(samples.ys[i - 1], y, viewport)
+        ) {
             started = false
         }
         val px = viewport.worldToScreenX(samples.xs[i], size.width)
@@ -371,6 +455,14 @@ private fun DrawScope.drawPlot(plot: Plot, viewport: Viewport, color: Color) {
 
 /** The crosshair, drawn only where it can actually be seen. */
 private fun DrawScope.drawTrace(trace: TracePoint, viewport: Viewport, color: Color) {
+    if (trace.y.isNaN()) {
+        // No value at this column: the vertical line marks where the tap landed, and the
+        // readout says why there is no dot on it.
+        if (trace.x < viewport.minX || trace.x > viewport.maxX) return
+        val px = viewport.worldToScreenX(trace.x, size.width)
+        drawLine(color, Offset(px, 0f), Offset(px, size.height), strokeWidth = 1f)
+        return
+    }
     if (!viewport.contains(trace)) return
     val px = viewport.worldToScreenX(trace.x, size.width)
     val py = viewport.worldToScreenY(trace.y, size.height)

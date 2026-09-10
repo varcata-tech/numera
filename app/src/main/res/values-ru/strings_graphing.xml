@@ -13,6 +13,7 @@
     <string name="graph_list_separator">"; "</string>
     <string name="graph_roots_of">Корни %1$s: %2$s</string>
     <string name="graph_trace_offscreen">x = %1$s, y = %2$s (за пределами экрана)</string>
+    <string name="graph_trace_undefined">x = %1$s, y не определён</string>
     <string name="graph_clear_trace">Убрать курсор</string>
     <string name="graph_angle_unit">x в радианах</string>
     <string name="graph_sentence_separator">". "</string>

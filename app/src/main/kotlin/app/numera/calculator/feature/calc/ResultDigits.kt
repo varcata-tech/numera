@@ -53,3 +53,24 @@ internal fun digitRequest(digitsRequired: Int?, target: Int): DigitRequest = whe
     digitsRequired > target -> DigitRequest(digits = target, truncated = true)
     else -> DigitRequest(digits = digitsRequired, truncated = false)
 }
+
+/**
+ * Whether an expansion to [target] places is worth starting.
+ *
+ * @param shown the places already on screen.
+ * @param inFlight the places a running expansion is about to deliver, or `null` when none is
+ *   running.
+ *
+ * The in-flight count is what keeps a scroll from fighting itself. The scroll position emits
+ * on every pixel, each emission asks for the *same* next target, and an expansion that is
+ * cancelled and restarted contributes nothing — the engine only caches an approximation it
+ * finished — so without this a slow drag through the last few pixels restarted the same
+ * computation on every frame and the digits arrived only once the finger stopped. It is also
+ * what lets a restore's request for three thousand places survive the display asking for
+ * fifty a moment later.
+ */
+internal fun expansionNeeded(target: Int, shown: Int, inFlight: Int?): Boolean {
+    if (target <= shown) return false
+    if (inFlight != null && target <= inFlight) return false
+    return true
+}

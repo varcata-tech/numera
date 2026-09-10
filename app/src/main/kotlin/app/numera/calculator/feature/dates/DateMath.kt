@@ -38,6 +38,8 @@ object DateMath {
 
     private const val DAYS_IN_WEEK: Int = 7
 
+    private const val MONTHS_IN_YEAR: Long = 12L
+
     /** The gap between [start] and [end], in both total days and calendar units. */
     fun difference(start: LocalDate, end: LocalDate): DateDifference {
         val from = minOf(start, end)
@@ -62,6 +64,13 @@ object DateMath {
      * convention every calendar app uses, but it surprises people often enough that the UI
      * says so out loud.
      *
+     * The years and months go on as *one* month count, exactly as `Period.addTo` folds them.
+     * Applied as two steps they clamp twice: from 29 February 2024, a year lands on the 28th
+     * and a month from *there* is 28 March, while thirteen months in one step is 29 March —
+     * the answer every calendar app, `Period` and `relativedelta` give. The double clamp
+     * only shows for a leap-day start with a year count that is not a multiple of four and a
+     * non-zero month count, which is exactly the kind of off-by-one nobody checks.
+     *
      * Each field is bounded by [MAX_OFFSET] and refused outside it. Letting an arbitrary Int
      * through means `LocalDate` throws `DateTimeException` instead, from a call site the
      * caller cannot usefully recover at.
@@ -75,8 +84,7 @@ object DateMath {
     ): LocalDate {
         requireInRange(years, months, weeks, days)
         return date
-            .plusYears(years.toLong())
-            .plusMonths(months.toLong())
+            .plusMonths(totalMonths(years, months))
             .plusWeeks(weeks.toLong())
             .plusDays(days.toLong())
     }
@@ -90,11 +98,14 @@ object DateMath {
     ): LocalDate {
         requireInRange(years, months, weeks, days)
         return date
-            .minusYears(years.toLong())
-            .minusMonths(months.toLong())
+            .minusMonths(totalMonths(years, months))
             .minusWeeks(weeks.toLong())
             .minusDays(days.toLong())
     }
+
+    /** Years and months as one count, so the month-end clamp is applied once, not twice. */
+    private fun totalMonths(years: Int, months: Int): Long =
+        years.toLong() * MONTHS_IN_YEAR + months.toLong()
 
     private fun requireInRange(vararg offsets: Int) {
         for (offset in offsets) {

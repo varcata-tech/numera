@@ -73,4 +73,27 @@ class ResultDigitsTest {
         assertEquals(50, request.digits)
         assertTrue(request.truncated)
     }
+
+    @Test
+    fun `a request already in flight is not restarted`() {
+        // The scroll position emits per pixel and each emission asks for the same next
+        // target; cancelling the running job on every one of them meant no digits arrived
+        // until the finger stopped, because an interrupted approximation is not cached.
+        assertFalse(expansionNeeded(target = 50, shown = 0, inFlight = 50))
+    }
+
+    @Test
+    fun `a smaller request does not cancel a larger one`() {
+        // After process death the restore asks for the depth the user had reached while the
+        // display, a moment later, asks for the first step. The first step must lose.
+        assertFalse(expansionNeeded(target = 50, shown = 0, inFlight = 3200))
+        assertTrue(expansionNeeded(target = 6400, shown = 0, inFlight = 3200))
+    }
+
+    @Test
+    fun `nothing in flight and nothing shown means the request is made`() {
+        assertTrue(expansionNeeded(target = 50, shown = 0, inFlight = null))
+        assertFalse(expansionNeeded(target = 50, shown = 50, inFlight = null))
+        assertFalse(expansionNeeded(target = 40, shown = 50, inFlight = null))
+    }
 }

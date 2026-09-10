@@ -40,20 +40,33 @@ internal data class ProgrammerMachine(
             wordSize = size,
             value = BitwiseEngine.truncate(ui.value, size),
             entry = "",
-            error = null,
+            error = errorAfterReinterpreting(),
         ),
     )
 
     /**
      * The signed/unsigned chip.
      *
-     * The error goes with it. "Overflow" is a claim about a result not fitting the word *as
+     * An overflow goes with it. "Overflow" is a claim about a result not fitting the word *as
      * it was being read*, and 0x7F + 1 overflows a signed byte while the same 0x80 is an
      * ordinary unsigned 128 — so a flag left standing across the toggle describes a fault the
-     * value on screen no longer has.
+     * value on screen no longer has. A zero divisor does not go with it; see
+     * [errorAfterReinterpreting].
      */
     fun toggleSigned(): ProgrammerMachine =
-        copy(ui = ui.copy(signed = !ui.signed, entry = "", error = null))
+        copy(ui = ui.copy(signed = !ui.signed, entry = "", error = errorAfterReinterpreting()))
+
+    /**
+     * The error the width and sign chips leave standing.
+     *
+     * Only an overflow is cleared. A refused division is latched until something supplies a
+     * new divisor — a digit, delete, a bit tap — and the two chips supply nothing: they
+     * re-read the value already on screen, which after `10 ÷ 0 =` is the *dividend*. Clearing
+     * the latch here let the next `=` run the still-pending division as 10 ÷ 10 and show 1,
+     * a clean-looking answer to a division whose divisor the user never typed.
+     */
+    private fun errorAfterReinterpreting(): ProgError? =
+        if (ui.error == ProgError.OVERFLOW) null else ui.error
 
     fun digit(digit: Char): ProgrammerMachine {
         if (!BitwiseEngine.isDigitAllowed(digit, ui.base)) return this
@@ -61,6 +74,16 @@ internal data class ProgrammerMachine(
         // A keystroke that would not fit the word is refused rather than accepted and
         // truncated: silently dropping the high digit is worse than not typing it.
         val parsed = BitwiseEngine.parse(candidate, ui.base, ui.wordSize) ?: return this
+        // The same refusal at the *signed* bound for a decimal entry. Typing is unsigned —
+        // there is no minus key — so in a signed word a decimal above the signed maximum is
+        // a number the word cannot hold, not a bit pattern the user chose. Letting it in
+        // showed the digits as typed while the value underneath was already the wrapped
+        // negative, and the arithmetic used the negative.
+        if (ui.base == NumberBase.DEC && ui.signed &&
+            !BitwiseEngine.fitsSignedMagnitude(parsed, ui.wordSize)
+        ) {
+            return this
+        }
         return copy(
             ui = ui.copy(entry = candidate, value = parsed, error = null),
             awaitingOperand = false,
@@ -265,18 +288,26 @@ internal fun restoredMachine(
         ?.let { name -> enumValues<NumberBase>().firstOrNull { it.name == name } }
         ?: NumberBase.HEX
     val typed: String = entry.orEmpty()
+    val isSigned: Boolean = signed ?: true
     // A buffer that no longer fits the restored base or width is dropped rather than shown:
     // a saved 8-bit "FF" alongside a base since switched to decimal is not a number the user
-    // can go on typing.
-    val typedValue: Long? =
-        if (typed.isEmpty()) null else BitwiseEngine.parse(typed, base, size)
+    // can go on typing. The signed decimal bound is applied here for the same reason it is in
+    // [ProgrammerMachine.digit]: a buffer that [digit] would have refused must not come back
+    // through saved state and be echoed over a value it does not describe.
+    val typedValue: Long? = if (typed.isEmpty()) {
+        null
+    } else {
+        BitwiseEngine.parse(typed, base, size)?.takeIf { parsed ->
+            base != NumberBase.DEC || !isSigned || BitwiseEngine.fitsSignedMagnitude(parsed, size)
+        }
+    }
     return ProgrammerMachine(
         ui = ProgrammerUiState(
             // Truncated on the way in: a saved 64-bit word restored alongside a saved 8-bit
             // width would otherwise show digits the emulated register cannot hold.
             value = typedValue ?: BitwiseEngine.truncate(value ?: 0L, size),
             wordSize = size,
-            signed = signed ?: true,
+            signed = isSigned,
             base = base,
             error = errorName
                 ?.let { name -> enumValues<ProgError>().firstOrNull { it.name == name } },

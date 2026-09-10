@@ -13,12 +13,21 @@
   MainActivity.EXTRA_ROUTE — XML cannot reference a Kotlin constant, so the two move
   together or the shortcut silently opens the plain calculator.
 
-  The intents are deliberately implicit. Naming an explicit target component here would
-  hard code the release applicationId, which res/xml cannot expand into the ".debug" suffix
-  the debug build type appends — so the shortcuts named a package that is not installed in
-  a debug build and could not be exercised at all before shipping, on the one code path
-  that carries the shortcut routing. MainActivity declares a matching intent-filter for the
-  numera scheme instead, so the same three shortcuts work in both variants.
+  THIS FILE IS A TEMPLATE, not a resource. app/build.gradle.kts copies it into each
+  variant's generated res/xml/ with ${applicationId} replaced by that variant's real
+  applicationId — app.numera.calculator in release, app.numera.calculator.debug in debug.
+
+  Each intent names MainActivity explicitly. They were implicit VIEW intents on a numera://
+  scheme at first, resolved by an intent-filter on the activity, because a resource file
+  cannot expand the ".debug" suffix the debug build type appends. But an implicit intent is
+  an open offer: any installed app declaring the same scheme could claim it, and with the
+  debug and release builds installed side by side — the normal state of a developer's phone —
+  every shortcut tap raised a chooser between two copies of Numera. A @string reference in
+  targetPackage does not work either: the system's ShortcutParser resolves intent attributes
+  against its *own* resources, not the app's, and stores the unresolved "@2131362132" as the
+  package name, so the shortcut points at an app that does not exist. Only a literal works,
+  hence the template. targetClass is the activity's fully qualified name, which does not
+  change with the applicationId.
 -->
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -29,6 +38,8 @@
         android:shortcutShortLabel="@string/shortcut_converter_short">
         <intent
             android:action="android.intent.action.VIEW"
+            android:targetPackage="${applicationId}"
+            android:targetClass="app.numera.calculator.MainActivity"
             android:data="numera://mode/converter">
             <extra
                 android:name="app.numera.calculator.extra.ROUTE"
@@ -43,6 +54,8 @@
         android:shortcutShortLabel="@string/shortcut_programmer_short">
         <intent
             android:action="android.intent.action.VIEW"
+            android:targetPackage="${applicationId}"
+            android:targetClass="app.numera.calculator.MainActivity"
             android:data="numera://mode/programmer">
             <extra
                 android:name="app.numera.calculator.extra.ROUTE"
@@ -57,6 +70,8 @@
         android:shortcutShortLabel="@string/shortcut_graphing_short">
         <intent
             android:action="android.intent.action.VIEW"
+            android:targetPackage="${applicationId}"
+            android:targetClass="app.numera.calculator.MainActivity"
             android:data="numera://mode/graphing">
             <extra
                 android:name="app.numera.calculator.extra.ROUTE"

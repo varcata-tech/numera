@@ -106,6 +106,51 @@ class BoundedRationalTest {
     }
 
     @Test
+    fun `powers of minus one stay exact however large the exponent`() {
+        // Only +1 was short-circuited. −1 fell through to the width test, which measures
+        // the base by its widest half — one bit — times the exponent, and so declined
+        // everything past ten thousand: (0−1)^20000 came back null, went through exp/ln,
+        // and printed 1.000… with an ellipsis; (0−1)^2000000 was "requires too much
+        // memory". A power of ±1 is decided by the parity of the exponent alone.
+        val minusOne = r(-1)
+        assertEquals(BoundedRational.ONE, minusOne.pow(BigInteger.valueOf(20000L)))
+        assertEquals(minusOne, minusOne.pow(BigInteger.valueOf(20001L)))
+        assertEquals(BoundedRational.ONE, minusOne.pow(BigInteger.valueOf(2_000_000L)))
+        assertEquals(minusOne, minusOne.pow(BigInteger.valueOf(2_000_001L)))
+        // Parity of a negative exponent is read from the same bit.
+        assertEquals(minusOne, minusOne.pow(BigInteger.valueOf(-3L)))
+        assertEquals(BoundedRational.ONE, minusOne.pow(BigInteger.valueOf(-4L)))
+        assertEquals(BoundedRational.ONE, r(1).pow(BigInteger.valueOf(-2_000_001L)))
+        // A signed half is not a unit and must still take the ordinary path: (−1/2)^−3 is −8.
+        assertEquals(r(-8), r(-1, 2).pow(BigInteger.valueOf(-3L)))
+    }
+
+    @Test
+    fun `the integer square root is the floor of the true root`() {
+        // BigInteger.sqrt() is API 33 and the app ships to 31; this is its replacement,
+        // checked against the JDK's own — which these tests run on — across the sizes
+        // that matter: either side of every perfect square, and integers far past a Long.
+        val squares = listOf(0L, 1L, 2L, 3L, 4L, 8L, 9L, 15L, 16L, 17L, 24L, 25L, 26L, 99L, 100L, 101L)
+        for (value in squares) {
+            val big = BigInteger.valueOf(value)
+            assertEquals("isqrt($value)", big.sqrt(), BoundedRational.integerSqrt(big))
+        }
+        val huge = BigInteger.TEN.pow(1000) + BigInteger.valueOf(12345L)
+        for (candidate in listOf(huge, huge * huge, huge * huge - BigInteger.ONE, huge * huge + BigInteger.ONE)) {
+            val root = BoundedRational.integerSqrt(candidate)
+            assertEquals(candidate.sqrt(), root)
+            assertTrue(root * root <= candidate)
+            assertTrue((root + BigInteger.ONE) * (root + BigInteger.ONE) > candidate)
+        }
+        assertEquals(huge, BoundedRational.integerSqrt(huge * huge))
+        try {
+            BoundedRational.integerSqrt(BigInteger.valueOf(-1L))
+            throw AssertionError("expected IllegalArgumentException")
+        } catch (expected: IllegalArgumentException) {
+        }
+    }
+
+    @Test
     fun `an oversized power gives up rather than allocating`() {
         // 2^(10^9) would need a gigabit of numerator. Returning null lets the caller fall
         // through to the constructive-real layer instead of the OOM killer.

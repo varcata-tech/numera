@@ -106,16 +106,77 @@ abstract class ConstructiveReal {
      * exactly what [SqrtCR] needs in order to return zero. A caller with no such fallback
      * wants [requireMsd] instead.
      */
-    fun iterMsd(limit: Int): Int {
-        var prec = 0
-        while (prec > limit + 30) {
+    fun iterMsd(limit: Int): Int = iterMsdFrom(0, limit)
+
+    /**
+     * [iterMsd] with the search started at precision [start] instead of at zero.
+     *
+     * Where the search starts is the whole cost. A probe at precision `p` on a product
+     * asks the smaller operand for `p − msd(larger) − 3` bits, so probing `sin(1) × 1E100000`
+     * at zero asks `sin(1)` for 332,000 bits *after the point* — a cosine series of ten
+     * thousand terms on integers that wide, for a value the display shows as `8.4E99999`.
+     * A probe started near the product's own magnitude asks `sin(1)` for a few dozen bits.
+     * The step sequence from [start] is the one [iterMsd] has always used from zero.
+     */
+    internal fun iterMsdFrom(start: Int, limit: Int): Int {
+        var offset = 0
+        while (start - offset > limit + 30) {
             checkNotAborted()
+            val prec = start - offset
             val found = msd(prec)
             if (found != Int.MIN_VALUE) return found
             checkPrecision(prec)
-            prec = prec * 3 / 2 - 16
+            offset = offset * 3 / 2 + 16
         }
         return msd(limit)
+    }
+
+    /**
+     * [iterMsd] seeded by [msdHint], so the search begins near where the answer is.
+     *
+     * This is what every caller that only wants the *magnitude* of a value — [toDouble],
+     * `UnifiedReal.boundedProduct` — must use in place of `msd(0)`. Both used to probe at
+     * absolute precision, and for a product with a `10^100000` factor that forces the other
+     * factor to hundreds of thousands of bits before a single digit is shown.
+     */
+    fun estimateMsd(limit: Int): Int = iterMsdFrom(msdHint(), limit)
+
+    private var hintComputed: Boolean = false
+    private var hintValue: Int = 0
+
+    /**
+     * A cheap estimate of [msd], derived from the structure of the expression tree.
+     *
+     * Exact for an integer, within a bit for a product, root or reciprocal, and an
+     * *over*-estimate for a sum — never a serious under-estimate, which is the one direction
+     * that costs: a search started too high walks down through cheap probes, while a probe
+     * started far below a product's magnitude asks its small operand for every bit in
+     * between. Computed once and cached because the reduction chains [exp] and
+     * `piPower` build share a node between both operands of every level, so an uncached
+     * walk of a 300-level chain would visit 2^300 nodes.
+     *
+     * Synchronised because shared constants are touched from any thread; the monitor is
+     * only ever taken parent-before-child, the same order [getAppr] uses, so it cannot
+     * deadlock against an approximation in progress.
+     */
+    @Synchronized
+    internal fun msdHint(): Int {
+        if (!hintComputed) {
+            hintValue = computeMsdHint()
+            hintComputed = true
+        }
+        return hintValue
+    }
+
+    /**
+     * [msdHint] for this node. The default is a bounded search from zero, which is cheap
+     * for every leaf — an integer or a Taylor series whose argument the caller has already
+     * reduced. Every node with operands overrides it, because for those a search from zero
+     * is exactly the cost this exists to avoid.
+     */
+    protected open fun computeMsdHint(): Int {
+        val found = iterMsd(HINT_FLOOR)
+        return if (found == Int.MIN_VALUE) HINT_FLOOR else found
     }
 
     /**
@@ -178,11 +239,29 @@ abstract class ConstructiveReal {
         // far more conservative than the series strictly needs: halving is cheap, and a
         // series asked to converge near the edge of its stated range is how wrong digits
         // appear hundreds of places to the right where nothing will notice them.
-        val rough = getAppr(-10).abs()
+        val signed = getAppr(-10)
+        val rough = signed.abs()
         if (rough <= BIG2) return PrescaledExpCR(this)
         // rough is |x| scaled by 2^10, so its bit length past ten is log2(|x|).
         if (rough.bitLength() - 10 > CalculationLimits.MAX_EXP_ARGUMENT_BITS) {
             throw TooMuchMemoryException()
+        }
+        // The width of the answer, bounded here and not only in UnifiedReal.checkExpSize,
+        // which sees the exponent only when it is rational. `e^(π×1E8)` is not: its
+        // argument is 29 bits, comfortably inside the depth bound above, and its value is
+        // 450 million bits wide. The evaluator returned it instantly because the value is
+        // lazy; the formatter then asked for a digit and every level of the squaring chain
+        // needed its operand to the full width, with the Taylor series at the bottom
+        // multiplying 56 MB integers per term. That never finishes, and each temporary is
+        // large enough that the allocator gives up first — an `OutOfMemoryError` in the
+        // formatter, which catches only `ArithmeticException`. Only a positive argument
+        // can be wide: e^(−x) is zero to every digit the display can reach.
+        if (signed.signum() > 0) {
+            // log2(e) < 1.443, so this over-estimates the width, the safe direction for
+            // a refusal. The 1024 undoes the scaling of `rough`.
+            val bits = rough.multiply(BigInteger.valueOf(1443L))
+                .divide(BigInteger.valueOf(1000L * 1024L))
+            CalculationLimits.checkBits(bits, CalculationLimits.MAX_EXP_BITS)
         }
         // The smallest k with rough/2^k ≤ 2 — the same count the recursion would have
         // reached one frame at a time — and a single shift rather than k nested ones.
@@ -335,9 +414,26 @@ abstract class ConstructiveReal {
     /** Nearest integer, as used for whole-number display. */
     fun toBigInteger(): BigInteger = getAppr(0)
 
+    /**
+     * The nearest double, found at *relative* precision.
+     *
+     * This used to be `getAppr(-53)`: fifty-three bits after the binary point whatever the
+     * magnitude. For an ordinary value that is the right number of bits; for
+     * `sin(1) × 1E100000` it asks the product to 2^-53 absolute, which [MultCR] can only
+     * deliver by asking `sin(1)` for 332,000 bits — seconds of series work to learn a
+     * magnitude the formatter then uses only to choose between fixed and scientific
+     * notation. Finding the leading bit first, from a search seeded near where it is, and
+     * asking for sixty bits below *that* is what creals' `doubleValue` does, and it costs
+     * the same for every magnitude. Infinity and zero are honest for what a double cannot
+     * hold; a caller that needs the magnitude of such a value wants [estimateMsd].
+     */
     fun toDouble(): Double {
-        val appr = getAppr(-53)
-        return appr.toDouble() * Math.pow(2.0, -53.0)
+        val msd = estimateMsd(DOUBLE_MSD_LIMIT)
+        if (msd == Int.MIN_VALUE) return 0.0
+        val prec = msd - 60
+        // scalb rather than a multiply by a power of two: the power itself would overflow
+        // or underflow as a double long before the product would.
+        return Math.scalb(getAppr(prec).toDouble(), prec)
     }
 
     /**
@@ -414,9 +510,35 @@ abstract class ConstructiveReal {
         /** Extra digits computed and then rounded away; see [toStringRounded]. */
         private const val GUARD_DIGITS = 4
 
+        /**
+         * Precision below which [computeMsdHint] stops looking. Sixty-four bits is a
+         * handful of series terms for any leaf; a value smaller than that is reported as
+         * this floor, which keeps the hint an over-estimate rather than an unknown.
+         */
+        internal const val HINT_FLOOR: Int = -64
+
+        /**
+         * Where [toDouble] stops looking for a leading bit. A double underflows to zero
+         * below 2^-1074, so anything the search has not found by here is zero as a double.
+         */
+        private const val DOUBLE_MSD_LIMIT: Int = -1080
+
         internal val BIG1: BigInteger = BigInteger.ONE
         internal val BIG_MINUS1: BigInteger = BigInteger.ONE.negate()
-        internal val BIG2: BigInteger = BigInteger.TWO
+
+        /**
+         * Two, built with `valueOf` and never `BigInteger.TWO`.
+         *
+         * The static field arrived in Android's `java.math` at API 33, and the app ships to
+         * API 31. Nothing in the build can see that: this module compiles against a desktop
+         * JDK where the field exists, no lint runs here, and D8 cannot backport a *field* the
+         * way it backports some methods. On an Android 12 phone the first calculation ran
+         * this companion's initialiser and died with `NoSuchFieldError` wrapped in an
+         * `ExceptionInInitializerError` — an `Error`, so nothing in the app caught it. The
+         * same applies to `BigInteger.sqrt()`; see [BoundedRational.integerSqrt].
+         * `ApiLevelTest` scans the compiled classes so neither can come back.
+         */
+        internal val BIG2: BigInteger = BigInteger.valueOf(2L)
 
         val ZERO: ConstructiveReal = IntCR(BigInteger.ZERO)
         val ONE: ConstructiveReal = IntCR(BigInteger.ONE)

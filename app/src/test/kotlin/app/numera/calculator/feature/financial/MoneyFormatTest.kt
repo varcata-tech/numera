@@ -87,7 +87,41 @@ class MoneyFormatTest {
         // Passed through on the way to "0,5"; must read as incomplete, never as an error.
         assertEquals(null, parseAmount(",", ','))
         assertEquals(null, parseAmount("", ','))
-        assertEquals(null, parseAmount("12x", ','))
+        // Two marks are nonsense whichever spelling each one uses.
+        assertEquals(null, parseAmount("1x2y", ','))
+    }
+
+    /**
+     * A language switch in either direction, not only comma-locale to point-locale.
+     *
+     * The field is `rememberSaveable` and outlives the recreate a per-app language change
+     * causes, so it comes back spelled in the old language. Accepting only an ASCII point as
+     * the foreign spelling covered de→en and nothing else: a German "8,5" reopened in English
+     * read as "not a number", and an Arabic "٨٫٥" did the same everywhere else. Then the field
+     * still *showed* the foreign mark, and the next keystroke handed "8,50" to a
+     * filter that keeps only this locale's mark — the rate silently became 850.
+     */
+    @Test
+    fun `a field typed under any locale survives a switch to any other`() {
+        // Comma into a point locale, and the Arabic separator into both.
+        assertEquals(BigDecimal("8.5"), parseAmount("8,5", '.'))
+        assertEquals(BigDecimal("8.5"), parseAmount("\u0668\u066b\u0665", '.'))
+        assertEquals(BigDecimal("8.5"), parseAmount("\u0668\u066b\u0665", ','))
+        assertEquals(BigDecimal("8.5"), parseAmount("8,5", '\u066b'))
+
+        // The field is redrawn in the new spelling, so what the user goes on editing is
+        // text the filter keeps: appending a digit extends the number.
+        val redrawn = localiseAmount("8,5", '.')
+        assertEquals("8.5", redrawn)
+        assertEquals("8.50", sanitiseAmount(redrawn + "0", decimal = true, decimalSeparator = '.'))
+        // Only the mark is respelled. Digits of any script are digits in every locale and
+        // are left alone in both directions: an ASCII "8" is not turned into "\u0668" under
+        // ar, and "\u0668" is not turned into "8" under en.
+        assertEquals("8\u066b5", localiseAmount("8.5", '\u066b'))
+        assertEquals("\u0668.\u0665", localiseAmount("\u0668\u066b\u0665", '.'))
+        // A field already in this locale's spelling, or holding no mark, is unchanged.
+        assertEquals("1234,56", localiseAmount("1234,56", ','))
+        assertEquals("240", localiseAmount("240", ','))
     }
 
     @Test

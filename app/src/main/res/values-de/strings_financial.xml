@@ -48,6 +48,7 @@
     <string name="fin_invalid_input">Geben Sie in jedes Feld eine gültige Zahl ein.</string>
     <string name="fin_out_of_range">Diese Werte liegen außerhalb des Bereichs, den dieser Rechner berechnen kann.</string>
     <string name="fin_contribution_continuous">Stetige Verzinsung hat keine Periode, daher werden Einzahlungen nicht berücksichtigt.</string>
+    <string name="fin_whole_periods_note">Zinsen werden nur für ganze Zinsperioden gutgeschrieben; die angebrochene Periode am Ende zählt nicht.</string>
     <plurals name="fin_extra_cents">
         <item quantity="one">%1$d zahlt eine Einheit mehr</item>
         <item quantity="other">%1$d zahlen eine Einheit mehr</item>

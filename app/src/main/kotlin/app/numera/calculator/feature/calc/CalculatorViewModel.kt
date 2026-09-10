@@ -25,6 +25,7 @@ import app.numera.calculator.math.expr.Token
 import app.numera.calculator.math.format.ResultFormatter
 import app.numera.calculator.settings.SettingsStore
 import java.math.BigInteger
+import java.text.DecimalFormatSymbols
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -97,6 +98,24 @@ class CalculatorViewModel(
     private var digitsText: String = ""
 
     /**
+     * The places the expansion in [digitsJob] was launched for.
+     *
+     * Meaningful only while that job is active; see [expansionNeeded] for why a running
+     * expansion has to count as digits already asked for.
+     */
+    private var pendingDigits: Int = 0
+
+    /**
+     * What [evaluateJob] is evaluating, and in which unit, while it runs.
+     *
+     * Pressing equals a second time during a twelve-second calculation used to cancel it and
+     * start the same calculation over — every impatient press cost the user the full wait
+     * again. These let [onEquals] recognise its own work in progress and leave it running.
+     */
+    private var evaluatingSource: CalculatorExpr? = null
+    private var evaluatingMode: AngleMode? = null
+
+    /**
      * The locale every number on screen is rendered in.
      *
      * Kept current by [onLocaleChanged], which the composable calls because it — unlike this
@@ -161,9 +180,16 @@ class CalculatorViewModel(
 
         val angle = settings.angleMode.value
         val inverse = savedState.get<Boolean>(KEY_INVERSE) ?: false
-        val source: CalculatorExpr? = savedState.get<String>(KEY_RESULT_EXPR)
+        val savedResult: CalculatorExpr? = savedState.get<String>(KEY_RESULT_EXPR)
             ?.let(ExprCodec::decodeFromString)
             ?.takeIf { !it.isEmpty() }
+        // An error is re-derived rather than stored: the expression that failed is [expr]
+        // itself, and running it again produces the same message — or, if the angle unit was
+        // changed on the settings screen in between, the answer it now has. Without this the
+        // screen came back showing `1÷0` over a blank line, the "Can't divide by 0" the user
+        // had been reading gone and nothing to say the calculation had ever been tried.
+        val erred: Boolean = savedState.get<Boolean>(KEY_ERROR) ?: false
+        val source: CalculatorExpr? = savedResult ?: expr.takeIf { erred && !it.isEmpty() }
         // How far the user had scrolled the answer. Restoring the value without it brought
         // back a twenty-character rendering of a result the user had already expanded to
         // several hundred digits, and the only way back was to scroll the whole way again.
@@ -181,6 +207,8 @@ class CalculatorViewModel(
 
         if (source != null) {
             val stamp = ++epoch
+            evaluatingSource = source
+            evaluatingMode = angle
             // Tracked as the evaluation job so that a user who starts typing the instant the
             // app comes back cancels it, exactly as they would cancel a live one.
             evaluateJob = viewModelScope.launch {
@@ -229,6 +257,9 @@ class CalculatorViewModel(
         // is already paying for, while the text itself can run to thousands of characters
         // through a Binder transaction whose size limit kills the process.
         savedState[KEY_DIGITS] = digitsShown
+        // A flag, not the message's resource id: ids are renumbered by every build, and the
+        // message is recomputed from the expression on restore anyway; see [restore].
+        savedState[KEY_ERROR] = _state.value.mode == DisplayMode.ERROR
     }
 
     /**
@@ -361,12 +392,22 @@ class CalculatorViewModel(
         if (expr.isEmpty()) return
         val snapshot = expr
         val mode = _state.value.angleMode
+        // The same calculation is already under way: leave it running. Cancelling it here
+        // interrupts the worker, and an interrupted approximation is thrown away rather than
+        // cached, so a restart genuinely begins again from nothing. Every edit cancels the
+        // job and every unit change goes through an edit, so an active job is always for the
+        // expression on screen — the comparison is what tells a repeat press from a new sum.
+        if (evaluateJob?.isActive == true && snapshot == evaluatingSource && mode == evaluatingMode) {
+            return
+        }
         val stamp = ++epoch
 
         evaluateJob?.cancel()
         previewJob?.cancel()
         digitsJob?.cancel()
         _state.update { it.copy(computing = true) }
+        evaluatingSource = snapshot
+        evaluatingMode = mode
 
         evaluateJob = viewModelScope.launch {
             val outcome = withContext(Dispatchers.Default) {
@@ -422,7 +463,10 @@ class CalculatorViewModel(
                             // of up to ten thousand digits — and `update` re-runs its lambda
                             // on CAS contention, so on the main thread this was unbounded
                             // duplicated work on the very frame that publishes the answer.
-                            exact = ResultFormatter.isExactlyDisplayable(value, SHORT_BUDGET),
+                            // In `target`, the locale the text above was rendered in: the
+                            // verdict measures the *grouped* width, and grouping differs by
+                            // locale, so any other answers for a line that is not on screen.
+                            exact = ResultFormatter.isExactlyDisplayable(value, SHORT_BUDGET, target),
                         )
                     }
                 }
@@ -503,7 +547,7 @@ class CalculatorViewModel(
     }
 
     /**
-     * What the clipboard should carry for the current result.
+     * What the clipboard should carry for the number on the result line.
      *
      * Two representations, because they serve different readers. [ClipboardPayload.text] is
      * for every other app and is the *full* value — the exact decimal when the number
@@ -512,35 +556,46 @@ class CalculatorViewModel(
      * the result of `1÷3` and pasting it back give exactly one when multiplied by three
      * rather than 0.99999999999999999999.
      *
+     * The line carries the live preview while the user types, and the copy gesture is
+     * offered on it there too — so a preview is copied by evaluating the expression again,
+     * bounded like any other copy. Until it was, that menu closed and changed nothing: the
+     * preview has no retained value, so the copy returned before ever reaching the clipboard,
+     * with nothing on screen to say so. An error line has no value and copies nothing.
+     *
      * `suspend`, because producing those digits runs the same unbounded approximation as any
      * other evaluation: a menu tap must not be able to drive it on the frame thread.
      */
     suspend fun clipboardPayload(): ClipboardPayload? {
-        val value = lastValue ?: return null
-        val source = resultSource ?: return null
-        val shown = digitsShown
-        val text: String? = withContext(Dispatchers.Default) {
-            withTimeoutOrNull(FORMAT_TIMEOUT_MS) {
-                runInterruptible {
-                    try {
-                        val request = digitRequest(value.digitsRequired(), maxOf(shown, COPY_DIGITS))
-                        // formatPlain, not formatWithDigits: every other entry point in the
-                        // formatter groups and localises, and a grouped `1,745.13` — or an
-                        // Arabic-Indic `١٧٤٥` — is not a number any tokenizer will take back,
-                        // this app's own paste handler included. The exact decimal is used
-                        // whenever the value has one, so precision is unaffected.
-                        ResultFormatter.formatPlain(value, request.digits)
-                    } catch (e: ArithmeticException) {
-                        // Aborted, out of precision, or out of BigInteger's range. There is
-                        // nothing honest to put on the clipboard, and a menu tap is not
-                        // allowed to end the process.
-                        null
-                    }
-                }
+        val separator: Char = decimalSeparator()
+        val value = lastValue
+        val source = resultSource
+        if (value != null && source != null) {
+            val shown = digitsShown
+            val text: String? = renderPlain {
+                val request = digitRequest(value.digitsRequired(), maxOf(shown, COPY_DIGITS))
+                // formatPlain, not formatWithDigits: every other entry point in the
+                // formatter groups and localises, and a grouped `1,745.13` — or an
+                // Arabic-Indic `١٧٤٥` — is not a number any tokenizer will take back,
+                // this app's own paste handler included. The exact decimal is used
+                // whenever the value has one, so precision is unaffected.
+                ResultFormatter.formatPlain(value, request.digits)
             }
+            if (text.isNullOrEmpty()) return null
+            return ClipboardPayload(
+                clipboardText(text, separator, COPY_DIGITS),
+                ExprCodec.encodeToString(source),
+            )
         }
+        val current = _state.value
+        if (current.mode != DisplayMode.INPUT || current.preview.isEmpty()) return null
+        val snapshot = expr
+        val angle = current.angleMode
+        val text: String? = renderPlain { evaluatedPlain(snapshot, angle) }
         if (text.isNullOrEmpty()) return null
-        return ClipboardPayload(text, ExprCodec.encodeToString(source))
+        return ClipboardPayload(
+            clipboardText(text, separator, COPY_DIGITS),
+            ExprCodec.encodeToString(snapshot),
+        )
     }
 
     /**
@@ -558,23 +613,13 @@ class CalculatorViewModel(
      * still better copied imperfectly than not at all.
      */
     suspend fun historyPayload(entry: HistoryEntry): ClipboardPayload {
+        val separator: Char = decimalSeparator()
         val encoded = ExprCodec.encodeToString(entry.expression)
-        val text: String? = withContext(Dispatchers.Default) {
-            withTimeoutOrNull(FORMAT_TIMEOUT_MS) {
-                runInterruptible {
-                    try {
-                        val outcome = ExprEvaluator.evaluate(entry.expression, entry.angleMode)
-                        val value = (outcome as? EvalResult.Success)?.value
-                        value?.let { ResultFormatter.formatPlain(it, COPY_DIGITS) }
-                    } catch (e: ArithmeticException) {
-                        // Aborted, out of precision, or out of BigInteger's range. A menu tap
-                        // is not allowed to end the process; the cached rendering stands in.
-                        null
-                    }
-                }
-            }
-        }
-        val copied: String = if (text.isNullOrEmpty()) entry.result else text
+        // A failure here leaves the cached rendering to stand in: a row whose re-evaluation
+        // gave up is still better copied imperfectly than not at all.
+        val text: String? = renderPlain { evaluatedPlain(entry.expression, entry.angleMode) }
+        val copied: String =
+            if (text.isNullOrEmpty()) entry.result else clipboardText(text, separator, COPY_DIGITS)
         return ClipboardPayload(copied, encoded)
     }
 
@@ -599,12 +644,18 @@ class CalculatorViewModel(
     private fun requestDigits(target: Int) {
         val value = lastValue ?: return
         if (!_state.value.hasMoreDigits) return
-        if (target <= digitsShown) return
+        // A running expansion counts as digits already asked for. `digitsShown` is only
+        // written when a job lands, so without this every scroll emission — one per pixel
+        // through the last few pixels of the range — computed the same target, cancelled the
+        // job in flight and started it again from nothing.
+        val inFlight: Int? = if (digitsJob?.isActive == true) pendingDigits else null
+        if (!expansionNeeded(target, digitsShown, inFlight)) return
         val stamp = epoch
         // Captured here, on the main thread, and read from the worker below; see [showResult].
         val renderLocale: Locale = locale
 
         digitsJob?.cancel()
+        pendingDigits = target
         digitsJob = viewModelScope.launch {
             val request = withContext(Dispatchers.Default) {
                 runInterruptible { digitRequest(value.digitsRequired(), target) }
@@ -612,12 +663,12 @@ class CalculatorViewModel(
             val text: String? = withContext(Dispatchers.Default) {
                 withTimeoutOrNull(FORMAT_TIMEOUT_MS) {
                     runInterruptible {
-                        // The total overload, because an expansion that cannot be produced
-                        // must leave the digits already on screen exactly as they are. The
-                        // throwing one let the AbortedException raised by the user's *next*
-                        // key press — the ordinary way to interrupt a long scroll — escape
-                        // this launch as an uncaught exception.
-                        ResultFormatter.formatWithDigitsOrNull(value, request.digits, renderLocale)
+                        // Total, because an expansion that cannot be produced must leave the
+                        // digits already on screen exactly as they are. A throwing render let
+                        // the AbortedException raised by the user's *next* key press — the
+                        // ordinary way to interrupt a long scroll — escape this launch as an
+                        // uncaught exception.
+                        expandedText(value, request, renderLocale)
                     }
                 }
             }
@@ -630,10 +681,10 @@ class CalculatorViewModel(
             // the current formula, where nothing on screen would reveal the mismatch.
             if (stamp != epoch || lastValue !== value) return@launch
             digitsShown = target
-            // An exact value is printed with no ellipsis and a truncated one always says so;
-            // without this, fifty digits of one seventh are indistinguishable from an answer
-            // that simply stops there.
-            digitsText = if (request.truncated) text + ELLIPSIS else text
+            // An exact value is printed with no ellipsis and a truncated one always says so —
+            // [expandedText] appends it — without which fifty digits of one seventh are
+            // indistinguishable from an answer that simply stops there.
+            digitsText = text
             // No generation bump: this is the same answer with more of it showing, and the
             // result line must keep the scroll position the user reached to ask for it.
             _state.update { it.copy(result = digitsText, hasMoreDigits = request.truncated) }
@@ -657,26 +708,48 @@ class CalculatorViewModel(
         val stamp = epoch
 
         digitsJob?.cancel()
+        // The slot now holds a re-rendering, not an expansion; a stale count here would make
+        // [requestDigits] refuse the next scroll as already in flight.
+        pendingDigits = 0
         digitsJob = viewModelScope.launch {
-            val text: String? = withContext(Dispatchers.Default) {
+            val rendered: Rendered? = withContext(Dispatchers.Default) {
                 withTimeoutOrNull(FORMAT_TIMEOUT_MS) {
                     runInterruptible {
-                        if (shown <= 0) {
-                            ResultFormatter.formatShortOrNull(value, SHORT_BUDGET, renderLocale)
-                        } else {
-                            val request = digitRequest(value.digitsRequired(), shown)
-                            ResultFormatter.formatWithDigitsOrNull(value, request.digits, renderLocale)
-                                ?.let { if (request.truncated) it + ELLIPSIS else it }
+                        try {
+                            if (shown <= 0) {
+                                // Decided again, not carried over: whether the whole value
+                                // fits is a question about its *grouped* width, and `hi`
+                                // groups a number `en` fits into twenty characters into
+                                // twenty-one. Kept from the old locale, the line showed an
+                                // ellipsis while the state said nothing had been dropped,
+                                // and scrolling for the missing digits refused to move.
+                                Rendered(
+                                    text = ResultFormatter.formatShort(value, SHORT_BUDGET, renderLocale),
+                                    hasMoreDigits = !ResultFormatter.isExactlyDisplayable(
+                                        value,
+                                        SHORT_BUDGET,
+                                        renderLocale,
+                                    ),
+                                )
+                            } else {
+                                val request = digitRequest(value.digitsRequired(), shown)
+                                expandedText(value, request, renderLocale)
+                                    ?.let { Rendered(text = it, hasMoreDigits = request.truncated) }
+                            }
+                        } catch (e: ArithmeticException) {
+                            // Aborted or out of room; the same failures the OrNull overloads
+                            // absorb, and just as fatal to the launch if let out.
+                            null
                         }
                     }
                 }
             }
             // The previous rendering stays: it is the same number, in digits the user could
             // read a moment ago. Blanking the line would be the worse failure.
-            if (text == null) return@launch
+            if (rendered == null) return@launch
             if (stamp != epoch || lastValue !== value) return@launch
-            if (shown > 0) digitsText = text
-            _state.update { it.copy(result = text) }
+            if (shown > 0) digitsText = rendered.text
+            _state.update { it.copy(result = rendered.text, hasMoreDigits = rendered.hasMoreDigits) }
         }
     }
 
@@ -822,6 +895,69 @@ class CalculatorViewModel(
         return if (exact.length <= MAX_SEED_LENGTH) exact else null
     }
 
+    /**
+     * Renders the value of [expression] as a plain decimal, or `null` when it cannot be.
+     *
+     * Worker-thread code: evaluation and the first digit request both run here, and the
+     * caller bounds and interrupts it. `null` is aborted, out of precision, out of
+     * BigInteger's range, or an expression that does not evaluate at all.
+     */
+    private fun evaluatedPlain(expression: CalculatorExpr, angleMode: AngleMode): String? {
+        val outcome = ExprEvaluator.evaluate(expression, angleMode)
+        val value = (outcome as? EvalResult.Success)?.value ?: return null
+        return ResultFormatter.formatPlain(value, COPY_DIGITS)
+    }
+
+    /**
+     * Runs a digit-producing [block] on a worker, bounded, and total.
+     *
+     * Every clipboard text comes through here, because producing digits is where a lazy
+     * value's unbounded work actually happens and a menu tap is not allowed either to hold
+     * the frame thread or to end the process with the `AbortedException` the next key press
+     * raises inside the block.
+     */
+    private suspend fun renderPlain(block: () -> String?): String? =
+        withContext(Dispatchers.Default) {
+            withTimeoutOrNull(FORMAT_TIMEOUT_MS) {
+                runInterruptible {
+                    try {
+                        block()
+                    } catch (e: ArithmeticException) {
+                        // Aborted, out of precision, or out of BigInteger's range. There is
+                        // nothing honest to put on the clipboard.
+                        null
+                    }
+                }
+            }
+        }
+
+    /**
+     * The display locale's decimal separator, read on the main thread.
+     *
+     * From [locale] — the `LocalConfiguration` value the composable supplies — rather than
+     * from `Locale.getDefault()`, so the copied text and the paste handler agree on which
+     * character is the point after an in-app language change.
+     */
+    private fun decimalSeparator(): Char = DecimalFormatSymbols.getInstance(locale).decimalSeparator
+
+    /**
+     * The expansion of [value] the result line shows for [request], or `null` when there is
+     * no honest one. Worker-thread code.
+     *
+     * The one place the ellipsis is appended, so that [requestDigits] and [reformatResult]
+     * cannot disagree about it. The digits in front of it are the formatter's business: it
+     * cuts a truncated rendering at a digit of the value rather than rounding it, so each
+     * doubling extends the text on screen instead of changing the last digit the user saw.
+     */
+    private fun expandedText(value: UnifiedReal, request: DigitRequest, renderLocale: Locale): String? {
+        val text: String = ResultFormatter.formatWithDigitsOrNull(value, request.digits, renderLocale)
+            ?: return null
+        return if (request.truncated) text + ELLIPSIS else text
+    }
+
+    /** One re-rendering of the answer on screen; see [reformatResult]. */
+    private class Rendered(val text: String, val hasMoreDigits: Boolean)
+
     private companion object {
         const val PREVIEW_TIMEOUT_MS = 1_000L
         const val EXPLICIT_TIMEOUT_MS = 15_000L
@@ -863,6 +999,7 @@ class CalculatorViewModel(
         const val KEY_RESULT_EXPR = "resultExpr"
         const val KEY_INVERSE = "inverse"
         const val KEY_DIGITS = "digitsShown"
+        const val KEY_ERROR = "error"
     }
 }
 

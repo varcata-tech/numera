@@ -9,17 +9,12 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.numera.calculator.math.AbortedException
 import app.numera.calculator.math.AngleMode
-import app.numera.calculator.math.CalculationException
 import app.numera.calculator.math.UnifiedReal
-import app.numera.calculator.math.expr.EvalResult
 import app.numera.calculator.math.expr.ExprCodec
-import app.numera.calculator.math.expr.ExprEvaluator
 import app.numera.calculator.math.expr.KeyId
-import app.numera.calculator.math.format.ResultFormatter
 import app.numera.calculator.settings.SettingsStore
 import app.numera.calculator.units.Dimension
 import app.numera.calculator.units.UnitCatalog
-import app.numera.calculator.units.UnitConverter
 import app.numera.calculator.units.UnitDef
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
@@ -354,13 +349,20 @@ class ConverterViewModel(
 
     private fun recompute() {
         conversionJob?.cancel()
+        // Whatever the computed field holds answers the input the cancelled job was started
+        // from, not the one this call is for. onSwap and onFocus read a non-null value here
+        // as "the passive field holds a valid conversion of the current input" and adopt it,
+        // so leaving it in place until the new job landed let a swap taken inside that
+        // window replace the digits just typed with the answer to the previous question —
+        // a window as long as the conversion takes, which for an expression that is slow to
+        // evaluate is long enough to press a button in.
+        computed = null
         val snapshot = _state.value
         val source = input
         if (source.isEmpty()) {
             // Both fields, not only the passive one. With nothing to convert there is no
             // number to show anywhere, and blanking one side left the other holding an
             // answer that its own unit label no longer matched.
-            computed = null
             _state.update { it.copy(fromText = "", toText = "", common = emptyList()) }
             return
         }
@@ -378,44 +380,10 @@ class ConverterViewModel(
         conversionJob = viewModelScope.launch {
             val converted: Conversion = try {
                 withContext(Dispatchers.Default) {
-                    runInterruptible<Conversion?> {
-                        val amount: UnifiedReal = valueOf(source, angleMode)
-                            ?: return@runInterruptible null
-                        val fromUnit =
-                            if (snapshot.editingFrom) snapshot.fromUnit else snapshot.toUnit
-                        val toUnit =
-                            if (snapshot.editingFrom) snapshot.toUnit else snapshot.fromUnit
-                        try {
-                            val result = UnitConverter.convert(amount, fromUnit, toUnit)
-                            Conversion(
-                                value = result,
-                                text = format(result, renderIn),
-                                siblings = siblingsOf(
-                                    amount,
-                                    fromUnit,
-                                    toUnit,
-                                    snapshot.dimension,
-                                    renderIn,
-                                ),
-                            )
-                        } catch (e: AbortedException) {
-                            // Named ahead of every other ArithmeticException deliberately.
-                            // Every CalculationException is one, so a broad catch here
-                            // would turn "the user pressed another key" into a finished,
-                            // wrong-looking answer. It has to keep travelling.
-                            throw e
-                        } catch (e: CalculationException) {
-                            // A reciprocal unit is undefined at zero, and a value too large
-                            // to approximate has no digits to print. In both cases an empty
-                            // field is a better answer than infinity or a crash.
-                            null
-                        } catch (e: ArithmeticException) {
-                            // BigInteger raises a bare one when a value outgrows its own
-                            // supported range: still no answer, still not a crash.
-                            null
-                        }
+                    runInterruptible<Conversion> {
+                        convertForDisplay(source, snapshot, angleMode, renderIn)
                     }
-                } ?: Conversion(null, "", emptyList())
+                }
             } catch (e: AbortedException) {
                 // This job's result is stale by definition and a newer recompute() is
                 // already queued, so the whole computation is dropped rather than shown.
@@ -427,70 +395,28 @@ class ConverterViewModel(
             if (!_state.value.describesSameConversion(snapshot)) return@launch
             computed = converted.value
             _state.update {
+                // The active field is rewritten too when the input is a carried exact value,
+                // which is the one shape of input that has no text of its own: after a
+                // language switch it would otherwise be the only number on screen still in
+                // the previous locale's digits. Typed input keeps the text it already shows.
                 if (snapshot.editingFrom) {
-                    it.copy(toText = converted.text, common = converted.siblings)
+                    it.copy(
+                        fromText = converted.activeText ?: it.fromText,
+                        toText = converted.text,
+                        common = converted.siblings,
+                    )
                 } else {
-                    it.copy(fromText = converted.text, common = converted.siblings)
+                    it.copy(
+                        toText = converted.activeText ?: it.toText,
+                        fromText = converted.text,
+                        common = converted.siblings,
+                    )
                 }
             }
         }
     }
 
-    /** One finished conversion: the exact result, its rendering, and the sibling strip. */
-    private class Conversion(
-        val value: UnifiedReal?,
-        val text: String,
-        val siblings: List<Pair<UnitDef, String>>,
-    )
-
-    /** The exact number the input stands for, or `null` when it does not parse. */
-    private fun valueOf(source: ConverterInput, mode: AngleMode): UnifiedReal? {
-        source.exact?.let { return it }
-        val parsed = ExprEvaluator.evaluate(source.expr, mode)
-        return (parsed as? EvalResult.Success)?.value
-    }
-
-    /**
-     * The same amount expressed in a few other units of the dimension.
-     *
-     * Drawn from [UnitCatalog.popularOf] rather than declaration order: the catalogue lists
-     * every dimension smallest-unit-first, so taking the first entries spent all four slots
-     * on nanometres through centimetres while the user was converting miles. The
-     * destination unit is skipped alongside the source, because repeating the answer that
-     * is already on screen costs one of only four slots.
-     */
-    private fun siblingsOf(
-        amount: UnifiedReal,
-        from: UnitDef,
-        to: UnitDef,
-        dimension: Dimension,
-        renderIn: Locale,
-    ): List<Pair<UnitDef, String>> =
-        UnitCatalog.popularOf(dimension)
-            .asSequence()
-            .filter { it.id != from.id && it.id != to.id }
-            .take(COMMON_COUNT)
-            .mapNotNull { unit ->
-                try {
-                    unit to format(UnitConverter.convert(amount, from, unit), renderIn)
-                } catch (e: AbortedException) {
-                    // As above: an abort is a cancellation, not a unit that cannot be shown.
-                    throw e
-                } catch (e: CalculationException) {
-                    null
-                } catch (e: ArithmeticException) {
-                    null
-                }
-            }
-            .toList()
-
-    private fun format(value: UnifiedReal, renderIn: Locale): String =
-        ResultFormatter.formatShort(value, VALUE_BUDGET, renderIn)
-
     private companion object {
-        const val VALUE_BUDGET = 18
-        const val COMMON_COUNT = 4
-
         const val KEY_DIMENSION = "converter_dimension"
         const val KEY_FROM_UNIT = "converter_from_unit"
         const val KEY_TO_UNIT = "converter_to_unit"

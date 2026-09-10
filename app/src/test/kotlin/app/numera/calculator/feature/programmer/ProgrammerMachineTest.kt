@@ -153,6 +153,74 @@ class ProgrammerMachineTest {
         assertEquals(0x115L, shortened.digit('5').ui.value)
     }
 
+    /**
+     * A decimal entry is a magnitude, and a signed word has a smaller one than an unsigned.
+     *
+     * Only the unsigned bound was checked, so an 8-bit signed byte accepted 200: the DEC row
+     * echoed "200" while the word held 0xC8, which the same row read as −56 the moment an
+     * operator committed it, and 200 + 100 then answered 44 with no overflow flag — a clean
+     * answer computed from an operand the user never saw.
+     */
+    @Test
+    fun `a signed decimal entry is refused at the signed bound, not the unsigned one`() {
+        val byte = ProgrammerMachine().selectWordSize(WordSize.BITS_8).selectBase(NumberBase.DEC)
+        val typed = byte.type("200")
+        // The third digit is refused, leaving the 20 that fits — never a wrapped −56.
+        assertEquals("20", typed.ui.rendered(NumberBase.DEC))
+        assertEquals(20L, typed.ui.value)
+        assertEquals(127L, byte.type("127").ui.value)
+        assertEquals(12L, byte.type("128").ui.value)
+        // Unsigned, the whole byte is a legitimate magnitude.
+        assertEquals(200L, byte.toggleSigned().type("200").ui.value)
+        // Hex is a bit pattern, and 0xC8 is a perfectly good thing to put in a signed byte.
+        assertEquals(0xC8L, byte.selectBase(NumberBase.HEX).type("C8").ui.value)
+    }
+
+    /**
+     * The 64-bit case has no `mask ushr 1` to lean on by accident: its mask is −1, so an
+     * unsigned comparison against it admits every pattern, and every decimal from 2^63 up
+     * was accepted as typed while the value underneath was negative.
+     */
+    @Test
+    fun `a sixty four bit signed decimal entry stops at two to the sixty three`() {
+        val wide = ProgrammerMachine().selectWordSize(WordSize.BITS_64).selectBase(NumberBase.DEC)
+        assertEquals(Long.MAX_VALUE, wide.type("9223372036854775807").ui.value)
+        // The last digit of 2^63 is refused; what remains is the digits before it.
+        assertEquals(922337203685477580L, wide.type("9223372036854775808").ui.value)
+        assertEquals(Long.MIN_VALUE, wide.toggleSigned().type("9223372036854775808").ui.value)
+    }
+
+    /**
+     * The width and sign chips must not unlatch a refused division.
+     *
+     * They re-read the value on screen, which after `10 ÷ 0 =` is the dividend, and supply
+     * no divisor. Clearing the error there let the next `=` run the still-pending division
+     * as 10 ÷ 10 and show 1 — an answer to a division the user never entered.
+     */
+    @Test
+    fun `the sign and width chips leave a divide by zero latched`() {
+        val failed = decimal().type("10").operator(BinaryOp.DIVIDE).type("0").evaluate()
+
+        val resigned = failed.toggleSigned()
+        assertEquals(ProgError.DIVIDE_BY_ZERO, resigned.ui.error)
+        assertEquals(ProgError.DIVIDE_BY_ZERO, resigned.evaluate().ui.error)
+        assertEquals(10L, resigned.evaluate().ui.value)
+        // A real divisor still resumes the division.
+        assertEquals(2L, resigned.type("5").evaluate().ui.value)
+
+        val resized = failed.selectWordSize(WordSize.BITS_16)
+        assertEquals(ProgError.DIVIDE_BY_ZERO, resized.ui.error)
+        assertEquals(10L, resized.evaluate().ui.value)
+        assertEquals(5L, resized.type("2").evaluate().ui.value)
+
+        // An overflow, by contrast, describes the value under the old reading and goes.
+        val overflowed = ProgrammerMachine()
+            .selectWordSize(WordSize.BITS_8)
+            .type("7F").operator(BinaryOp.ADD).type("1").evaluate()
+        assertEquals(ProgError.OVERFLOW, overflowed.ui.error)
+        assertNull(overflowed.toggleSigned().ui.error)
+    }
+
     @Test
     fun `clear forgets the pending operation as well as the value`() {
         val cleared = decimal().type("5").operator(BinaryOp.ADD).clear()

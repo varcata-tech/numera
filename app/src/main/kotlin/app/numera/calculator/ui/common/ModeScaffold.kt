@@ -2,9 +2,7 @@ package app.numera.calculator.ui.common
 
 import androidx.activity.BackEventCompat
 import androidx.activity.compose.PredictiveBackHandler
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationVector1D
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -22,19 +20,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import app.numera.calculator.R
-import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
-
-/** How far the screen shrinks at a fully committed back gesture. */
-private const val BACK_GESTURE_MIN_SCALE = 0.92f
-
-/** How long an abandoned back gesture takes to settle back to full size. */
-private const val BACK_GESTURE_CANCEL_MILLIS: Int = 180
 
 /**
  * The frame every mode other than the main calculator is drawn in.
@@ -51,44 +44,44 @@ fun ModeScaffold(
     onBack: () -> Unit,
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    // An Animatable rather than a plain float, because the two ways a gesture ends need
-    // different motion. While the finger is down the preview must track it exactly, so the
-    // progress is snapped; when the gesture is abandoned the platform's own cancel is
-    // animated, and assigning 0f jumped the screen from 0.92 scale back to 1.0 in a single
-    // frame — which reads as a rendering glitch rather than as the swipe being refused.
-    val backProgress: Animatable<Float, AnimationVector1D> = remember { Animatable(0f) }
+    // The settle animation of an abandoned gesture cannot run inside the back handler's own
+    // coroutine — the platform cancels that coroutine as part of cancelling the gesture — so
+    // the preview is given a scope that lives as long as this composition instead.
+    val settleScope: CoroutineScope = rememberCoroutineScope()
+    val preview: BackGesturePreview = remember(settleScope) { BackGesturePreview(settleScope) }
 
     // A plain BackHandler would consume the gesture and the system would fall back to the
-    // non-predictive animation, so at targetSdk 36 the user gets the system's cross-activity
-    // animation with no in-app preview and no way to abandon the swipe. Collecting the
-    // progress flow is what keeps the gesture cancellable.
+    // non-predictive animation, so the user gets the system's cross-activity animation with
+    // no in-app preview and no way to abandon the swipe. Collecting the progress flow is what
+    // keeps the gesture cancellable. Progress events only arrive at all because the manifest
+    // opts into OnBackInvokedCallback: without that flag every device below Android 16 takes
+    // the legacy onBackPressed path, where the flow completes at once and nothing is shown.
     PredictiveBackHandler(enabled = true) { progress: Flow<BackEventCompat> ->
-        try {
-            progress.collect { event: BackEventCompat ->
-                backProgress.snapTo(event.progress)
-            }
-            backProgress.snapTo(0f)
-            onBack()
-        } catch (cancelled: CancellationException) {
-            // The user swiped back and let go outside the commit threshold. Cancelling the
-            // gesture cancels the progress flow, not this coroutine, which is what makes it
-            // safe to suspend here; rethrowing would abort the handler before the screen
-            // has returned to rest and leave the mode drawn permanently shrunk.
-            backProgress.animateTo(
-                targetValue = 0f,
-                animationSpec = tween(durationMillis = BACK_GESTURE_CANCEL_MILLIS),
-            )
+        // The collect call stays in this lambda, and is not folded into the preview class:
+        // the handler's own lint check (NoCollectCallFound, fatal) requires it here, because
+        // the collect is what splits the callback into "started" and "finished".
+        preview.follow(onCommit = onBack) {
+            progress.collect { event: BackEventCompat -> preview.snapTo(event.progress) }
         }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
+            // Painted here, outside the scaled layer and before the insets are consumed. The
+            // window background behind the transparent system bars is set once at launch from
+            // the stored ThemeMode; switching the theme in Settings recomposes this scheme but
+            // never repaints the window, so without this the status-bar and gesture-bar bands
+            // stayed the old theme's colour — a white frame around a dark screen, with the
+            // now-light clock and battery icons drawn invisibly on it. Being outside the layer
+            // also means the border a back gesture reveals is the scheme's colour, not the
+            // window's.
+            .background(MaterialTheme.colorScheme.background)
             .graphicsLayer {
                 // Read here rather than in composition: the progress changes on every frame
                 // of the gesture, and reading it inside the layer block keeps that to the
                 // draw phase instead of recomposing the whole mode sixty times a second.
-                val scale: Float = 1f - (1f - BACK_GESTURE_MIN_SCALE) * backProgress.value
+                val scale: Float = preview.scale
                 scaleX = scale
                 scaleY = scale
             }

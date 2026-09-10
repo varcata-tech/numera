@@ -62,6 +62,15 @@ internal fun sanitiseAmount(text: String, decimal: Boolean, decimalSeparator: Ch
  * the user's own, so "8,5" and an Arabic-Indic "٨٫٥" both have to be translated before they
  * reach it. Null rather than an exception because a field mid-edit — empty, or holding just a
  * separator — is an ordinary state, not an error to report.
+ *
+ * *Any* single non-digit is read as the decimal mark, not only [decimalSeparator]. A stored
+ * value can never contain a grouping separator — [sanitiseAmount] keeps digits and one
+ * decimal mark and drops everything else — so a non-digit that is not this locale's mark can
+ * only be another locale's: the field is `rememberSaveable`, it survives the recreate that a
+ * per-app language change causes, and it comes back spelled in the language it was typed
+ * in. Accepting only '.' as the foreign spelling covered de→en and nothing else: "8,5" saved
+ * under German and reopened in English read as "not a number", and "٨٫٥" saved under Arabic
+ * did the same in every other locale.
  */
 internal fun parseAmount(text: String, decimalSeparator: Char): BigDecimal? {
     if (text.isBlank()) return null
@@ -69,19 +78,13 @@ internal fun parseAmount(text: String, decimalSeparator: Char): BigDecimal? {
     val normalised = buildString(text.length) {
         for (character in text) {
             when {
-                character == decimalSeparator || character == '.' -> {
-                    // An ASCII point is accepted alongside the locale's own separator
-                    // because a stored value can never contain a *grouping* separator:
-                    // sanitiseAmount keeps digits and the decimal separator and drops
-                    // everything else, so a '.' here is always a decimal point that
-                    // arrived from a seed or from a value saved under another locale.
-                    // Rejecting it made the whole field read as "not a number".
+                character.isDigit() -> append(Character.digit(character, 10))
+                else -> {
+                    // Two marks are nonsense whichever spelling each uses.
                     if (pointSeen) return null
                     pointSeen = true
                     append('.')
                 }
-                character.isDigit() -> append(Character.digit(character, 10))
-                else -> return null
             }
         }
     }
@@ -106,6 +109,23 @@ internal fun parseAmount(text: String, decimalSeparator: Char): BigDecimal? {
  */
 internal fun seedAmount(literal: String, decimalSeparator: Char): String =
     if (decimalSeparator == '.') literal else literal.replace('.', decimalSeparator)
+
+/**
+ * Respells a stored field in the separator of the locale now drawing it.
+ *
+ * The companion of [parseAmount]'s tolerance, for the field itself. Reading "8,5" back as a
+ * number under English is only half of surviving a language switch: the text field still
+ * *showed* the comma, and the next keystroke handed "8,50" to [sanitiseAmount], which keeps
+ * only this locale's mark and so silently turned the rate into 850. Respelling the mark
+ * before the field draws it means the text the user goes on editing is one the filter will
+ * keep. Digits are left alone — Arabic-Indic digits are digits in every locale.
+ */
+internal fun localiseAmount(text: String, decimalSeparator: Char): String =
+    buildString(text.length) {
+        for (character in text) {
+            append(if (character.isDigit()) character else decimalSeparator)
+        }
+    }
 
 /** Formats an amount using [locale]'s number conventions; no exchange rate is involved. */
 internal fun formatAmount(value: BigDecimal, locale: Locale): String =

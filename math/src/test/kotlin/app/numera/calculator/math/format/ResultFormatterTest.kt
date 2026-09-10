@@ -1,9 +1,12 @@
 package app.numera.calculator.math.format
 
 import app.numera.calculator.math.BoundedRational
+import app.numera.calculator.math.ConstructiveReal
+import app.numera.calculator.math.TooMuchMemoryException
 import app.numera.calculator.math.UnifiedReal
 import java.math.BigInteger
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -173,19 +176,87 @@ class ResultFormatterTest {
     }
 
     @Test
-    fun `formatPlain rounds its last digit the way the result line does`() {
-        // This is what Copy puts on the clipboard, so it is the same number the user can
-        // see — and it used to be produced by truncating an approximation that is only good
-        // to one unit in the last place. That decides the final digit by luck: it disagreed
-        // with the correctly rounded line about half the time, and could land one *above*
-        // the true expansion, printing a digit belonging to no rendering of the value.
-        // e to seventeen places is 2.71828182845904523|5360…, so it rounds up.
+    fun `formatPlain rounds, the line cuts, and they agree on every digit but the last`() {
+        // This is what Copy puts on the clipboard. It carries no ellipsis, so it stands in
+        // for the whole value and must be the nearest decimal of its width — and it used to
+        // be produced by truncating an approximation that is only good to one unit in the
+        // last place, which decides the final digit by luck and can land one *above* the
+        // true expansion, printing a digit belonging to no rendering of the value.
+        // e to seventeen places is 2.71828182845904523|5360…, so the copy rounds up while
+        // the line, whose ellipsis promises the 5360… still to come, keeps the 3.
         val plain = ResultFormatter.formatPlain(UnifiedReal.E, 17)
         assertEquals("2.71828182845904524", plain)
-        assertEquals(
-            digitsOf(ResultFormatter.formatWithDigits(UnifiedReal.E, 17, Locale.ROOT)),
-            digitsOf(plain),
+        val line = digitsOf(ResultFormatter.formatWithDigits(UnifiedReal.E, 17, Locale.ROOT))
+        assertEquals("271828182845904523", line)
+        assertEquals(line.dropLast(1), digitsOf(plain).dropLast(1))
+    }
+
+    @Test
+    fun `a negative that rounds to zero at the copied width keeps its sign`() {
+        // toStringRounded drops the sign of a magnitude that rounds to nothing, so the copy
+        // of −e^(−200) at sixty places was sixty zeros with no minus: a negative number put
+        // on the clipboard as a positive one. The exact path never had the problem, since
+        // the sign is part of the text; the opaque path has to go and find it.
+        val opaqueTiny = UnifiedReal.of(-(ConstructiveReal.ONE / ConstructiveReal.valueOf(BigInteger.TEN.pow(60))))
+        assertEquals("-0." + "0".repeat(50), ResultFormatter.formatPlain(opaqueTiny, 50))
+        // And a positive one does not grow a sign it never had.
+        val positiveTiny = UnifiedReal.of(ConstructiveReal.ONE / ConstructiveReal.valueOf(BigInteger.TEN.pow(60)))
+        assertEquals("0." + "0".repeat(50), ResultFormatter.formatPlain(positiveTiny, 50))
+    }
+
+    // ------------------------------------------------------------ digits before an ellipsis
+
+    @Test
+    fun `the digits before an ellipsis are a prefix of the expansion`() {
+        // An ellipsis promises that the digits continue from where the text stopped, so
+        // the digit before it cannot be rounded: 2÷3 used to show 0.66666666666666667…,
+        // and the next scroll redrew that 7 as the 6 it always was. The cut also cannot be a
+        // bare truncation of the approximation, which is what printed e one low.
+        assertEquals("0.66666666666666666…", short(rational(BigInteger.TWO, BigInteger.valueOf(3L))))
+        assertEquals("2.71828182845904523…", short(UnifiedReal.E))
+        // Scientific notation: 2^64 is 1.8446744073709551616E19, cut after the 5, not
+        // rounded up to 6.
+        assertEquals("1.84467440737095E19…", short(power(2L, 64)))
+        // An exact value cut short by the scroll's digit count is cut the same way:
+        // 0.125 to two places is 0.12…, never 0.13….
+        assertEquals("0.12", ResultFormatter.formatWithDigits(rational(BigInteger.ONE, BigInteger.valueOf(8L)), 2, Locale.ROOT))
+    }
+
+    @Test
+    fun `scrolling never changes a digit already on screen`() {
+        // Each scroll step asks for more places; every rendering must extend the previous
+        // one, or the user watches a digit they were shown change under their finger.
+        val values = listOf(
+            rational(BigInteger.TWO, BigInteger.valueOf(3L)),
+            UnifiedReal.E,
+            UnifiedReal.PI,
+            UnifiedReal.of(2L).sqrt(),
         )
+        for (value in values) {
+            var previous = digitsOf(short(value).removeSuffix("…"))
+            for (places in listOf(17, 25, 50, 100)) {
+                val next = digitsOf(ResultFormatter.formatWithDigits(value, places, Locale.ROOT))
+                assertTrue("$value: $previous is not a prefix of $next", next.startsWith(previous))
+                previous = next
+            }
+        }
+    }
+
+    @Test
+    fun `a negative value whose shown digits are all zero keeps its sign while scrolling`() {
+        // 0 − 1 ÷ 10^60 shows −1E−60 and offers more digits. The first scroll asks for
+        // fifty places, every one of which is a zero, and the line read 0.000…0… — a
+        // negative number displayed as a positive zero expansion until the next scroll
+        // reached the 1. The exact path cuts the sign-bearing text; the opaque path has
+        // to look for the first non-zero digit to learn the sign.
+        val zeros = "0".repeat(50)
+        val exactTiny = rational(BigInteger.ONE.negate(), BigInteger.TEN.pow(60))
+        assertEquals("−0.$zeros", ResultFormatter.formatWithDigits(exactTiny, 50, Locale.ROOT))
+        val opaqueTiny = UnifiedReal.of(-(ConstructiveReal.ONE / ConstructiveReal.valueOf(BigInteger.TEN.pow(60))))
+        assertEquals("−0.$zeros", ResultFormatter.formatWithDigits(opaqueTiny, 50, Locale.ROOT))
+        // The full expansion, once the scroll reaches it, is still signed and still exact.
+        val full = ResultFormatter.formatWithDigits(exactTiny, 100, Locale.ROOT)
+        assertEquals("−0." + "0".repeat(59) + "1", full)
     }
 
     // ------------------------------------------------------------ locale pairing
@@ -214,6 +285,54 @@ class ResultFormatterTest {
     }
 
     // ------------------------------------------------------------ totality
+
+    @Test
+    fun `a value too deep to expand is reported rather than left to kill the process`() {
+        // sin(1)+sin(1)+… a few thousand terms long evaluates in constant stack — each `+`
+        // of two unlike irrationals only builds a node — and the tree is first descended,
+        // recursively, when the display asks for a digit. The StackOverflowError that raised
+        // is not an ArithmeticException, so it passed every catch between the formatter and
+        // the process. The chain here is built iteratively so the test itself cannot
+        // overflow, and formatted on a thread with a deliberately small stack so the depth
+        // needed does not depend on the JVM running the tests.
+        val sqrt2 = UnifiedReal.of(2L).sqrt()
+        var chain: UnifiedReal = sqrt2 + UnifiedReal.of(3L).sqrt()
+        repeat(100_000) { chain = chain + sqrt2 }
+        val deep: UnifiedReal = chain
+
+        val outcomes = arrayOfNulls<Any>(4)
+        val escaped = AtomicReference<Throwable?>(null)
+        val worker = Thread(
+            null,
+            Runnable {
+                outcomes[0] = ResultFormatter.formatShortOrNull(deep, budget, Locale.ROOT)
+                outcomes[1] = ResultFormatter.formatWithDigitsOrNull(deep, 50, Locale.ROOT)
+                outcomes[2] = try {
+                    ResultFormatter.formatShort(deep, budget, Locale.ROOT)
+                } catch (e: ArithmeticException) {
+                    e
+                }
+                outcomes[3] = try {
+                    ResultFormatter.formatPlain(deep, 50)
+                } catch (e: ArithmeticException) {
+                    e
+                }
+            },
+            "deep-format",
+            256L * 1024,
+        )
+        worker.setUncaughtExceptionHandler { _, throwable -> escaped.set(throwable) }
+        worker.start()
+        worker.join()
+
+        assertNull("escaped the formatter: ${escaped.get()}", escaped.get())
+        assertNull(outcomes[0])
+        assertNull(outcomes[1])
+        // The throwing entry points report it as the engine's own failure, which is the
+        // one every caller in the view model already maps to a message.
+        assertTrue("got ${outcomes[2]}", outcomes[2] is TooMuchMemoryException)
+        assertTrue("got ${outcomes[3]}", outcomes[3] is TooMuchMemoryException)
+    }
 
     @Test
     fun `a cancelled computation is reported rather than thrown at the caller`() {

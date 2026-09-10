@@ -48,6 +48,7 @@
     <string name="fin_invalid_input">请在每个字段中输入有效数字。</string>
     <string name="fin_out_of_range">这些数值超出了本计算器可计算的范围。</string>
     <string name="fin_contribution_continuous">连续复利没有计息周期，因此不计入定期投入。</string>
+    <string name="fin_whole_periods_note">只有完整的复利期才计息；剩余的不足一期部分不计入。</string>
     <plurals name="fin_extra_cents">
         <item quantity="other">%1$d 人多付一个单位</item>
     </plurals>

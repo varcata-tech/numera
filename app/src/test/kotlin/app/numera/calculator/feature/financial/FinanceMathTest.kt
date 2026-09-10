@@ -2,6 +2,7 @@ package app.numera.calculator.feature.financial
 
 import java.math.BigDecimal
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -111,6 +112,30 @@ class FinanceMathTest {
         }
         // e^0.5 * 1000 = 1648.72
         assertEquals(bd("1648.72"), amounts.last())
+    }
+
+    /**
+     * A part-period is dropped on purpose, and the screen has to be able to say so.
+     *
+     * 0.9 years at annual compounding earns nothing at all while the same inputs earn 42.47
+     * monthly and 46.03 continuously; the annual figure is a correct answer that looks like
+     * a broken one unless the card explains it, so the rule the note is shown under is
+     * pinned here alongside the arithmetic it describes.
+     */
+    @Test
+    fun `a part period earns nothing and is reported as dropped`() {
+        val annual = FinanceMath.compoundGrowth(
+            bd("1000"), bd("5"), bd("0.9"), FinanceMath.Compounding.ANNUAL,
+        )!!
+        assertEquals(bd("1000.00"), annual.balance)
+        assertTrue(FinanceMath.dropsPartPeriod(bd("0.9"), FinanceMath.Compounding.ANNUAL))
+        assertTrue(FinanceMath.dropsPartPeriod(bd("0.9"), FinanceMath.Compounding.MONTHLY))
+        // 10.5 years is exactly 21 half-years: nothing is dropped, so nothing is said.
+        assertFalse(FinanceMath.dropsPartPeriod(bd("10.5"), FinanceMath.Compounding.SEMIANNUAL))
+        assertFalse(FinanceMath.dropsPartPeriod(bd("10"), FinanceMath.Compounding.MONTHLY))
+        assertFalse(FinanceMath.dropsPartPeriod(bd("10.0"), FinanceMath.Compounding.ANNUAL))
+        // Continuous compounding has no period to drop part of.
+        assertFalse(FinanceMath.dropsPartPeriod(bd("0.9"), FinanceMath.Compounding.CONTINUOUS))
     }
 
     @Test

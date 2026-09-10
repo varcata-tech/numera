@@ -88,11 +88,14 @@ object CalculationLimits {
      * `withTimeoutOrNull` and every catch in the view model, and ends the process rather
      * than the expression. `e^(0−10^600)` is ten keypresses.
      *
-     * Three hundred is far looser than [MAX_EXP_BITS] already permits on the positive side
-     * (an exponent past ~693,147 is refused for its width, which is only 20 bits of
+     * Three hundred is far looser than [MAX_EXP_BITS] permits on the positive side (an
+     * exponent past ~693,147 is refused for its width, which is only 20 bits of
      * magnitude), so in practice it bounds the negative side — where the *value* is
      * perfectly representable as `0…` and only the procedure is not. It leaves roughly a
-     * fivefold margin against the 1 MB stack a non-main Android thread is given.
+     * fivefold margin against the 1 MB stack a non-main Android thread is given. Both
+     * bounds are enforced inside [ConstructiveReal.exp] itself, not only on the rational
+     * exponent that `UnifiedReal.checkExpSize` sees: `e^(π×1E8)` is a 29-bit argument and
+     * a 450-million-bit value, and it reaches the series through the opaque route.
      */
     const val MAX_EXP_ARGUMENT_BITS: Int = 300
 

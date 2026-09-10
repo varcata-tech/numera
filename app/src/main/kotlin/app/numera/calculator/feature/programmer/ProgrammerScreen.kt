@@ -44,6 +44,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.numera.calculator.R
 import app.numera.calculator.ui.common.CalcButton
 import app.numera.calculator.ui.common.KeyStyle
+import app.numera.calculator.ui.common.KeypadColumn
 import app.numera.calculator.ui.common.ModeScaffold
 
 /**
@@ -236,7 +237,18 @@ private fun BaseRow(base: NumberBase, text: String, active: Boolean, onClick: ()
                 maxLines = 1,
                 softWrap = false,
                 textAlign = TextAlign.End,
-                modifier = Modifier.weight(1f).horizontalScroll(scrollState),
+                // Anchored at the end, not the start. Inside horizontalScroll the text is
+                // measured at its own width, so TextAlign.End has nothing to align within
+                // once the string outgrows the row, and a scroll at offset 0 shows the
+                // *left* end — the most significant digits. Those are the zeros. The grouped
+                // 32-bit binary row is already wider than a phone, and 64-bit is twice
+                // that, so a freshly typed 1F opened on "0000 0000 0000 …" with every set
+                // bit off screen to the right. reverseScrolling makes offset 0 the *right*
+                // end by construction, at every width, with no re-pinning effect that could
+                // land a frame short while the text is still being measured.
+                modifier = Modifier
+                    .weight(1f)
+                    .horizontalScroll(scrollState, reverseScrolling = true),
             )
         }
     }
@@ -260,7 +272,14 @@ private fun BitGrid(value: Long, wordSize: WordSize, onToggleBit: (Int) -> Unit)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(scrollState)
+                // The grid opens on bit 0, not bit 63. It emits the most significant nibble
+                // first and is wider than a phone from 32 bits up, so at offset 0 the
+                // visible columns were the top of the word — all zero for any small value —
+                // and the bits actually carrying the value were off screen to the right.
+                // Anchoring the *end* through reverseScrolling, rather than scrolling there
+                // in an effect keyed on the value, also leaves the user's own position
+                // alone: a tap on a high bit they scrolled to must not yank the grid back.
+                .horizontalScroll(scrollState, reverseScrolling = true)
                 .padding(vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -349,15 +368,15 @@ private fun ProgrammerPad(
     // opposite side from the calculator's, so the two pads in one app disagreed about
     // where a digit lives.
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(spacing)) {
-            PadRow(spacing) {
+        KeypadColumn(rows = 7, modifier = modifier) { row ->
+            PadRow(row, spacing) {
                 OpKey(R.string.op_and, descRes = R.string.desc_op_and) { viewModel.onOperator(BinaryOp.AND) }
                 OpKey(R.string.op_or, descRes = R.string.desc_op_or) { viewModel.onOperator(BinaryOp.OR) }
                 OpKey(R.string.op_xor, descRes = R.string.desc_op_xor) { viewModel.onOperator(BinaryOp.XOR) }
                 OpKey(R.string.op_not, descRes = R.string.desc_op_not) { viewModel.onNot() }
                 OpKey(R.string.key_clear, KeyStyle.DESTRUCTIVE, R.string.desc_clear) { viewModel.onClear() }
             }
-            PadRow(spacing) {
+            PadRow(row, spacing) {
                 OpKey(R.string.op_shl, descRes = R.string.desc_op_shl) { viewModel.onOperator(BinaryOp.SHL) }
                 OpKey(R.string.op_shr, descRes = R.string.desc_op_shr) { viewModel.onOperator(BinaryOp.SHR) }
                 OpKey(R.string.op_rol, descRes = R.string.desc_op_rol) { viewModel.onOperator(BinaryOp.ROL) }
@@ -367,31 +386,31 @@ private fun ProgrammerPad(
             // A–F stay visible but disabled outside hex. Hiding them would reflow the pad
             // under the user's thumb every time the base changed.
             val letterRows = listOf(listOf('A', 'B', 'C', 'D'), listOf('E', 'F'))
-            PadRow(spacing) {
+            PadRow(row, spacing) {
                 for (c in letterRows[0]) DigitKey(c, state, viewModel)
                 OpKey(R.string.op_div, descRes = R.string.desc_op_div) { viewModel.onOperator(BinaryOp.DIVIDE) }
             }
-            PadRow(spacing) {
+            PadRow(row, spacing) {
                 for (c in letterRows[1]) DigitKey(c, state, viewModel)
                 DigitKey('7', state, viewModel)
                 DigitKey('8', state, viewModel)
                 OpKey(R.string.op_mul, descRes = R.string.desc_op_mul) { viewModel.onOperator(BinaryOp.MULTIPLY) }
             }
-            PadRow(spacing) {
+            PadRow(row, spacing) {
                 DigitKey('4', state, viewModel)
                 DigitKey('5', state, viewModel)
                 DigitKey('6', state, viewModel)
                 DigitKey('9', state, viewModel)
                 OpKey(R.string.op_sub, descRes = R.string.desc_op_sub) { viewModel.onOperator(BinaryOp.SUBTRACT) }
             }
-            PadRow(spacing) {
+            PadRow(row, spacing) {
                 DigitKey('1', state, viewModel)
                 DigitKey('2', state, viewModel)
                 DigitKey('3', state, viewModel)
                 DigitKey('0', state, viewModel)
                 OpKey(R.string.op_add, descRes = R.string.desc_op_add) { viewModel.onOperator(BinaryOp.ADD) }
             }
-            PadRow(spacing) {
+            PadRow(row, spacing) {
                 // ± is the only way to enter a negative operand — the decimal keypad has digits
                 // and nothing else — on a screen that defaults to signed and prints signed
                 // decimals. MOD sits beside it because integer remainder is half of what integer
@@ -404,13 +423,15 @@ private fun ProgrammerPad(
     }
 }
 
+/** One row of keys; [modifier] is [KeypadColumn]'s row sizing, weighted or pinned to 48dp. */
 @Composable
-private fun androidx.compose.foundation.layout.ColumnScope.PadRow(
+private fun PadRow(
+    modifier: Modifier,
     spacing: androidx.compose.ui.unit.Dp,
     content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().weight(1f),
+        modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(spacing),
         content = content,
     )

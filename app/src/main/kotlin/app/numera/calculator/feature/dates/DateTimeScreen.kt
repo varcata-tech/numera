@@ -44,9 +44,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.DecimalStyle
-import java.time.format.FormatStyle
 import kotlinx.coroutines.delay
 
 /**
@@ -397,21 +394,12 @@ private fun ResultCard(content: @Composable () -> Unit) {
  * Arabic-Indic, two numbering systems in one card. It is the same trap as reading the default
  * locale directly, reached without ever naming `Locale.getDefault()` — and nothing but review
  * catches it, since this build has no lint module.
+ *
+ * The formatting itself is [formatDate], which is where the digit set and the era rule live.
  */
 @Composable
-private fun LocalDate.formatted(): String {
-    val locale = LocalConfiguration.current.locales[0]
-    return format(
-        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
-            .withLocale(locale)
-            // withLocale alone is not enough, and the gap is easy to miss: it settles the
-            // month names and the field order but not the digits, which come from
-            // DecimalStyle and default to ASCII whatever the locale. Without this the Dates
-            // screen printed "٣٠ يوم" one line under "26/08/2026" — two numbering systems in
-            // one card, in the one place the app shows both.
-            .withDecimalStyle(DecimalStyle.of(locale)),
-    )
-}
+private fun LocalDate.formatted(): String =
+    formatDate(this, LocalConfiguration.current.locales[0])
 
 /**
  * A counted phrase: the quantity chosen by the locale's own rules, and interpolated.

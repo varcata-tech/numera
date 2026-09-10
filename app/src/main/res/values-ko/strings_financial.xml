@@ -48,6 +48,7 @@
     <string name="fin_invalid_input">모든 항목에 유효한 숫자를 입력하세요.</string>
     <string name="fin_out_of_range">이 값은 이 계산기가 계산할 수 있는 범위를 벗어납니다.</string>
     <string name="fin_contribution_continuous">연속 복리에는 기간이 없으므로 정기 납입금은 포함되지 않습니다.</string>
+    <string name="fin_whole_periods_note">이자는 완료된 복리 기간에만 붙습니다. 남은 일부 기간은 계산에 포함되지 않습니다.</string>
     <plurals name="fin_extra_cents">
         <item quantity="other">%1$d명이 1단위 더 냅니다</item>
     </plurals>

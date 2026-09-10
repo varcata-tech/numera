@@ -67,6 +67,11 @@
     <string name="fin_invalid_input">Enter a valid number in every field.</string>
     <string name="fin_out_of_range">These values are outside the range this calculator can compute.</string>
     <string name="fin_contribution_continuous">Continuous compounding has no period, so contributions are not included.</string>
+    <!-- Shown only when the years field does not divide into whole periods. Discrete
+         compounding credits interest at the end of a period, so 0.9 years at annual
+         compounding earns nothing; without this line that correct answer looks broken
+         beside the monthly and continuous figures for the same inputs. -->
+    <string name="fin_whole_periods_note">Only whole compounding periods earn interest; the part of a period left over is not counted.</string>
     <plurals name="fin_extra_cents">
         <item quantity="one">%1$d pays one unit more</item>
         <item quantity="other">%1$d pay one unit more</item>

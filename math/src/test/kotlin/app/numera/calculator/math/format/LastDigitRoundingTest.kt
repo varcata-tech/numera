@@ -98,11 +98,14 @@ class LastDigitRoundingTest {
     }
 
     @Test
-    fun `the formatter shows the rounded digit to the user`() {
+    fun `the result line cuts at a digit of the value, never one low`() {
+        // The line's digits precede an ellipsis, so they are cut rather than rounded — but
+        // the cut must land on e's own digit. A bare truncation of the approximation is what
+        // printed ...522 here; the true expansion is 2.71828182845904523|536…
         val e = UnifiedReal.E
-        assertEquals(
-            "2.71828182845904524",
-            ResultFormatter.formatWithDigits(e, 17, Locale.ROOT),
-        )
+        assertEquals("2.71828182845904523", ResultFormatter.formatWithDigits(e, 17, Locale.ROOT))
+        assertEquals("2.718281828459045235", ResultFormatter.formatWithDigits(e, 18, Locale.ROOT))
+        // The copy has no ellipsis to hide behind, so it is the rounded digit.
+        assertEquals("2.71828182845904524", ResultFormatter.formatPlain(e, 17))
     }
 }

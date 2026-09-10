@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -56,6 +57,7 @@ import app.numera.calculator.math.expr.KeyId
 import app.numera.calculator.settings.LocalSettingsStore
 import app.numera.calculator.ui.common.CalcButton
 import app.numera.calculator.ui.common.KeyStyle
+import app.numera.calculator.ui.common.KeypadColumn
 import app.numera.calculator.ui.common.ModeScaffold
 import app.numera.calculator.units.Dimension
 import app.numera.calculator.units.UnitCatalog
@@ -92,57 +94,50 @@ fun ConverterScreen(onBack: () -> Unit) {
     LaunchedEffect(viewModel, locale) { viewModel.onLocaleChanged(locale) }
 
     ModeScaffold(title = stringResource(R.string.title_converter), onBack = onBack) { padding ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = dimensionResource(R.dimen.calc_screen_padding)),
         ) {
-            CategoryChips(
-                selected = state.dimension,
-                onSelect = viewModel::onSelectDimension,
-            )
-
-            ValueRow(
-                label = stringResource(R.string.converter_from),
-                value = state.fromText,
-                unit = state.fromUnit,
-                active = state.editingFrom,
-                onActivate = { viewModel.onFocus(from = true) },
-                onPickUnit = { picking = true },
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                IconButton(onClick = viewModel::onSwap) {
-                    Icon(
-                        imageVector = Icons.Default.SwapVert,
-                        contentDescription = stringResource(R.string.converter_swap),
-                    )
-                }
-            }
-
-            ValueRow(
-                label = stringResource(R.string.converter_to),
-                value = state.toText,
-                unit = state.toUnit,
-                active = !state.editingFrom,
-                onActivate = { viewModel.onFocus(from = false) },
-                onPickUnit = { picking = false },
-            )
-
-            // Composed even when empty; see CommonConversions.
-            CommonConversions(state.common)
-
-            Box(modifier = Modifier.weight(1f)) {
-                ConverterPad(
-                    onKey = viewModel::onKey,
-                    onDelete = viewModel::onDelete,
-                    onClear = viewModel::onClear,
+            // The same measured breakpoint the calculator and programmer use, for the same
+            // reason: at targetSdk 36 a window can be any shape, and "landscape" is not the
+            // question. Stacked, the pad was the one weighted child under the chips, both
+            // value rows, the swap button and the common conversions, whose fixed heights
+            // sum to more than a landscape phone has — so the pad measured 23dp tall on a
+            // Pixel 8 and the converter had no keypad at all in landscape. Side by side it
+            // is measured against the full height, where its four rows fit with room over.
+            if (maxWidth >= WIDE_BREAKPOINT) {
+                Row(
                     modifier = Modifier.fillMaxSize(),
-                )
+                    horizontalArrangement = Arrangement.spacedBy(
+                        dimensionResource(R.dimen.calc_key_spacing),
+                    ),
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        ConverterReadout(state, viewModel, onPick = { picking = it })
+                    }
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        ConverterPad(
+                            onKey = viewModel::onKey,
+                            onDelete = viewModel::onDelete,
+                            onClear = viewModel::onClear,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
+            } else {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    ConverterReadout(state, viewModel, onPick = { picking = it })
+                    Box(modifier = Modifier.weight(1f)) {
+                        ConverterPad(
+                            onKey = viewModel::onKey,
+                            onDelete = viewModel::onDelete,
+                            onClear = viewModel::onClear,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
             }
         }
     }
@@ -413,6 +408,61 @@ private fun UnitPickerSheet(
     }
 }
 
+/** The width at which the pad moves beside the readout instead of under it. */
+private val WIDE_BREAKPOINT = 600.dp
+
+/**
+ * Everything above the keypad: the category chips, the two value rows with the swap button
+ * between them, and the common conversions. One composable so the stacked and side-by-side
+ * layouts cannot drift apart.
+ *
+ * @param onPick opens the unit picker; `true` for the from-unit, `false` for the to-unit.
+ */
+@Composable
+private fun ConverterReadout(
+    state: ConverterUiState,
+    viewModel: ConverterViewModel,
+    onPick: (Boolean) -> Unit,
+) {
+    CategoryChips(
+        selected = state.dimension,
+        onSelect = viewModel::onSelectDimension,
+    )
+
+    ValueRow(
+        label = stringResource(R.string.converter_from),
+        value = state.fromText,
+        unit = state.fromUnit,
+        active = state.editingFrom,
+        onActivate = { viewModel.onFocus(from = true) },
+        onPickUnit = { onPick(true) },
+    )
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        IconButton(onClick = viewModel::onSwap) {
+            Icon(
+                imageVector = Icons.Default.SwapVert,
+                contentDescription = stringResource(R.string.converter_swap),
+            )
+        }
+    }
+
+    ValueRow(
+        label = stringResource(R.string.converter_to),
+        value = state.toText,
+        unit = state.toUnit,
+        active = !state.editingFrom,
+        onActivate = { viewModel.onFocus(from = false) },
+        onPickUnit = { onPick(false) },
+    )
+
+    // Composed even when empty; see CommonConversions.
+    CommonConversions(state.common)
+}
+
 /**
  * A reduced keypad: the ten digits, a point, delete, and the four operators.
  *
@@ -433,10 +483,7 @@ private fun ConverterPad(
     val symbols = remember(locale) { DecimalFormatSymbols.getInstance(locale) }
     fun digit(n: Int): String = (symbols.zeroDigit + n).toString()
 
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.calc_key_spacing)),
-    ) {
+    KeypadColumn(rows = 4, modifier = modifier) { row ->
         val rows = listOf(
             listOf(7, 8, 9),
             listOf(4, 5, 6),
@@ -451,7 +498,7 @@ private fun ConverterPad(
         )
         rows.forEachIndexed { index, digits ->
             Row(
-                modifier = Modifier.fillMaxWidth().weight(1f),
+                modifier = row,
                 horizontalArrangement = Arrangement.spacedBy(
                     dimensionResource(R.dimen.calc_key_spacing),
                 ),
@@ -476,7 +523,7 @@ private fun ConverterPad(
             }
         }
         Row(
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = row,
             horizontalArrangement = Arrangement.spacedBy(
                 dimensionResource(R.dimen.calc_key_spacing),
             ),

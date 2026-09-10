@@ -63,6 +63,8 @@ object UnitCatalog {
     private val IMP_GALLON_M3 = v("0.00454609")
     private val BTU_J = v("1055.05585262")              // IT calorie basis
     private val CALORIE_J = v("4.184")                  // thermochemical
+    // 13595.1 kg/m³ × 9.80665 m/s² × 1 mm: the conventional millimetre of mercury, exactly.
+    private val MMHG_PA = v("133.322387415")
 
     val length: List<UnitDef> = dimension(Dimension.LENGTH) {
         unit("nanometre", e10(-9))
@@ -238,9 +240,11 @@ object UnitCatalog {
         unit("psi", POUND_FORCE_N / (INCH_M * INCH_M))
         unit("atmosphere", q(101_325))
         unit("torr", q(101_325, 760))
-        unit("mmhg", v("133.322387415"))
-        // Conventional inch of mercury, not an exact derivation.
-        unit("inhg", v("3386.389"))
+        unit("mmhg", MMHG_PA)
+        // Derived as 25.4 mmHg rather than written as NIST's 3386.389 Pa: that figure is the
+        // product below rounded to seven significant figures, and with both in one catalogue
+        // 1 inHg → mmHg came out as 25.4000026976… with an ellipsis instead of 25.4.
+        unit("inhg", MMHG_PA * INCH_M * q(1000))
     }
 
     val frequency: List<UnitDef> = dimension(Dimension.FREQUENCY) {

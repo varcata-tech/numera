@@ -48,6 +48,7 @@
     <string name="fin_invalid_input">Введите допустимое число в каждое поле.</string>
     <string name="fin_out_of_range">Эти значения выходят за пределы диапазона, доступного этому калькулятору.</string>
     <string name="fin_contribution_continuous">При непрерывном начислении нет периода, поэтому взносы не учитываются.</string>
+    <string name="fin_whole_periods_note">Проценты начисляются только за полные периоды капитализации; оставшаяся часть периода не учитывается.</string>
     <plurals name="fin_extra_cents">
         <item quantity="one">%1$d платит на одну единицу больше</item>
         <item quantity="few">%1$d платят на одну единицу больше</item>

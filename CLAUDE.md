@@ -113,6 +113,22 @@ Android 13+ per-app language picker. Picking one whose split was never installed
 English with no error anywhere, and the app cannot fetch it: `SplitInstallManager` lives in
 `com.google.android.play:feature-delivery`, which is not androidx.
 
+**`res/xml/shortcuts.xml` is generated; the source is `app/src/main/shortcuts/shortcuts.xml`.**
+A Gradle task copies that template into each variant's generated resources with
+`${applicationId}` filled in, because the launcher shortcuts must name `MainActivity` with the
+package that build actually installs and nothing else can do that: a resource file cannot
+expand a manifest placeholder, and a `@string` reference in `targetPackage` is resolved by the
+system's `ShortcutParser` against the *system's* resources, so the shortcut ends up pointing at
+a package literally named `@2131362132`. Implicit `numera://` intents were tried first and put
+a chooser between the debug and release builds on every tap. Edit the template, never a
+generated copy, and check `adb shell dumpsys shortcut` for `cmp=` after changing it.
+
+**Keypad keys get their 48dp floor from `KeypadColumn`, not from `CalcButton`.** A key is
+`weight(1f).fillMaxHeight()` inside a weighted row, so by the time it is measured its size is
+fixed and a minimum on the key would only make adjacent rows overlap. Any new pad must lay its
+rows into `KeypadColumn`, which keeps them weighted while they fit and pins them to
+`calc_key_min_size` inside a scroll when the window is too short — landscape phones are.
+
 **Result scrolling must grow geometrically.** Asking for a fixed increment more digits makes
 scrolling quadratic and it visibly dies around three hundred digits. Request
 `max(needed + 30, current * 2)`.
@@ -161,11 +177,18 @@ Android-free file under `:app` if it does not belong in `:math`.
 
 ## Resources
 
-- **`MissingTranslation` and `HardcodedText` are fatal lint checks.** A release build will not
-  produce until every shipped locale has every string. Twelve locales ship
+- **`MissingTranslation` is a fatal lint check.** A release build will not produce until
+  every shipped locale has every string. Twelve locales ship
   (`en ar de es fr hi it ja ko pt-BR ru zh-CN`), so **any new string needs 11 translations**
   before `bundleRelease` will run. `/tmp/l10n.py`-style generation is fine; the per-locale
   files are split per feature exactly like the base ones.
+- **Nothing but review catches a hardcoded literal in Compose.** Lint's `HardcodedText`
+  only inspects `android:text`/`android:hint` in XML layouts, of which this app has none, so
+  `Text("Loading…")` passes `lintDebug`, `lintVitalRelease` and `bundleRelease` and ships in
+  English to eleven locales with no warning anywhere. It is deliberately not in the fatal
+  list — a fatal entry that can never fire only makes the gap look closed. Every
+  user-visible string goes through `stringResource`; grep for `Text("` and
+  `contentDescription = "` before a release.
 - **Each feature owns its own `strings_<feature>.xml`** in `values/`. Do not edit
   `values/strings.xml` for feature strings — Android merges every file in the directory, and
   per-feature files are what stop parallel edits from colliding.

@@ -166,7 +166,10 @@ class MainActivity : ComponentActivity() {
      * mirror image of the same fault.
      *
      * This cannot fix the *starting* window, which the system paints from the same attribute
-     * before this process exists. It removes everything after that.
+     * before this process exists. It removes everything after that, up to the first Compose
+     * frame; from then on `CalculatorTheme` repaints the window from the live scheme, so a
+     * theme or dynamic-colour change made in Settings does not leave the bands behind the
+     * transparent system bars in the colour chosen here.
      */
     private fun applyLaunchAppearance() {
         val nightMask: Int = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK

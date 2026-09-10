@@ -13,6 +13,7 @@
     <string name="graph_list_separator">"; "</string>
     <string name="graph_roots_of">Raízes de %1$s: %2$s</string>
     <string name="graph_trace_offscreen">x = %1$s, y = %2$s (fora da tela)</string>
+    <string name="graph_trace_undefined">x = %1$s, y não está definido</string>
     <string name="graph_clear_trace">Remover o cursor</string>
     <string name="graph_angle_unit">x em radianos</string>
     <string name="graph_sentence_separator">". "</string>

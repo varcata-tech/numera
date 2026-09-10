@@ -13,6 +13,7 @@
     <string name="graph_list_separator">", "</string>
     <string name="graph_roots_of">%1$s 的零点：%2$s</string>
     <string name="graph_trace_offscreen">x = %1$s，y = %2$s（屏幕外）</string>
+    <string name="graph_trace_undefined">x = %1$s，y 无定义</string>
     <string name="graph_clear_trace">清除追踪点</string>
     <string name="graph_angle_unit">x 以弧度为单位</string>
     <string name="graph_sentence_separator">"。"</string>

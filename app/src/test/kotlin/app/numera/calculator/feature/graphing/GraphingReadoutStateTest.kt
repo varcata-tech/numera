@@ -1,5 +1,6 @@
 package app.numera.calculator.feature.graphing
 
+import kotlin.math.ln
 import kotlin.math.sin
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -59,6 +60,24 @@ class GraphingReadoutStateTest {
         val empty = traced.copy(plots = emptyList()).withoutStaleReadouts()
         assertNull(empty.trace)
         assertNull(empty.roots)
+    }
+
+    @Test
+    fun `a tap where the function has no value keeps a crosshair rather than deleting it`() {
+        // Writing null for an undefined column removed whatever crosshair was already on
+        // the graph: tapping left of the axis on ln(x) blanked the readout and hid the
+        // "Clear trace" button, exactly as if it had been pressed, and nothing said why.
+        val log = Plot("ln(x)", { x: Double -> ln(x) })
+        val undefined = traceFor(log, -2.0)
+        assertTrue("y should be NaN for ln(-2), was ${undefined.y}", undefined.y.isNaN())
+        assertEquals(-2.0, undefined.x, 0.0)
+        assertEquals("ln(x)", undefined.subject)
+        // And a defined column is the ordinary reading.
+        val defined = traceFor(log, 1.0)
+        assertEquals(0.0, defined.y, 0.0)
+        // A closure that throws rather than returning NaN is treated the same way.
+        val throwing = Plot("1/x", { _: Double -> throw ArithmeticException("divide by zero") })
+        assertTrue(traceFor(throwing, 0.0).y.isNaN())
     }
 
     @Test

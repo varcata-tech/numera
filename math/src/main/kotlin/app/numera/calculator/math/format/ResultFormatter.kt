@@ -48,6 +48,20 @@ object ResultFormatter {
     private const val MAX_SCIENTIFIC_EXPONENT = 1_000_000
 
     /**
+     * Digits computed past the last one shown, then dropped, when the rendering ends in `…`.
+     *
+     * The digits before an ellipsis must be a prefix of the expansion the ellipsis promises
+     * to continue, so they cannot be rounded: `2÷3` rounded to seventeen places ends in a
+     * `7` that is no digit of two thirds, and the next scroll redraws it as the `6` it always
+     * was — the user watches a digit they were shown change. They cannot be a bare
+     * truncation either: [ConstructiveReal.toStringTruncated] cuts an approximation that is
+     * only good to one unit in the last place, which is how `e` came to print one *low*.
+     * Rounding [GUARD_DIGITS] further out and then cutting is what makes the cut digit the
+     * value's own, short of an expansion that runs four consecutive nines past the cut.
+     */
+    private const val GUARD_DIGITS = 4
+
+    /**
      * The most recent value-to-real conversion.
      *
      * Result scrolling calls [formatWithDigits] repeatedly on the same value with a growing
@@ -65,11 +79,18 @@ object ResultFormatter {
      *
      * Switches to scientific notation when the magnitude no longer fits, or when the value
      * is so small that it would show as a row of zeros.
+     *
+     * [locale] has no default, here or on any other entry point that renders a
+     * [UnifiedReal], and the omission is deliberate: `Locale.getDefault()` is invisible to
+     * Compose, so a default argument would let a view model pair a line rendered in the
+     * configuration's locale with a verdict — [isExactlyDisplayable] — reached in the
+     * process default's, and the two disagree about width wherever grouping differs. The
+     * compiler is the only thing that enforces the pairing.
      */
-    fun formatShort(value: UnifiedReal, maxChars: Int, locale: Locale = Locale.getDefault()): String {
+    fun formatShort(value: UnifiedReal, maxChars: Int, locale: Locale): String = guarded {
         val budget = maxOf(maxChars, MIN_BUDGET)
         val exactDecimal = value.exactDecimalOrNull()
-        exactOrNull(exactDecimal, budget, locale)?.let { return it }
+        exactOrNull(exactDecimal, budget, locale)?.let { return@guarded it }
 
         val real = realOf(value)
         if (exactDecimal != null) {
@@ -79,16 +100,16 @@ object ResultFormatter {
             // places and every one of them really is a zero. A null here means the exact
             // decimal is all zeros, which is the one case where "0" is the whole truth.
             val exactExponent = exponentOf(exactDecimal)
-                ?: return localize("0", locale, grouping = true)
-            return render(real, exactExponent, budget, locale, significantDigits(exactDecimal))
+                ?: return@guarded localize("0", locale, grouping = true)
+            return@guarded render(real, exactExponent, budget, locale, significantDigits(exactDecimal))
         }
         // Indistinguishable from zero as far as the search looked, but not proven to be
         // zero — no finite number of digits can prove that. The ellipsis is the difference
         // between "this is zero" and "every digit examined was a zero", and only the second
         // is something the engine actually knows.
         val exponent = decimalExponent(real)
-            ?: return localize("0", locale, grouping = true) + ELLIPSIS
-        return render(real, exponent, budget, locale, significant = null)
+            ?: return@guarded localize("0", locale, grouping = true) + ELLIPSIS
+        render(real, exponent, budget, locale, significant = null)
     }
 
     /** Picks fixed-point or scientific for a value whose decimal exponent is now known. */
@@ -121,42 +142,46 @@ object ResultFormatter {
     fun formatShortOrNull(
         value: UnifiedReal,
         maxChars: Int,
-        locale: Locale = Locale.getDefault(),
+        locale: Locale,
     ): String? = try {
         formatShort(value, maxChars, locale)
     } catch (e: ArithmeticException) {
         // Every CalculationException — aborted, precision overflow, too much memory — is
         // one of these, as is the bare ArithmeticException BigInteger raises on its own.
+        // The two JVM Errors a deep value can raise arrive here as one too; see [guarded].
         null
     }
 
     /**
-     * Formats [value] with exactly [digits] places after the point.
+     * Formats [value] with at most [digits] places after the point.
      *
      * This is what result scrolling calls with an ever larger [digits]; it is cheap to call
      * repeatedly because the underlying approximation is refined rather than recomputed.
      *
-     * The count is clamped to what the value actually has. The underlying conversion pads to
-     * the width it is asked for, so scrolling an exact integer such as `2^100` would otherwise
-     * append fifty zeros that are not digits of anything — and then a hundred, and then two
-     * hundred, as the scroll doubles its request.
+     * The count is clamped to what the value actually has. A conversion that pads to the
+     * width it is asked for would append fifty zeros to an exact integer such as `2^100`
+     * that are not digits of anything — and then a hundred, and then two hundred, as the
+     * scroll doubles its request. A terminating value is cut from its own exact expansion
+     * rather than approximated, which is also what keeps its sign: `−10^−60` to fifty places
+     * is fifty zeros, and only the exact form still knows which side of zero they are on.
      *
-     * Rounded rather than truncated: see [ConstructiveReal.toStringRounded]. A truncating
-     * conversion left the final digit to whichever side the approximation happened to fall on,
-     * which is how `e` came to print one low while π, √2 and ln 2 printed correctly.
+     * Truncated, not rounded, because the caller appends an ellipsis whenever the count was
+     * clamped or the value does not terminate: see [GUARD_DIGITS] for why a rounded digit
+     * has no place in front of one, and [truncated] for why a bare truncation is no better.
      */
-    fun formatWithDigits(value: UnifiedReal, digits: Int, locale: Locale = Locale.getDefault()): String {
+    fun formatWithDigits(value: UnifiedReal, digits: Int, locale: Locale): String = guarded {
         val requested = maxOf(digits, 0)
-        val required = value.digitsRequired()
-        val places = if (required == null) requested else minOf(requested, required)
-        return localize(realOf(value).toStringRounded(places), locale, grouping = true)
+        val exact = value.exactDecimalOrNull()
+        val text =
+            if (exact != null) truncateDecimal(exact, requested) else truncated(realOf(value), requested)
+        localize(text, locale, grouping = true)
     }
 
     /** [formatWithDigits] as a total function; see [formatShortOrNull] for what `null` means. */
     fun formatWithDigitsOrNull(
         value: UnifiedReal,
         digits: Int,
-        locale: Locale = Locale.getDefault(),
+        locale: Locale,
     ): String? = try {
         formatWithDigits(value, digits, locale)
     } catch (e: ArithmeticException) {
@@ -174,16 +199,25 @@ object ResultFormatter {
      * terminates; otherwise cut to [digits] places, silently, because the caller is not a
      * display and an ellipsis would not survive being read back either.
      *
-     * This is what `CalculatorViewModel.clipboardPayload` copies. Rounded rather than
-     * truncated for the same reason [formatWithDigits] is: [ConstructiveReal.toStringTruncated]
-     * truncates an approximation that is only good to one unit in the last place, so its final
-     * digit is decided by luck and can sit one *above* the true expansion — a digit belonging
-     * to no rendering of the number. It would also disagree with the correctly rounded result
-     * line about half the time, so a value copied out of Numera would not match the value
-     * Numera was showing.
+     * This is what `CalculatorViewModel.clipboardPayload` copies. Rounded, unlike the result
+     * line, which truncates: the line's digits are followed by an ellipsis that promises the
+     * rest, so they must be a prefix of the expansion, while a copied decimal carries no
+     * ellipsis and stands in for the whole value, so it must be the *nearest* decimal of its
+     * width — the same contract as every other program's number formatting, and the only
+     * one a reader without the ellipsis can make sense of. The two agree on every digit but
+     * the last, which the line marks as unfinished and the copy does not. Rounding here is
+     * [ConstructiveReal.toStringRounded]'s, not a cut of an approximation whose final digit
+     * is decided by luck and can sit one *above* the true expansion.
+     *
+     * A value whose every requested digit is zero still carries its sign — `−0.000…0` is
+     * the honest copy of a tiny negative — because the rounding drops it, and a clipboard
+     * that turns a negative number into a positive one is a wrong answer, not a short one.
      */
-    fun formatPlain(value: UnifiedReal, digits: Int): String =
-        value.exactDecimalOrNull() ?: realOf(value).toStringRounded(maxOf(digits, 0))
+    fun formatPlain(value: UnifiedReal, digits: Int): String = guarded {
+        value.exactDecimalOrNull() ?: realOf(value).let { real ->
+            withSign(real, real.toStringRounded(maxOf(digits, 0)))
+        }
+    }
 
     /**
      * True when [value] fits in [maxChars] with every digit it has — no ellipsis needed.
@@ -193,12 +227,14 @@ object ResultFormatter {
      * grouping is not universal — `hi-IN` writes a fifteen-digit integer with six separators
      * where `en` writes four. Answering under one locale for a line rendered in another
      * produces a result that shows an ellipsis while reporting that nothing was dropped, and
-     * scrolling for more digits then refuses to move.
+     * scrolling for more digits then refuses to move. There is no default for the same
+     * reason: the one this used to have was `Locale.getDefault()`, which is exactly the
+     * unpaired locale a view model reaches for without noticing.
      */
     fun isExactlyDisplayable(
         value: UnifiedReal,
         maxChars: Int,
-        locale: Locale = Locale.getDefault(),
+        locale: Locale,
     ): Boolean =
         exactOrNull(value.exactDecimalOrNull(), maxOf(maxChars, MIN_BUDGET), locale) != null
 
@@ -308,11 +344,11 @@ object ResultFormatter {
     ): String {
         var places = budget - maxOf(exponent + 1, 1) - 2
         while (places > 0) {
-            val text = localize(real.toStringRounded(places), locale, grouping = true) + ELLIPSIS
+            val text = localize(truncated(real, places), locale, grouping = true) + ELLIPSIS
             if (text.length <= budget) return text
             places -= maxOf(text.length - budget, 1)
         }
-        val whole = localize(real.toStringTruncated(0), locale, grouping = true) + ELLIPSIS
+        val whole = localize(truncated(real, 0), locale, grouping = true) + ELLIPSIS
         if (whole.length <= budget) return whole
         return scientific(real, exponent, budget, locale, significant)
     }
@@ -347,7 +383,7 @@ object ResultFormatter {
             // a digit: a dropped digit that says so is worth more than a silent one.
             val exact = significant != null && significant - 1 <= room
             val places = if (exact) room else (room - 1).coerceAtLeast(0)
-            val mantissa = mantissaOf(real, exponent, places)
+            val mantissa = mantissaOf(real, exponent, places, exact)
             val shift = magnitudeCorrection(mantissa)
             val mantissaIsNegative = mantissa.startsWith("-")
             val body = localize(if (exact) trimZeros(mantissa) else mantissa, locale, false)
@@ -360,7 +396,15 @@ object ResultFormatter {
         return fallback
     }
 
-    private fun mantissaOf(real: ConstructiveReal, exponent: Int, places: Int): String {
+    /**
+     * The mantissa of [real] against `10^exponent`, to [places] places.
+     *
+     * Rounded only when [exact] says every significant digit fits, so nothing is being cut:
+     * an exact `10^30` must come out `1.000`, and a bare cut of its approximation can land
+     * on `0.999`. A mantissa that *will* be followed by an ellipsis is cut instead, for the
+     * reason given at [GUARD_DIGITS].
+     */
+    private fun mantissaOf(real: ConstructiveReal, exponent: Int, places: Int, exact: Boolean): String {
         // Past this the power of ten that normalises the mantissa is megabytes of
         // BigInteger. Returning the un-normalised value instead, as this used to, produced
         // a string that was not a mantissa at all: a million characters wide and with the
@@ -369,7 +413,7 @@ object ResultFormatter {
         if (abs(exponent) > MAX_SCIENTIFIC_EXPONENT) throw TooMuchMemoryException()
         val scale = ConstructiveReal.valueOf(BigInteger.TEN.pow(abs(exponent)))
         val mantissa = if (exponent >= 0) real / scale else real * scale
-        return mantissa.toStringRounded(places)
+        return if (exact) mantissa.toStringRounded(places) else truncated(mantissa, places)
     }
 
     /** −1 when the mantissa slipped below 1, +1 when it reached 10, 0 when it is in range. */
@@ -410,16 +454,34 @@ object ResultFormatter {
      * digit request runs engine code that can still abort or run out of room. Callers that
      * cannot tolerate an exception use [formatShortOrNull] and [formatWithDigitsOrNull].
      */
-    private fun decimalExponent(real: ConstructiveReal): Int? {
+    private fun decimalExponent(real: ConstructiveReal): Int? = magnitudeOf(real)?.exponent
+
+    /** Where a value's leading digit sits, and which side of zero it is on. */
+    private class Magnitude(val exponent: Int, val negative: Boolean)
+
+    /**
+     * The leading digit's power of ten and the value's sign, or `null` when the value cannot
+     * be told from zero; see [decimalExponent] for why it never asks the engine for either.
+     *
+     * The sign is read off the same approximation that located the digit, which is the one
+     * place it is reliable: an approximation good to one unit in its last place that is not
+     * zero has the sign of the value, whereas one that *is* zero — the rounded magnitude
+     * [ConstructiveReal.toStringRounded] drops the sign of — says nothing about it at all.
+     */
+    private fun magnitudeOf(real: ConstructiveReal): Magnitude? {
         val approx = real.toDouble()
-        if (approx.isFinite() && approx != 0.0) return floor(log10(abs(approx))).toInt()
+        if (approx.isFinite() && approx != 0.0) {
+            return Magnitude(floor(log10(abs(approx))).toInt(), approx < 0)
+        }
         if (approx.isInfinite()) {
-            val digits = real.toStringTruncated(0).removePrefix("-").trimStart('0')
-            return if (digits.isEmpty()) null else digits.length - 1
+            val whole = real.toStringTruncated(0)
+            val digits = whole.removePrefix("-").trimStart('0')
+            return if (digits.isEmpty()) null else Magnitude(digits.length - 1, whole.startsWith("-"))
         }
         var places = 32
         while (places <= MAX_ZERO_SEARCH_DIGITS) {
-            exponentOf(real.toStringTruncated(places))?.let { return it }
+            val text = real.toStringTruncated(places)
+            exponentOf(text)?.let { return Magnitude(it, text.startsWith("-")) }
             places *= 4
         }
         return null
@@ -463,6 +525,53 @@ object ResultFormatter {
         return result
     }
 
+    // ---------------------------------------------------------------- digits before an ellipsis
+
+    /**
+     * The first [places] decimals of [real], cut rather than rounded, sign intact.
+     *
+     * Computed [GUARD_DIGITS] further out, correctly rounded there, and then cut: a rounded
+     * final digit is not a digit of the number and cannot precede an ellipsis, but neither
+     * can [ConstructiveReal.toStringTruncated]'s, which cuts an approximation that may sit one
+     * unit *below* the value and so prints `e` one low. The guard moves the cut to where an
+     * error in the last computed place can no longer reach the last shown one.
+     */
+    private fun truncated(real: ConstructiveReal, places: Int): String {
+        val rounded = real.toStringRounded(places + GUARD_DIGITS)
+        val text = rounded.substring(0, rounded.length - GUARD_DIGITS).removeSuffix(".")
+        return withSign(real, text)
+    }
+
+    /**
+     * The first [places] decimals of an exact expansion, cut rather than rounded.
+     *
+     * String surgery, deliberately: the digits are already exact, so approximating the value
+     * again to reproduce them could only introduce a rounding decision — and would lose the
+     * sign of a value whose first [places] digits are all zero, which the text still holds.
+     */
+    private fun truncateDecimal(exact: String, places: Int): String {
+        val point = exact.indexOf('.')
+        if (point < 0) return exact
+        val end = minOf(exact.length, point + 1 + places)
+        return exact.substring(0, end).removeSuffix(".")
+    }
+
+    /**
+     * Restores the sign that a rendering of nothing but zeros has lost.
+     *
+     * [ConstructiveReal.toStringRounded] prints a value that rounds to zero without its sign,
+     * because it cannot tell `−0.000` from `0.000` — and neither can the user, except that
+     * one of them is a negative number whose digits start further out than the scroll has
+     * reached. `0 − 1 ÷ 10^60` scrolled to fifty places is fifty zeros on a line whose short
+     * form said `−1E−60`; without the sign, the two disagree. The search for it is bounded
+     * the way [magnitudeOf] is, so a value that is zero to every digit it looks at stays an
+     * unsigned zero, which is all the engine can honestly claim of it.
+     */
+    private fun withSign(real: ConstructiveReal, text: String): String {
+        if (text.startsWith("-") || text.any { it in '1'..'9' }) return text
+        return if (magnitudeOf(real)?.negative == true) "-$text" else text
+    }
+
     // ---------------------------------------------------------------- localisation
 
     private fun realOf(value: UnifiedReal): ConstructiveReal {
@@ -470,6 +579,28 @@ object ResultFormatter {
         val real = value.toConstructiveReal()
         memo = Memo(value, real)
         return real
+    }
+
+    /**
+     * Runs [block], turning the two JVM `Error`s a value can raise into the engine's own
+     * "too much memory" failure, which every caller already handles.
+     *
+     * Formatting is where a [UnifiedReal]'s lazy tree is finally descended, and the descent
+     * is recursive: `sin(1)+sin(1)+…` a few thousand terms long evaluates in constant stack,
+     * because each `+` only builds a node, and then overflows a worker thread's stack on the
+     * first digit request. A `StackOverflowError` is not an `ArithmeticException`, so it
+     * passed every catch on the way up — `runInterruptible`, `withTimeoutOrNull`, the view
+     * model — and ended the process. An `OutOfMemoryError` from the same descent, or from a
+     * power of ten wide enough to exhaust the heap, took the same route. Both are what the
+     * engine calls [TooMuchMemoryException] when it detects them in advance, and once the
+     * stack has unwound to here they are as recoverable as that is.
+     */
+    private inline fun <T> guarded(block: () -> T): T = try {
+        block()
+    } catch (e: StackOverflowError) {
+        throw TooMuchMemoryException()
+    } catch (e: OutOfMemoryError) {
+        throw TooMuchMemoryException()
     }
 
     /**
